@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { initialTasks } from '../../data/mock';
 import { useExtensionStorage } from '../../hooks/useExtensionStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
@@ -8,6 +8,7 @@ import type { TaskItem } from '../../types';
 export function TaskPanel() {
   const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const [selectedListId, setSelectedListId] = useExtensionStorage('mipanel.microsoft.selectedListId', '');
+  const [showCompleted, setShowCompleted] = useState(false);
   const microsoft = useMicrosoftTodo();
   const usingMicrosoft = microsoft.status === 'connected';
   const activeListId = microsoft.lists.some((list) => list.id === selectedListId)
@@ -20,13 +21,19 @@ export function TaskPanel() {
   const today = toDateKey(new Date());
 
   const visible = useMemo(
-    () => tasks.filter((task) => !task.completed).sort((a, b) => (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999')),
-    [tasks],
+    () => tasks
+      .filter((task) => showCompleted || !task.completed)
+      .sort((a, b) => Number(a.completed) - Number(b.completed)
+        || (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999')),
+    [showCompleted, tasks],
   );
 
-  function toggle(id: string) {
-    if (usingMicrosoft) return;
-    setDemoTasks((current) => current.map((task) => task.id === id ? { ...task, completed: !task.completed } : task));
+  function toggle(task: TaskItem) {
+    if (usingMicrosoft) {
+      void microsoft.toggleTask(task);
+      return;
+    }
+    setDemoTasks((current) => current.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item));
   }
 
   function resetMocks() {
@@ -37,7 +44,7 @@ export function TaskPanel() {
     unconfigured: 'Sin configurar',
     disconnected: 'Desconectado',
     connecting: 'Conectando…',
-    connected: 'Solo lectura',
+    connected: 'Conectado',
     error: 'Error',
   }[microsoft.status];
 
@@ -54,19 +61,29 @@ export function TaskPanel() {
       </div>
 
       {usingMicrosoft && (
-        <label className="task-list-filter">
-          <span>Lista de tareas</span>
-          <select
-            value={activeListId}
-            disabled={microsoft.busy || microsoft.lists.length === 0}
-            onChange={(event) => setSelectedListId(event.target.value)}
-          >
-            {microsoft.lists.length === 0 && <option value="">Sin listas disponibles</option>}
-            {microsoft.lists.map((list) => (
-              <option key={list.id} value={list.id}>{list.name}</option>
-            ))}
-          </select>
-        </label>
+        <div className="task-filters">
+          <label className="task-list-filter">
+            <span>Lista de tareas</span>
+            <select
+              value={activeListId}
+              disabled={microsoft.busy || microsoft.lists.length === 0}
+              onChange={(event) => setSelectedListId(event.target.value)}
+            >
+              {microsoft.lists.length === 0 && <option value="">Sin listas disponibles</option>}
+              {microsoft.lists.map((list) => (
+                <option key={list.id} value={list.id}>{list.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="completed-filter">
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={(event) => setShowCompleted(event.target.checked)}
+            />
+            Mostrar completadas
+          </label>
+        </div>
       )}
 
       <div className="task-list">
@@ -74,13 +91,13 @@ export function TaskPanel() {
           <p className="empty-state">No hay tareas pendientes para mostrar.</p>
         )}
         {visible.map((task) => (
-          <label className="task-row" key={task.id}>
+          <label className={`task-row${task.completed ? ' completed' : ''}`} key={task.id}>
             <input
               type="checkbox"
               checked={task.completed}
-              disabled={usingMicrosoft}
-              aria-label={usingMicrosoft ? `${task.title}, solo lectura` : task.title}
-              onChange={() => toggle(task.id)}
+              disabled={usingMicrosoft && microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
+              aria-label={task.completed ? `Reabrir ${task.title}` : `Completar ${task.title}`}
+              onChange={() => toggle(task)}
             />
             <span className="task-body">
               <span className="task-title">{task.important ? '★ ' : ''}{task.title}</span>
@@ -97,7 +114,7 @@ export function TaskPanel() {
       <div className="panel-footer">
         <span>
           {usingMicrosoft
-            ? `${visible.length} tareas pendientes en ${activeList?.name ?? 'la lista seleccionada'}. El calendario incluye todas las listas.`
+            ? microsoft.error ?? `${visible.filter((task) => !task.completed).length} tareas pendientes en ${activeList?.name ?? 'la lista seleccionada'}. El calendario incluye todas las listas.`
             : microsoft.error ?? 'Conecta Microsoft para sustituir temporalmente los datos demo.'}
         </span>
         <div className="panel-actions">

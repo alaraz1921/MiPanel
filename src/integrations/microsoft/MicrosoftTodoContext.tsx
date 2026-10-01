@@ -7,7 +7,11 @@ import {
   readMicrosoftSession,
   type MicrosoftTokenSession,
 } from './microsoftAuth';
-import { fetchMicrosoftTodoSnapshot, MicrosoftGraphError } from './microsoftGraph';
+import {
+  fetchMicrosoftTodoSnapshot,
+  MicrosoftGraphError,
+  updateMicrosoftTodoTaskStatus,
+} from './microsoftGraph';
 
 export type MicrosoftConnectionStatus =
   | 'unconfigured'
@@ -21,10 +25,12 @@ type MicrosoftTodoContextValue = {
   busy: boolean;
   lists: TaskList[];
   tasks: TaskItem[];
+  updatingTaskIds: string[];
   error?: string;
   connect: () => Promise<boolean>;
   disconnect: () => Promise<void>;
   refresh: () => Promise<void>;
+  toggleTask: (task: TaskItem) => Promise<boolean>;
 };
 
 const MicrosoftTodoContext = createContext<MicrosoftTodoContextValue | undefined>(undefined);
@@ -40,6 +46,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   const [busy, setBusy] = useState(configured);
   const [lists, setLists] = useState<TaskList[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [updatingTaskIds, setUpdatingTaskIds] = useState<string[]>([]);
   const [error, setError] = useState<string>();
   const requestVersion = useRef(0);
 
@@ -135,16 +142,63 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     await loadTasks(session, true);
   }
 
+  async function toggleTask(task: TaskItem) {
+    if (!task.listId) {
+      setError('La tarea no indica a qué lista de Microsoft pertenece.');
+      return false;
+    }
+
+    const session = await readMicrosoftSession();
+    if (!session) {
+      setStatus('disconnected');
+      setLists([]);
+      setTasks([]);
+      setError('La sesión de Microsoft ha caducado o necesita autorizar Tasks.ReadWrite. Vuelve a conectar la cuenta.');
+      return false;
+    }
+
+    const taskKey = `${task.listId}:${task.id}`;
+    const completed = !task.completed;
+    setUpdatingTaskIds((current) => [...current, taskKey]);
+    setTasks((current) => current.map((item) => (
+      item.id === task.id && item.listId === task.listId ? { ...item, completed } : item
+    )));
+    setError(undefined);
+
+    try {
+      await updateMicrosoftTodoTaskStatus(session.accessToken, task.listId, task.id, completed);
+      return true;
+    } catch (updateError) {
+      setTasks((current) => current.map((item) => (
+        item.id === task.id && item.listId === task.listId ? { ...item, completed: task.completed } : item
+      )));
+      if (updateError instanceof MicrosoftGraphError && updateError.status === 401) {
+        await clearMicrosoftSession();
+        setStatus('disconnected');
+        setLists([]);
+        setTasks([]);
+        setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
+      } else {
+        setError(readableError(updateError));
+      }
+      return false;
+    } finally {
+      setUpdatingTaskIds((current) => current.filter((id) => id !== taskKey));
+    }
+  }
+
   return (
     <MicrosoftTodoContext.Provider value={{
       status,
       busy,
       lists,
       tasks,
+      updatingTaskIds,
       error,
       connect,
       disconnect,
       refresh,
+      toggleTask,
     }}>
       {children}
     </MicrosoftTodoContext.Provider>

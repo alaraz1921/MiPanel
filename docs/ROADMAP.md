@@ -38,8 +38,10 @@
 
 ## Fase 2 — Edición de Microsoft To Do
 
-- [ ] Elevar a `Tasks.ReadWrite` cuando exista una función de escritura.
-- [ ] Crear, modificar, completar/reabrir y eliminar tareas.
+- [x] Elevar a `Tasks.ReadWrite` al incorporar la primera función de escritura.
+- [x] Completar y reabrir tareas.
+- [ ] Crear tareas en la lista seleccionada.
+- [ ] Modificar y eliminar tareas.
 - [ ] Editar fechas y recordatorios.
 
 ## Fase 3 — Google Calendar

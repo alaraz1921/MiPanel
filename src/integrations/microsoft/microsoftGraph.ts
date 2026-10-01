@@ -1,6 +1,6 @@
 import type { TaskItem, TaskList } from '../../types';
 
-export const MICROSOFT_SCOPES = ['Tasks.Read'];
+export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
@@ -60,19 +60,24 @@ function retryDelay(response: Response, attempt: number) {
   return 1000 * (2 ** attempt);
 }
 
-async function graphGet<T>(url: string, accessToken: string): Promise<T> {
+async function graphRequest<T>(url: string, accessToken: string, init?: RequestInit): Promise<T> {
   if (!url.startsWith(`${GRAPH_ROOT}/`)) throw new Error('URL de Microsoft Graph no permitida.');
   const requestPath = new URL(url).pathname;
 
   for (let attempt = 0; attempt <= MAX_THROTTLE_RETRIES; attempt += 1) {
     const response = await fetch(url, {
+      ...init,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/json',
+        ...init?.headers,
       },
     });
 
-    if (response.ok) return response.json() as Promise<T>;
+    if (response.ok) {
+      if (response.status === 204) return undefined as T;
+      return response.json() as Promise<T>;
+    }
 
     let graphError: GraphErrorResponse | undefined;
     try {
@@ -99,6 +104,10 @@ async function graphGet<T>(url: string, accessToken: string): Promise<T> {
   }
 
   throw new Error('No se pudo completar la petición a Microsoft Graph.');
+}
+
+function graphGet<T>(url: string, accessToken: string) {
+  return graphRequest<T>(url, accessToken);
 }
 
 async function getCollection<T>(initialUrl: string, accessToken: string) {
@@ -160,4 +169,23 @@ export async function fetchMicrosoftTodoSnapshot(accessToken: string): Promise<M
     lists: lists.map((list) => ({ id: list.id, name: list.displayName })),
     tasks,
   };
+}
+
+export async function updateMicrosoftTodoTaskStatus(
+  accessToken: string,
+  listId: string,
+  taskId: string,
+  completed: boolean,
+) {
+  const encodedListId = encodeURIComponent(listId);
+  const encodedTaskId = encodeURIComponent(taskId);
+  await graphRequest<void>(
+    `${GRAPH_ROOT}/me/todo/lists/${encodedListId}/tasks/${encodedTaskId}`,
+    accessToken,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: completed ? 'completed' : 'notStarted' }),
+    },
+  );
 }

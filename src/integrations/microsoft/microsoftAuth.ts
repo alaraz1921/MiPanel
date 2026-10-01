@@ -6,11 +6,13 @@ const REDIRECT_PATH = 'microsoft';
 export type MicrosoftTokenSession = {
   accessToken: string;
   expiresAt: number;
+  grantedScopes: string[];
 };
 
 type TokenResponse = {
   access_token?: string;
   expires_in?: number;
+  scope?: string;
   error?: string;
   error_description?: string;
 };
@@ -54,7 +56,8 @@ export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | un
   if (typeof chrome === 'undefined' || !chrome.storage?.session) return undefined;
   const result = await chrome.storage.session.get(SESSION_KEY);
   const session = result[SESSION_KEY] as MicrosoftTokenSession | undefined;
-  if (!session || session.expiresAt <= Date.now() + 60_000) {
+  const hasRequiredScopes = MICROSOFT_SCOPES.every((scope) => session?.grantedScopes?.includes(scope));
+  if (!session || !hasRequiredScopes || session.expiresAt <= Date.now() + 60_000) {
     await chrome.storage.session.remove(SESSION_KEY);
     return undefined;
   }
@@ -134,6 +137,7 @@ export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
   const session: MicrosoftTokenSession = {
     accessToken: token.access_token,
     expiresAt: Date.now() + Math.max(token.expires_in ?? 3600, 60) * 1000,
+    grantedScopes: (token.scope ?? MICROSOFT_SCOPES.join(' ')).split(' ').filter(Boolean),
   };
   await chrome.storage.session.set({ [SESSION_KEY]: session });
   return session;

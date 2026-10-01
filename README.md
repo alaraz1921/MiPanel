@@ -2,7 +2,7 @@
 
 MiPanel es una extensión Chromium Manifest V3 para escritorio que sustituye la página de nueva pestaña por un panel personal de productividad. Una única base React + TypeScript + Vite sirve para Google Chrome, Brave y Microsoft Edge.
 
-La versión actual mantiene buscador, reloj, accesos directos y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do en modo de solo lectura. El panel permite elegir una lista concreta, mientras el calendario conserva los vencimientos y recordatorios de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
+La versión actual mantiene buscador, reloj, accesos directos y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do. El panel permite elegir una lista concreta y completar o reabrir sus tareas, mientras el calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
 
 ## Requisitos de desarrollo
 
@@ -35,9 +35,9 @@ La extensión guarda `mipanel.shortcuts`, `mipanel.mockTasks` y la preferencia `
 
 No existe migración automática desde el antiguo origen localhost: ambos orígenes están aislados. `chrome.storage.sync` no se usa en esta fase y, si se estudia más adelante, solo servirá para preferencias pequeñas y no sensibles; no proporciona sincronización universal entre Chrome, Brave y Edge.
 
-## Microsoft To Do — configuración de lectura
+## Microsoft To Do — configuración
 
-La integración usa Authorization Code + PKCE, `chrome.identity` y el permiso delegado mínimo `Tasks.Read`. No utiliza client secret, permisos de escritura ni refresh tokens persistentes.
+La integración usa Authorization Code + PKCE, `chrome.identity` y el permiso delegado `Tasks.ReadWrite`, necesario para completar y reabrir tareas. No utiliza client secret ni refresh tokens persistentes.
 
 La aplicación se registra y configura una sola vez por el desarrollador. Esa configuración técnica no se solicita a cada usuario.
 
@@ -47,7 +47,7 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
    https://<ID_DE_LA_EXTENSION>.chromiumapp.org/microsoft
    ```
 
-2. Añade Microsoft Graph → permisos delegados → `Tasks.Read`.
+2. Añade Microsoft Graph → permisos delegados → `Tasks.ReadWrite`.
 3. Crea `.env.local` con la configuración pública de la aplicación:
 
    ```dotenv
@@ -65,7 +65,7 @@ Chrome Web Store y Edge Add-ons pueden asignar IDs diferentes. Registra cada red
 
 - El manifiesto solicita `storage` e `identity`.
 - Los únicos hosts permitidos son Microsoft Graph y Microsoft Login.
-- No hay permisos de escritura, content scripts ni service worker.
+- La escritura se limita a completar o reabrir tareas mediante Microsoft Graph; no hay content scripts ni service worker.
 - Todo JavaScript se empaqueta localmente; no hay scripts remotos.
 - Las variables `VITE_*` son públicas porque terminan en el bundle. Nunca deben contener secretos.
 - `.github/workflows/ci-extension.yml` ejecuta `npm ci`, typecheck y build, valida los archivos esenciales y publica un artifact ZIP con `manifest.json` en su raíz.

@@ -185,13 +185,13 @@ POST  /me/todo/lists/{todoTaskListId}/tasks
 PATCH /me/todo/lists/{todoTaskListId}/tasks/{todoTaskId}
 ```
 
-Permiso delegado inicial de lectura:
+Permiso delegado de la Fase 2:
 
 ```text
-Tasks.Read
+Tasks.ReadWrite
 ```
 
-`Tasks.ReadWrite` se reservará para la fase de creación y edición. Se utilizará autenticación interactiva y autorización del usuario; no se guardarán credenciales.
+`Tasks.ReadWrite` se solicita al existir ya la función de completar y reabrir tareas. Se utiliza autenticación interactiva y autorización del usuario; no se guardan credenciales.
 
 Para sincronización incremental se valorará:
 
@@ -375,7 +375,7 @@ La Fase 1 queda lista para validación real cuando:
 
 - el manifiesto solo añade `identity` y los hosts concretos de Microsoft;
 - el flujo usa PKCE, state y no incluye client secret;
-- solo se solicita `Tasks.Read`;
+- durante la Fase 1 solo se solicita `Tasks.Read` y la Fase 2 documenta el cambio a `Tasks.ReadWrite`;
 - listas y tareas se normalizan a los tipos internos;
 - vencimientos y recordatorios aparecen en el calendario;
 - sin Client ID o sin sesión se mantiene el modo demo;

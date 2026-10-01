@@ -36,4 +36,8 @@ La carpeta `dist` resultante es la extensión desempaquetada. Repite `npm run bu
 
 En cada navegador verifica buscador, accesos, reloj, tareas, calendario, persistencia tras abrir otra pestaña y ausencia de errores en la ficha de la extensión y DevTools. MiPanel no necesita localhost ni una URL pública. `npm run dev` es solo una ayuda opcional de maquetación.
 
+Tras cualquier cambio de código, ejecuta siempre `npm run typecheck` y `npm run build`; después pulsa **Recargar** en la página de extensiones antes de abrir una pestaña nueva.
+
+Para probar Microsoft To Do, sigue primero la configuración de Entra descrita en `README.md`. Cada navegador o distribución puede tener un ID diferente y, por tanto, un redirect distinto.
+
 No introduzcas credenciales en el código ni en archivos versionados.

@@ -36,7 +36,7 @@ jobs:
         run: |
           test -f dist/manifest.json
           test -f dist/index.html
-          node -e "const m=require('./dist/manifest.json'); if(m.manifest_version!==3 || m.chrome_url_overrides?.newtab!=='index.html') process.exit(1)"
+          node -e "const m=require('./dist/manifest.json'); const p=require('./package.json'); if(m.manifest_version!==3 || m.chrome_url_overrides?.newtab!=='index.html' || m.version!==p.version) process.exit(1)"
 
       - name: Crear ZIP instalable
         working-directory: dist

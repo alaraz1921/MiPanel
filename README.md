@@ -2,7 +2,7 @@
 
 MiPanel es una extensión Chromium Manifest V3 para escritorio que sustituye la página de nueva pestaña por un panel personal de productividad. Una única base React + TypeScript + Vite sirve para Google Chrome, Brave y Microsoft Edge.
 
-La versión actual mantiene datos de demostración: buscador web, reloj, accesos directos configurables, tareas y calendario mensual. Microsoft To Do y Google Calendar se integrarán en fases posteriores; todavía no existe OAuth, backend propio ni sincronización cloud entre navegadores.
+La versión actual mantiene buscador, reloj, accesos directos y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do en modo de solo lectura. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
 
 ## Requisitos de desarrollo
 
@@ -35,10 +35,35 @@ La extensión guarda `mipanel.shortcuts` y `mipanel.mockTasks` en `chrome.storag
 
 No existe migración automática desde el antiguo origen localhost: ambos orígenes están aislados. `chrome.storage.sync` no se usa en esta fase y, si se estudia más adelante, solo servirá para preferencias pequeñas y no sensibles; no proporciona sincronización universal entre Chrome, Brave y Edge.
 
+## Microsoft To Do — configuración de lectura
+
+La integración usa Authorization Code + PKCE, `chrome.identity` y el permiso delegado mínimo `Tasks.Read`. No utiliza client secret, permisos de escritura ni refresh tokens persistentes.
+
+1. Carga `dist/` como extensión y copia su ID desde la página de extensiones.
+2. En Microsoft Entra registra una aplicación compatible con los tipos de cuenta que quieras admitir.
+3. Añade como plataforma **Aplicación de página única (SPA)** el redirect exacto:
+
+   ```text
+   https://<ID_DE_LA_EXTENSION>.chromiumapp.org/microsoft
+   ```
+
+4. Añade Microsoft Graph → permisos delegados → `Tasks.Read`.
+5. Crea `.env.local` sin secretos:
+
+   ```dotenv
+   VITE_MICROSOFT_CLIENT_ID=<application-client-id>
+   VITE_MICROSOFT_TENANT=common
+   ```
+
+6. Ejecuta `npm run typecheck` y `npm run build`, recarga la extensión y pulsa **Conectar Microsoft**.
+
+Chrome Web Store y Edge Add-ons pueden asignar IDs diferentes. Registra cada redirect real antes de probar esa distribución. La sesión se guarda en `chrome.storage.session`, solo en memoria, y puede requerir reconexión cuando caduque o se reinicie el navegador.
+
 ## Seguridad y CI
 
-- El manifiesto solo solicita `storage`.
-- No hay `identity`, permisos de host, content scripts ni service worker.
+- El manifiesto solicita `storage` e `identity`.
+- Los únicos hosts permitidos son Microsoft Graph y Microsoft Login.
+- No hay permisos de escritura, content scripts ni service worker.
 - Todo JavaScript se empaqueta localmente; no hay scripts remotos.
 - Las variables `VITE_*` son públicas porque terminan en el bundle. Nunca deben contener secretos.
 - `.github/workflows/ci-extension.yml` ejecuta `npm ci`, typecheck y build, valida los archivos esenciales y publica un artifact ZIP con `manifest.json` en su raíz.

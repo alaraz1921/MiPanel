@@ -1,22 +1,22 @@
-# Prompt sugerido para la siguiente fase
+# Prompt sugerido para validar Microsoft To Do
 
-Usar únicamente después de confirmar que la Fase 0.5 funciona en Chrome, Brave y Edge:
+La implementación de lectura ya existe. Usar este texto cuando se disponga de un registro real en Microsoft Entra:
 
 ---
 
 Lee `AGENTS.md`, `docs/ESPECIFICACION_MIPANEL.md` y `docs/ROADMAP.md` antes de tocar código.
 
-Implementa solo la Fase 1: autenticación de Microsoft como cliente público y lectura de Microsoft To Do en la extensión Chromium.
+Completa la validación real de la Fase 1 de Microsoft To Do sin ampliar permisos ni añadir escritura.
 
+- Revisa la implementación existente antes de modificarla.
+- Configura el Client ID público mediante `.env.local` y registra el redirect real de cada extensión.
+- Verifica conexión, desconexión, caducidad de sesión y actualización bajo demanda.
+- Comprueba listas, tareas, vencimientos y recordatorios con una cuenta real.
+- Mantén únicamente `Tasks.Read`; no implementes creación, edición, completado ni borrado.
+- Nunca uses client secret ni persistas tokens fuera de `chrome.storage.session`.
 - Mantén el modo demo cuando Microsoft no esté configurado o conectado.
-- Solicita únicamente `Tasks.Read`; no implementes creación, edición, completado ni borrado.
-- Estudia Authorization Code + PKCE y las APIs de identidad de extensión adecuadas.
-- Obtén el redirect a partir del ID real de la extensión; no uses localhost.
-- Considera que Chrome Web Store y Edge Add-ons pueden asignar IDs distintos.
-- Nunca uses client secret ni almacenes tokens sensibles en `chrome.storage.sync`.
-- Conserva tipos internos normalizados y las integraciones separadas por proveedor.
 - No implementes Google Calendar, backend, Electron, Tauri ni PWA.
-- Documenta la configuración de Entra y cualquier prueba manual necesaria.
+- Documenta los resultados de Chrome, Brave y Edge sin publicar en tiendas.
 
 Antes de terminar, ejecuta `npm run typecheck` y `npm run build` y prueba la extensión compilada.
 

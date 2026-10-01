@@ -15,7 +15,7 @@
 - [x] Sincronización inmediata entre tareas y calendario.
 - [x] CI con typecheck, build y ZIP instalable.
 - [x] Documentación de instalación y pruebas.
-- [ ] Completar pruebas manuales reales en Chrome, Brave y Edge.
+- [x] Completar pruebas manuales reales en Chrome, Brave y Edge.
 
 ## Fase 0.75 — Distribución (solo tras confirmación)
 
@@ -27,11 +27,12 @@
 ## Fase 1 — Microsoft To Do en lectura
 
 - [ ] Registrar la aplicación y definir redirects reales según cada ID de extensión.
-- [ ] Implementar cliente público con Authorization Code + PKCE.
-- [ ] Conectar/desconectar cuenta sin client secret.
-- [ ] Solicitar inicialmente `Tasks.Read`.
-- [ ] Leer listas, tareas, vencimientos y recordatorios.
-- [ ] Integrar datos normalizados en dashboard y calendario.
+- [x] Implementar cliente público con Authorization Code + PKCE.
+- [x] Conectar/desconectar cuenta sin client secret.
+- [x] Solicitar únicamente `Tasks.Read`.
+- [x] Leer listas, tareas, vencimientos y recordatorios.
+- [x] Integrar datos normalizados en dashboard y calendario.
+- [ ] Configurar un Client ID real y completar pruebas con cuentas Microsoft.
 
 ## Fase 2 — Edición de Microsoft To Do
 

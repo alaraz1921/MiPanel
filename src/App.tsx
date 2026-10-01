@@ -23,7 +23,7 @@ export default function App() {
       </div>
 
       <footer className="footer-note">
-        Versión 0.1 · Extensión Chromium con datos locales de demostración. Microsoft To Do y Google Calendar se conectarán en las siguientes fases.
+        Versión 0.2 · Microsoft To Do en lectura opcional. El modo demo sigue disponible sin cuentas conectadas.
       </footer>
     </main>
   );

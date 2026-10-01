@@ -1,6 +1,6 @@
 # Especificación funcional y técnica — MiPanel
 
-**Versión:** 0.2
+**Versión:** 0.3
 **Fecha:** 01/10/2026
 **Estado:** extensión Chromium Manifest V3 con modo demo
 
@@ -56,11 +56,17 @@ Los accesos son datos propios de MiPanel. No dependen de los favoritos del naveg
 
 ### 4.3 Microsoft To Do
 
-Debe ser posible, por fases:
+La Fase 1 implementa en modo de solo lectura:
 
 - iniciar sesión con Microsoft;
 - leer las listas de To Do;
 - leer tareas;
+- mostrar vencimientos y recordatorios en el calendario;
+- actualizar bajo demanda;
+- desconectar la sesión local.
+
+La Fase 2 añadirá:
+
 - crear tareas;
 - modificar título, estado, importancia, vencimiento y recordatorio;
 - completar/reabrir tareas;
@@ -131,6 +137,8 @@ La aplicación debe seguir siendo utilizable como dashboard cuando no haya ningu
 - Manifest V3 en `public/manifest.json`, copiado a la raíz de `dist/`.
 - `chrome_url_overrides.newtab` apunta a `index.html`.
 - CSS propio inicialmente para reducir dependencias.
+- Permisos `storage` e `identity`.
+- Host permissions limitados a Microsoft Login y Microsoft Graph.
 - Sin router, service worker, content scripts ni código remoto mientras no sean necesarios.
 
 ### 5.2 Integraciones
@@ -213,9 +221,9 @@ No solicitar permisos de escritura hasta que haya una función concreta que los 
 
 ## 8. Configuración OAuth
 
-OAuth no está implementado en la Fase 0.5. Una extensión es un cliente público: no puede proteger un client secret. La futura implementación deberá usar Authorization Code + PKCE y evaluar `chrome.identity.launchWebAuthFlow` cuando corresponda.
+Microsoft OAuth está implementado como cliente público mediante Authorization Code + PKCE y `chrome.identity.launchWebAuthFlow`. La extensión no puede proteger un client secret y no incluye ninguno.
 
-`chrome.identity.getRedirectURL()` depende del ID de la extensión. Chrome Web Store y Edge Add-ons pueden asignar IDs distintos, por lo que cada distribución deberá registrar sus redirects reales. El permiso `identity` no se solicitará hasta que exista la función que lo necesite.
+`chrome.identity.getRedirectURL('microsoft')` genera un redirect dependiente del ID de la extensión. Chrome Web Store y Edge Add-ons pueden asignar IDs distintos, por lo que cada distribución debe registrar sus redirects reales.
 
 ### Microsoft
 
@@ -227,6 +235,8 @@ VITE_MICROSOFT_TENANT=common
 ```
 
 La app registrada en Microsoft Entra deberá admitir las URI de redirección de los IDs reales de extensión.
+
+El token de acceso se guarda únicamente en `chrome.storage.session`, que reside en memoria. No se solicita `offline_access` ni se persiste un refresh token en esta fase. Al caducar la sesión se solicita al usuario conectar de nuevo.
 
 ### Google
 
@@ -360,6 +370,17 @@ La Fase 0.5 puede considerarse completa cuando:
 - CI ejecuta `npm ci`, typecheck y build y genera un ZIP instalable;
 - las pruebas reales pendientes se documentan sin afirmar resultados no comprobados.
 
+La Fase 1 queda lista para validación real cuando:
+
+- el manifiesto solo añade `identity` y los hosts concretos de Microsoft;
+- el flujo usa PKCE, state y no incluye client secret;
+- solo se solicita `Tasks.Read`;
+- listas y tareas se normalizan a los tipos internos;
+- vencimientos y recordatorios aparecen en el calendario;
+- sin Client ID o sin sesión se mantiene el modo demo;
+- los tokens no se escriben en `localStorage`, `chrome.storage.local` ni `chrome.storage.sync`;
+- un Client ID y redirects reales permiten completar pruebas en Chrome, Brave y Edge.
+
 ## 17. Referencias oficiales
 
 Microsoft Graph — To Do API overview:
@@ -376,3 +397,9 @@ https://developers.google.com/workspace/calendar/api/auth
 
 Google Calendar API — JavaScript quickstart:
 https://developers.google.com/workspace/calendar/api/quickstart/js
+
+Chrome Extensions — Identity API:
+https://developer.chrome.com/docs/extensions/reference/api/identity
+
+Chrome Extensions — Storage API:
+https://developer.chrome.com/docs/extensions/reference/api/storage

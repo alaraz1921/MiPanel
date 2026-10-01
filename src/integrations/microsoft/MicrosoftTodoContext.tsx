@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
-import type { TaskItem, TaskList } from '../../types';
+import type { TaskFields, TaskItem, TaskList } from '../../types';
 import {
   clearMicrosoftSession,
   connectMicrosoft,
@@ -8,10 +8,18 @@ import {
   type MicrosoftTokenSession,
 } from './microsoftAuth';
 import {
+  createMicrosoftTodoTask,
+  deleteMicrosoftTodoTask,
   fetchMicrosoftTodoSnapshot,
   MicrosoftGraphError,
+  updateMicrosoftTodoTask,
   updateMicrosoftTodoTaskStatus,
 } from './microsoftGraph';
+import {
+  clearMicrosoftTodoCache,
+  readMicrosoftTodoCache,
+  writeMicrosoftTodoCache,
+} from './microsoftCache';
 
 export type MicrosoftConnectionStatus =
   | 'unconfigured'
@@ -25,12 +33,16 @@ type MicrosoftTodoContextValue = {
   busy: boolean;
   lists: TaskList[];
   tasks: TaskItem[];
+  creatingTask: boolean;
   updatingTaskIds: string[];
   error?: string;
   connect: () => Promise<boolean>;
   disconnect: () => Promise<void>;
   refresh: () => Promise<void>;
   toggleTask: (task: TaskItem) => Promise<boolean>;
+  createTask: (listId: string, fields: TaskFields) => Promise<boolean>;
+  updateTask: (task: TaskItem, fields: TaskFields) => Promise<boolean>;
+  deleteTask: (task: TaskItem) => Promise<boolean>;
 };
 
 const MicrosoftTodoContext = createContext<MicrosoftTodoContextValue | undefined>(undefined);
@@ -46,9 +58,63 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   const [busy, setBusy] = useState(configured);
   const [lists, setLists] = useState<TaskList[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [creatingTask, setCreatingTask] = useState(false);
   const [updatingTaskIds, setUpdatingTaskIds] = useState<string[]>([]);
   const [error, setError] = useState<string>();
+  const listsRef = useRef<TaskList[]>([]);
+  const tasksRef = useRef<TaskItem[]>([]);
   const requestVersion = useRef(0);
+
+  function applySnapshot(nextLists: TaskList[], nextTasks: TaskItem[], cache = true) {
+    listsRef.current = nextLists;
+    tasksRef.current = nextTasks;
+    setLists(nextLists);
+    setTasks(nextTasks);
+    if (cache) {
+      void writeMicrosoftTodoCache({ lists: nextLists, tasks: nextTasks }).catch(() => undefined);
+    }
+  }
+
+  async function clearRemoteState() {
+    applySnapshot([], [], false);
+    await clearMicrosoftTodoCache();
+  }
+
+  function replaceTask(nextTask: TaskItem) {
+    const nextTasks = tasksRef.current.map((task) => (
+      task.id === nextTask.id && task.listId === nextTask.listId ? nextTask : task
+    ));
+    applySnapshot(listsRef.current, nextTasks);
+  }
+
+  function removeTask(taskToRemove: TaskItem) {
+    const nextTasks = tasksRef.current.filter((task) => (
+      task.id !== taskToRemove.id || task.listId !== taskToRemove.listId
+    ));
+    applySnapshot(listsRef.current, nextTasks);
+  }
+
+  async function handleMutationError(mutationError: unknown) {
+    if (mutationError instanceof MicrosoftGraphError && mutationError.status === 401) {
+      await clearMicrosoftSession();
+      await clearRemoteState();
+      setStatus('disconnected');
+      setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
+    } else if (mutationError instanceof MicrosoftGraphError && mutationError.status === 403) {
+      setError('Microsoft no ha concedido Tasks.ReadWrite a esta sesión. Desconecta y vuelve a conectar para aceptar el permiso.');
+    } else {
+      setError(readableError(mutationError));
+    }
+  }
+
+  async function activeSession() {
+    const session = await readMicrosoftSession();
+    if (session) return session;
+    setStatus('disconnected');
+    await clearRemoteState();
+    setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
+    return undefined;
+  }
 
   async function loadTasks(session: MicrosoftTokenSession, keepConnected = false) {
     const version = ++requestVersion.current;
@@ -59,14 +125,14 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     try {
       const snapshot = await fetchMicrosoftTodoSnapshot(session.accessToken);
       if (version !== requestVersion.current) return false;
-      setLists(snapshot.lists);
-      setTasks(snapshot.tasks);
+      applySnapshot(snapshot.lists, snapshot.tasks);
       setStatus('connected');
       return true;
     } catch (loadError) {
       if (version !== requestVersion.current) return false;
       if (loadError instanceof MicrosoftGraphError && loadError.status === 401) {
         await clearMicrosoftSession();
+        await clearRemoteState();
         setStatus('disconnected');
         setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
       } else {
@@ -88,6 +154,14 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
         if (version !== requestVersion.current) return;
         if (!session) {
           setStatus('disconnected');
+          setBusy(false);
+          return;
+        }
+        const cached = await readMicrosoftTodoCache();
+        if (version !== requestVersion.current) return;
+        if (cached) {
+          applySnapshot(cached.lists, cached.tasks, false);
+          setStatus('connected');
           setBusy(false);
           return;
         }
@@ -123,22 +197,15 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   async function disconnect() {
     requestVersion.current += 1;
     await clearMicrosoftSession();
-    setLists([]);
-    setTasks([]);
+    await clearRemoteState();
     setError(undefined);
     setBusy(false);
     setStatus(configured ? 'disconnected' : 'unconfigured');
   }
 
   async function refresh() {
-    const session = await readMicrosoftSession();
-    if (!session) {
-      setStatus('disconnected');
-      setLists([]);
-      setTasks([]);
-      setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
-      return;
-    }
+    const session = await activeSession();
+    if (!session) return;
     await loadTasks(session, true);
   }
 
@@ -148,41 +215,90 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       return false;
     }
 
-    const session = await readMicrosoftSession();
-    if (!session) {
-      setStatus('disconnected');
-      setLists([]);
-      setTasks([]);
-      setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
-      return false;
-    }
+    const session = await activeSession();
+    if (!session) return false;
 
     const taskKey = `${task.listId}:${task.id}`;
     const completed = !task.completed;
     setUpdatingTaskIds((current) => [...current, taskKey]);
-    setTasks((current) => current.map((item) => (
-      item.id === task.id && item.listId === task.listId ? { ...item, completed } : item
-    )));
+    replaceTask({ ...task, completed });
     setError(undefined);
 
     try {
       await updateMicrosoftTodoTaskStatus(session.accessToken, task.listId, task.id, completed);
       return true;
     } catch (updateError) {
-      setTasks((current) => current.map((item) => (
-        item.id === task.id && item.listId === task.listId ? { ...item, completed: task.completed } : item
-      )));
-      if (updateError instanceof MicrosoftGraphError && updateError.status === 401) {
-        await clearMicrosoftSession();
-        setStatus('disconnected');
-        setLists([]);
-        setTasks([]);
-        setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
-      } else if (updateError instanceof MicrosoftGraphError && updateError.status === 403) {
-        setError('Microsoft no ha concedido Tasks.ReadWrite a esta sesión. Desconecta y vuelve a conectar para aceptar el permiso.');
-      } else {
-        setError(readableError(updateError));
-      }
+      replaceTask(task);
+      await handleMutationError(updateError);
+      return false;
+    } finally {
+      setUpdatingTaskIds((current) => current.filter((id) => id !== taskKey));
+    }
+  }
+
+  async function createTask(listId: string, fields: TaskFields) {
+    const list = listsRef.current.find((item) => item.id === listId);
+    if (!list) {
+      setError('Selecciona una lista de Microsoft válida.');
+      return false;
+    }
+    const session = await activeSession();
+    if (!session) return false;
+
+    setCreatingTask(true);
+    setError(undefined);
+    try {
+      const created = await createMicrosoftTodoTask(session.accessToken, list, fields);
+      applySnapshot(listsRef.current, [created, ...tasksRef.current]);
+      return true;
+    } catch (createError) {
+      await handleMutationError(createError);
+      return false;
+    } finally {
+      setCreatingTask(false);
+    }
+  }
+
+  async function updateTask(task: TaskItem, fields: TaskFields) {
+    if (!task.listId) {
+      setError('La tarea no indica a qué lista de Microsoft pertenece.');
+      return false;
+    }
+    const session = await activeSession();
+    if (!session) return false;
+
+    const taskKey = `${task.listId}:${task.id}`;
+    setUpdatingTaskIds((current) => [...current, taskKey]);
+    setError(undefined);
+    try {
+      const updated = await updateMicrosoftTodoTask(session.accessToken, task, fields);
+      replaceTask(updated);
+      return true;
+    } catch (updateError) {
+      await handleMutationError(updateError);
+      return false;
+    } finally {
+      setUpdatingTaskIds((current) => current.filter((id) => id !== taskKey));
+    }
+  }
+
+  async function deleteTask(task: TaskItem) {
+    if (!task.listId) {
+      setError('La tarea no indica a qué lista de Microsoft pertenece.');
+      return false;
+    }
+    const session = await activeSession();
+    if (!session) return false;
+
+    const taskKey = `${task.listId}:${task.id}`;
+    setUpdatingTaskIds((current) => [...current, taskKey]);
+    setError(undefined);
+    try {
+      await deleteMicrosoftTodoTask(session.accessToken, task);
+      removeTask(task);
+      return true;
+    } catch (deleteError) {
+      await handleMutationError(deleteError);
       return false;
     } finally {
       setUpdatingTaskIds((current) => current.filter((id) => id !== taskKey));
@@ -195,12 +311,16 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       busy,
       lists,
       tasks,
+      creatingTask,
       updatingTaskIds,
       error,
       connect,
       disconnect,
       refresh,
       toggleTask,
+      createTask,
+      updateTask,
+      deleteTask,
     }}>
       {children}
     </MicrosoftTodoContext.Provider>

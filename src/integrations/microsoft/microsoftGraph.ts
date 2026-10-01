@@ -1,4 +1,4 @@
-import type { TaskItem, TaskList } from '../../types';
+import type { TaskFields, TaskItem, TaskList } from '../../types';
 
 export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 
@@ -25,8 +25,8 @@ type GraphTodoTask = {
   title: string;
   status: string;
   importance?: string;
-  dueDateTime?: GraphDateTime;
-  reminderDateTime?: GraphDateTime;
+  dueDateTime?: GraphDateTime | null;
+  reminderDateTime?: GraphDateTime | null;
   isReminderOn?: boolean;
 };
 
@@ -122,12 +122,18 @@ async function getCollection<T>(initialUrl: string, accessToken: string) {
   return items;
 }
 
-function datePart(value?: GraphDateTime) {
+function datePart(value?: GraphDateTime | null) {
   return value?.dateTime.slice(0, 10);
 }
 
-function dateTimePart(value?: GraphDateTime) {
-  return value?.dateTime.slice(0, 16);
+function dateTimePart(value?: GraphDateTime | null) {
+  if (!value) return undefined;
+  if (value.timeZone.toUpperCase() !== 'UTC') return value.dateTime.slice(0, 16);
+
+  const date = new Date(`${value.dateTime.replace(/Z$/, '')}Z`);
+  if (Number.isNaN(date.getTime())) return value.dateTime.slice(0, 16);
+  const pad = (part: number) => part.toString().padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function normalizeTask(task: GraphTodoTask, list: GraphTodoList): TaskItem {
@@ -148,6 +154,39 @@ export type MicrosoftTodoSnapshot = {
   lists: TaskList[];
   tasks: TaskItem[];
 };
+
+function taskUrl(listId: string, taskId?: string) {
+  const listPath = encodeURIComponent(listId);
+  const taskPath = taskId ? `/${encodeURIComponent(taskId)}` : '';
+  return `${GRAPH_ROOT}/me/todo/lists/${listPath}/tasks${taskPath}`;
+}
+
+function graphDate(date?: string): GraphDateTime | null {
+  return date ? { dateTime: `${date}T00:00:00`, timeZone: 'UTC' } : null;
+}
+
+function graphReminder(dateTime?: string): GraphDateTime | null {
+  if (!dateTime) return null;
+  const date = new Date(dateTime);
+  if (Number.isNaN(date.getTime())) throw new Error('La fecha del recordatorio no es válida.');
+  return { dateTime: date.toISOString().replace(/Z$/, ''), timeZone: 'UTC' };
+}
+
+function taskBody(fields: TaskFields, clearMissingDates: boolean) {
+  const title = fields.title.trim();
+  if (!title) throw new Error('El título de la tarea es obligatorio.');
+  return {
+    title,
+    importance: fields.important ? 'high' : 'normal',
+    ...(fields.dueDate || clearMissingDates ? { dueDateTime: graphDate(fields.dueDate) } : {}),
+    ...(fields.reminderDateTime || clearMissingDates
+      ? {
+          reminderDateTime: graphReminder(fields.reminderDateTime),
+          isReminderOn: Boolean(fields.reminderDateTime),
+        }
+      : {}),
+  };
+}
 
 export async function fetchMicrosoftTodoSnapshot(accessToken: string): Promise<MicrosoftTodoSnapshot> {
   const lists = await getCollection<GraphTodoList>(
@@ -177,10 +216,8 @@ export async function updateMicrosoftTodoTaskStatus(
   taskId: string,
   completed: boolean,
 ) {
-  const encodedListId = encodeURIComponent(listId);
-  const encodedTaskId = encodeURIComponent(taskId);
   await graphRequest<void>(
-    `${GRAPH_ROOT}/me/todo/lists/${encodedListId}/tasks/${encodedTaskId}`,
+    taskUrl(listId, taskId),
     accessToken,
     {
       method: 'PATCH',
@@ -188,4 +225,39 @@ export async function updateMicrosoftTodoTaskStatus(
       body: JSON.stringify({ status: completed ? 'completed' : 'notStarted' }),
     },
   );
+}
+
+export async function createMicrosoftTodoTask(
+  accessToken: string,
+  list: TaskList,
+  fields: TaskFields,
+) {
+  const task = await graphRequest<GraphTodoTask>(taskUrl(list.id), accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(taskBody(fields, false)),
+  });
+  return normalizeTask(task, { id: list.id, displayName: list.name });
+}
+
+export async function updateMicrosoftTodoTask(
+  accessToken: string,
+  task: TaskItem,
+  fields: TaskFields,
+) {
+  if (!task.listId) throw new Error('La tarea no indica a qué lista de Microsoft pertenece.');
+  const updated = await graphRequest<GraphTodoTask>(taskUrl(task.listId, task.id), accessToken, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(taskBody(fields, true)),
+  });
+  return normalizeTask(updated, { id: task.listId, displayName: task.listName });
+}
+
+export async function deleteMicrosoftTodoTask(
+  accessToken: string,
+  task: TaskItem,
+) {
+  if (!task.listId) throw new Error('La tarea no indica a qué lista de Microsoft pertenece.');
+  await graphRequest<void>(taskUrl(task.listId, task.id), accessToken, { method: 'DELETE' });
 }

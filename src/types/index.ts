@@ -24,6 +24,13 @@ export type TaskItem = {
   source: TaskSource;
 };
 
+export type TaskFields = {
+  title: string;
+  dueDate?: string;
+  reminderDateTime?: string;
+  important: boolean;
+};
+
 export type CalendarSource = 'google-calendar' | 'microsoft-todo' | 'mock';
 
 export type CalendarEntry = {

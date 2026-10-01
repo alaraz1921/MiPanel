@@ -66,7 +66,7 @@ La Fase 1 implementa en modo de solo lectura:
 - actualizar bajo demanda;
 - desconectar la sesión local.
 
-La Fase 2 añadirá:
+La Fase 2 incluye:
 
 - crear tareas;
 - modificar título, estado, importancia, vencimiento y recordatorio;
@@ -192,6 +192,8 @@ Tasks.ReadWrite
 ```
 
 `Tasks.ReadWrite` se solicita al existir ya la función de completar y reabrir tareas. Se utiliza autenticación interactiva y autorización del usuario; no se guardan credenciales.
+
+Las listas y tareas se guardan en una caché de `chrome.storage.session` con una duración máxima de dos minutos. La caché evita lecturas completas repetidas al abrir nuevas pestañas, se actualiza después de cada escritura y se elimina al desconectar. No se persisten datos remotos en `chrome.storage.local`.
 
 Para sincronización incremental se valorará:
 

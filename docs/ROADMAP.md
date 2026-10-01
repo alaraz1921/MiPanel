@@ -40,9 +40,10 @@
 
 - [x] Elevar a `Tasks.ReadWrite` al incorporar la primera función de escritura.
 - [x] Completar y reabrir tareas.
-- [ ] Crear tareas en la lista seleccionada.
-- [ ] Modificar y eliminar tareas.
-- [ ] Editar fechas y recordatorios.
+- [x] Crear tareas en la lista seleccionada.
+- [x] Modificar título e importancia y eliminar tareas con confirmación.
+- [x] Editar fechas y recordatorios.
+- [x] Mantener una caché temporal de sesión para reducir llamadas repetidas a Graph.
 
 ## Fase 3 — Google Calendar
 

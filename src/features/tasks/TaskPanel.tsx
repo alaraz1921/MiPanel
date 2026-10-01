@@ -4,11 +4,13 @@ import { useExtensionStorage } from '../../hooks/useExtensionStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
 import { dayLabel, toDateKey } from '../../lib/date';
 import type { TaskItem } from '../../types';
+import { TaskEditorDialog } from './TaskEditorDialog';
 
 export function TaskPanel() {
   const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const [selectedListId, setSelectedListId] = useExtensionStorage('mipanel.microsoft.selectedListId', '');
   const [showCompleted, setShowCompleted] = useState(false);
+  const [editor, setEditor] = useState<TaskItem | 'new' | null>(null);
   const microsoft = useMicrosoftTodo();
   const usingMicrosoft = microsoft.status === 'connected';
   const activeListId = microsoft.lists.some((list) => list.id === selectedListId)
@@ -38,6 +40,17 @@ export function TaskPanel() {
 
   function resetMocks() {
     setDemoTasks(initialTasks);
+  }
+
+  async function saveEditor(fields: Parameters<typeof microsoft.createTask>[1]) {
+    if (editor === 'new') return microsoft.createTask(activeListId, fields);
+    if (editor) return microsoft.updateTask(editor, fields);
+    return false;
+  }
+
+  async function remove(task: TaskItem) {
+    const confirmed = window.confirm(`¿Eliminar “${task.title}” de Microsoft To Do? Esta acción no se puede deshacer.`);
+    if (confirmed) await microsoft.deleteTask(task);
   }
 
   const statusLabel = {
@@ -83,6 +96,14 @@ export function TaskPanel() {
             />
             Mostrar completadas
           </label>
+          <button
+            type="button"
+            className="primary-button new-task-button"
+            disabled={!activeListId || microsoft.creatingTask}
+            onClick={() => setEditor('new')}
+          >
+            + Nueva tarea
+          </button>
         </div>
       )}
 
@@ -91,23 +112,45 @@ export function TaskPanel() {
           <p className="empty-state">No hay tareas pendientes para mostrar.</p>
         )}
         {visible.map((task) => (
-          <label className={`task-row${task.completed ? ' completed' : ''}`} key={task.id}>
-            <input
-              type="checkbox"
-              checked={task.completed}
-              disabled={usingMicrosoft && microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
-              aria-label={task.completed ? `Reabrir ${task.title}` : `Completar ${task.title}`}
-              onChange={() => toggle(task)}
-            />
-            <span className="task-body">
-              <span className="task-title">{task.important ? '★ ' : ''}{task.title}</span>
-              <span className="task-meta">
-                {task.listName}
-                {task.dueDate && <> · 📅 {task.dueDate === today ? 'hoy' : dayLabel(task.dueDate)}</>}
-                {task.reminderDateTime && <> · 🔔 {task.reminderDateTime.slice(11, 16)}</>}
+          <div className={`task-row${task.completed ? ' completed' : ''}`} key={`${task.listId ?? 'demo'}:${task.id}`}>
+            <label className="task-check">
+              <input
+                type="checkbox"
+                checked={task.completed}
+                disabled={usingMicrosoft && microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
+                aria-label={task.completed ? `Reabrir ${task.title}` : `Completar ${task.title}`}
+                onChange={() => toggle(task)}
+              />
+              <span className="task-body">
+                <span className="task-title">{task.important ? '★ ' : ''}{task.title}</span>
+                <span className="task-meta">
+                  {task.listName}
+                  {task.dueDate && <> · 📅 {task.dueDate === today ? 'hoy' : dayLabel(task.dueDate)}</>}
+                  {task.reminderDateTime && <> · 🔔 {task.reminderDateTime.slice(11, 16)}</>}
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
+            {usingMicrosoft && (
+              <div className="task-actions">
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
+                  onClick={() => setEditor(task)}
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="text-button danger-button"
+                  disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
+                  onClick={() => void remove(task)}
+                >
+                  Eliminar
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
@@ -136,6 +179,20 @@ export function TaskPanel() {
           )}
         </div>
       </div>
+
+      {usingMicrosoft && editor && (
+        <TaskEditorDialog
+          key={editor === 'new' ? `new:${activeListId}` : `${editor.listId}:${editor.id}`}
+          task={editor === 'new' ? undefined : editor}
+          listName={editor === 'new' ? (activeList?.name ?? 'Microsoft To Do') : editor.listName}
+          busy={editor === 'new'
+            ? microsoft.creatingTask
+            : microsoft.updatingTaskIds.includes(`${editor.listId}:${editor.id}`)}
+          error={microsoft.error}
+          onCancel={() => setEditor(null)}
+          onSave={saveEditor}
+        />
+      )}
     </section>
   );
 }

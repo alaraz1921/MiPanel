@@ -45,6 +45,7 @@ export class MicrosoftGraphError extends Error {
 
 async function graphGet<T>(url: string, accessToken: string): Promise<T> {
   if (!url.startsWith(`${GRAPH_ROOT}/`)) throw new Error('URL de Microsoft Graph no permitida.');
+  const requestPath = new URL(url).pathname;
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -64,8 +65,8 @@ async function graphGet<T>(url: string, accessToken: string): Promise<T> {
     const suffix = [code, detail].filter(Boolean).join(': ');
     throw new MicrosoftGraphError(
       suffix
-        ? `Microsoft Graph respondió con el estado ${response.status}: ${suffix}`
-        : `Microsoft Graph respondió con el estado ${response.status}.`,
+        ? `Microsoft Graph respondió con el estado ${response.status} en ${requestPath}: ${suffix}`
+        : `Microsoft Graph respondió con el estado ${response.status} en ${requestPath}.`,
       response.status,
       code,
     );
@@ -108,14 +109,14 @@ function normalizeTask(task: GraphTodoTask, list: GraphTodoList): TaskItem {
 
 export async function fetchMicrosoftTodoTasks(accessToken: string): Promise<TaskItem[]> {
   const lists = await getCollection<GraphTodoList>(
-    `${GRAPH_ROOT}/me/todo/lists?$select=id,displayName`,
+    `${GRAPH_ROOT}/me/todo/lists`,
     accessToken,
   );
 
   const tasksByList = await Promise.all(lists.map(async (list) => {
     const listId = encodeURIComponent(list.id);
     const tasks = await getCollection<GraphTodoTask>(
-      `${GRAPH_ROOT}/me/todo/lists/${listId}/tasks?$select=id,title,status,importance,dueDateTime,reminderDateTime,isReminderOn`,
+      `${GRAPH_ROOT}/me/todo/lists/${listId}/tasks`,
       accessToken,
     );
     return tasks.map((task) => normalizeTask(task, list));

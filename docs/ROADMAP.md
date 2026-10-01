@@ -57,6 +57,8 @@
 - [x] Permitir una imagen de fondo local configurable.
 - [x] Usar confirmaciones propias para completar y eliminar tareas.
 - [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.
+- [x] Reordenar accesos directos mediante arrastre y controles accesibles.
+- [x] Mostrar el favicon de cada sitio con fallback local sin servicios externos.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.
 

@@ -2,7 +2,7 @@
 
 MiPanel es una extensión Chromium Manifest V3 para escritorio que sustituye la página de nueva pestaña por un panel personal de productividad. Una única base React + TypeScript + Vite sirve para Google Chrome, Brave y Microsoft Edge.
 
-La versión actual mantiene buscador, reloj, accesos directos, fondo configurable y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do. El panel permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
+La versión actual mantiene buscador, reloj, accesos directos reordenables con favicon, fondo configurable y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do. El panel permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
 
 ## Requisitos de desarrollo
 

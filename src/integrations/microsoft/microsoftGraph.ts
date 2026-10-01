@@ -3,6 +3,7 @@ import type { TaskItem } from '../../types';
 export const MICROSOFT_SCOPES = ['Tasks.Read'];
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
+const MAX_THROTTLE_RETRIES = 3;
 
 type GraphCollection<T> = {
   value: T[];
@@ -43,23 +44,48 @@ export class MicrosoftGraphError extends Error {
   }
 }
 
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function retryDelay(response: Response, attempt: number) {
+  const retryAfter = response.headers.get('Retry-After');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+
+    const retryDate = Date.parse(retryAfter);
+    if (Number.isFinite(retryDate)) return Math.max(retryDate - Date.now(), 0);
+  }
+  return 1000 * (2 ** attempt);
+}
+
 async function graphGet<T>(url: string, accessToken: string): Promise<T> {
   if (!url.startsWith(`${GRAPH_ROOT}/`)) throw new Error('URL de Microsoft Graph no permitida.');
   const requestPath = new URL(url).pathname;
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
-    },
-  });
 
-  if (!response.ok) {
+  for (let attempt = 0; attempt <= MAX_THROTTLE_RETRIES; attempt += 1) {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.ok) return response.json() as Promise<T>;
+
     let graphError: GraphErrorResponse | undefined;
     try {
       graphError = await response.json() as GraphErrorResponse;
     } catch {
       // Algunas respuestas intermedias pueden no incluir un cuerpo JSON.
     }
+
+    if (response.status === 429 && attempt < MAX_THROTTLE_RETRIES) {
+      await wait(retryDelay(response, attempt));
+      continue;
+    }
+
     const code = graphError?.error?.code;
     const detail = graphError?.error?.message;
     const suffix = [code, detail].filter(Boolean).join(': ');
@@ -71,7 +97,8 @@ async function graphGet<T>(url: string, accessToken: string): Promise<T> {
       code,
     );
   }
-  return response.json() as Promise<T>;
+
+  throw new Error('No se pudo completar la petición a Microsoft Graph.');
 }
 
 async function getCollection<T>(initialUrl: string, accessToken: string) {
@@ -113,14 +140,15 @@ export async function fetchMicrosoftTodoTasks(accessToken: string): Promise<Task
     accessToken,
   );
 
-  const tasksByList = await Promise.all(lists.map(async (list) => {
+  const tasks: TaskItem[] = [];
+  for (const list of lists) {
     const listId = encodeURIComponent(list.id);
-    const tasks = await getCollection<GraphTodoTask>(
+    const listTasks = await getCollection<GraphTodoTask>(
       `${GRAPH_ROOT}/me/todo/lists/${listId}/tasks`,
       accessToken,
     );
-    return tasks.map((task) => normalizeTask(task, list));
-  }));
+    tasks.push(...listTasks.map((task) => normalizeTask(task, list)));
+  }
 
-  return tasksByList.flat();
+  return tasks;
 }

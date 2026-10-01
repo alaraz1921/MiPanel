@@ -30,12 +30,8 @@ export function Shortcuts() {
   }
 
   return (
-    <section className="shortcuts-section" aria-labelledby="shortcuts-title">
-      <div className="section-heading compact-heading">
-        <div>
-          <span className="eyebrow">Inicio</span>
-          <h2 id="shortcuts-title">Accesos directos</h2>
-        </div>
+    <section className="shortcuts-section" aria-label="Accesos directos">
+      <div className="shortcuts-actions">
         <button className="ghost-button" type="button" onClick={() => setAdding((value) => !value)}>
           {adding ? 'Cancelar' : '+ Añadir'}
         </button>

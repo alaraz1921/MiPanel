@@ -37,7 +37,7 @@ No existe migración automática desde el antiguo origen localhost: ambos oríge
 
 ## Microsoft To Do — configuración
 
-La integración usa Authorization Code + PKCE, `chrome.identity` y el permiso delegado `Tasks.ReadWrite`, necesario para completar y reabrir tareas. No utiliza client secret ni refresh tokens persistentes.
+La integración usa Authorization Code + PKCE, `chrome.identity` y el permiso delegado `Tasks.ReadWrite`, necesario para completar y reabrir tareas. Solicita también `offline_access` para renovar la sesión entre reinicios. No utiliza client secret.
 
 La aplicación se registra y configura una sola vez por el desarrollador. Esa configuración técnica no se solicita a cada usuario.
 
@@ -57,9 +57,9 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
 
 4. Ejecuta `npm run typecheck` y `npm run build`, recarga la extensión y pulsa **Conectar Microsoft**. El usuario verá directamente el selector o formulario de identificación de Microsoft.
 
-Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar de `Tasks.Read` a `Tasks.ReadWrite`, desconecta y vuelve a conectar la cuenta para que Microsoft solicite el consentimiento y emita una sesión nueva.
+Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar de `Tasks.Read` a `Tasks.ReadWrite`, desconecta y vuelve a conectar la cuenta para que Microsoft solicite el consentimiento y emita una sesión nueva. La primera conexión después de instalar esta versión también debe aceptar `offline_access`.
 
-El token se guarda únicamente en `chrome.storage.session`. En ese mismo almacenamiento temporal se mantiene durante dos minutos una caché de listas y tareas para evitar recargarlas desde Graph al abrir varias pestañas seguidas. La caché se actualiza tras cada operación y se elimina al desconectar; no sobrevive al reinicio del navegador. MiPanel nunca solicita contraseñas ni client secrets.
+El access token se guarda únicamente en `chrome.storage.session`. El refresh token se guarda únicamente en `chrome.storage.local` para renovar la sesión entre reinicios; **Desconectar** elimina ambos. En el almacenamiento temporal de sesión se mantiene durante dos minutos una caché de listas y tareas para evitar recargarlas desde Graph al abrir varias pestañas seguidas. MiPanel nunca solicita contraseñas ni client secrets.
 
 Chrome Web Store y Edge Add-ons pueden asignar IDs diferentes. Registra cada redirect real antes de probar esa distribución. La sesión se guarda en `chrome.storage.session`, solo en memoria, y puede requerir reconexión cuando caduque o se reinicie el navegador.
 
@@ -70,6 +70,7 @@ Chrome Web Store y Edge Add-ons pueden asignar IDs diferentes. Registra cada red
 - La escritura se limita a las operaciones de tareas documentadas mediante Microsoft Graph; no hay content scripts ni service worker.
 - Todo JavaScript se empaqueta localmente; no hay scripts remotos.
 - Las variables `VITE_*` son públicas porque terminan en el bundle. Nunca deben contener secretos.
+- El refresh token se mantiene solo en el almacenamiento privado de la extensión y nunca se escribe en `localStorage`, `chrome.storage.sync` ni Git.
 - `.github/workflows/ci-extension.yml` ejecuta `npm ci`, typecheck y build, valida los archivos esenciales y publica un artifact ZIP con `manifest.json` en su raíz.
 
 GitHub es la fuente principal: <https://github.com/alaraz1921/MiPanel>. Esta carpeta es únicamente la copia de trabajo local.

@@ -241,7 +241,7 @@ VITE_MICROSOFT_TENANT=common
 
 La app registrada en Microsoft Entra deberá admitir las URI de redirección de los IDs reales de extensión.
 
-El token de acceso se guarda únicamente en `chrome.storage.session`, que reside en memoria. No se solicita `offline_access` ni se persiste un refresh token en esta fase. Al caducar la sesión se solicita al usuario conectar de nuevo.
+El token de acceso se guarda únicamente en `chrome.storage.session`, que reside en memoria. Se solicita `offline_access` y el refresh token se guarda únicamente en `chrome.storage.local` para renovar la sesión entre reinicios. Al invalidarse el refresh token se solicita al usuario conectar de nuevo. La acción **Desconectar** elimina ambos tokens.
 
 ### Google
 
@@ -384,7 +384,7 @@ La Fase 1 queda lista para validación real cuando:
 - vencimientos y recordatorios aparecen en el calendario;
 - sin Client ID o sin sesión se mantiene el modo demo;
 - cuando la aplicación está configurada, **Conectar Microsoft** abre directamente la identificación interactiva;
-- los tokens no se escriben en `localStorage`, `chrome.storage.local` ni `chrome.storage.sync`;
+- el access token no se escribe en `localStorage`, `chrome.storage.local` ni `chrome.storage.sync`; el refresh token solo se guarda en `chrome.storage.local` para renovar la sesión;
 - un Client ID y redirects reales permiten completar pruebas en Chrome, Brave y Edge.
 
 ## 17. Referencias oficiales

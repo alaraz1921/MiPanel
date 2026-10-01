@@ -1,6 +1,7 @@
 import { MICROSOFT_SCOPES } from './microsoftGraph';
 
 const SESSION_KEY = 'mipanel.microsoft.session';
+const REFRESH_TOKEN_KEY = 'mipanel.microsoft.refreshToken';
 const REDIRECT_PATH = 'microsoft';
 
 export type MicrosoftTokenSession = {
@@ -11,6 +12,7 @@ export type MicrosoftTokenSession = {
 
 type TokenResponse = {
   access_token?: string;
+  refresh_token?: string;
   expires_in?: number;
   scope?: string;
   error?: string;
@@ -31,6 +33,10 @@ function getTenant() {
 
 function identityApiAvailable() {
   return typeof chrome !== 'undefined' && Boolean(chrome.identity?.launchWebAuthFlow);
+}
+
+function oauthScopes() {
+  return [...MICROSOFT_SCOPES.map((scope) => `https://graph.microsoft.com/${scope}`), 'offline_access'].join(' ');
 }
 
 function toBase64Url(bytes: Uint8Array) {
@@ -56,17 +62,56 @@ export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | un
   if (typeof chrome === 'undefined' || !chrome.storage?.session) return undefined;
   const result = await chrome.storage.session.get(SESSION_KEY);
   const session = result[SESSION_KEY] as MicrosoftTokenSession | undefined;
-  if (!session || session.expiresAt <= Date.now() + 60_000) {
-    await chrome.storage.session.remove(SESSION_KEY);
-    return undefined;
-  }
-  return session;
+  if (session && session.expiresAt > Date.now() + 60_000) return session;
+
+  await chrome.storage.session.remove(SESSION_KEY);
+  if (!chrome.storage.local) return undefined;
+  const stored = await chrome.storage.local.get(REFRESH_TOKEN_KEY);
+  const refreshToken = stored[REFRESH_TOKEN_KEY] as string | undefined;
+  if (!refreshToken) return undefined;
+
+  const refreshed = await refreshMicrosoftSession(refreshToken);
+  if (!refreshed) await chrome.storage.local.remove(REFRESH_TOKEN_KEY);
+  return refreshed;
 }
 
 export async function clearMicrosoftSession() {
   if (typeof chrome !== 'undefined' && chrome.storage?.session) {
     await chrome.storage.session.remove(SESSION_KEY);
   }
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    await chrome.storage.local.remove(REFRESH_TOKEN_KEY);
+  }
+}
+
+async function refreshMicrosoftSession(refreshToken: string): Promise<MicrosoftTokenSession | undefined> {
+  const clientId = getClientId();
+  if (!clientId) return undefined;
+  const tenant = getTenant();
+  const tokenResponse = await fetch(
+    `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        scope: oauthScopes(),
+      }),
+    },
+  );
+  const token = await tokenResponse.json() as TokenResponse;
+  if (!tokenResponse.ok || !token.access_token) return undefined;
+
+  const session: MicrosoftTokenSession = {
+    accessToken: token.access_token,
+    expiresAt: Date.now() + Math.max(token.expires_in ?? 3600, 60) * 1000,
+    grantedScopes: (token.scope ?? MICROSOFT_SCOPES.join(' ')).split(' ').filter(Boolean),
+  };
+  await chrome.storage.session.set({ [SESSION_KEY]: session });
+  if (token.refresh_token) await chrome.storage.local.set({ [REFRESH_TOKEN_KEY]: token.refresh_token });
+  return session;
 }
 
 export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
@@ -81,7 +126,7 @@ export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
   const verifier = randomBase64Url(64);
   const challenge = await createPkceChallenge(verifier);
   const state = randomBase64Url(32);
-  const scopes = MICROSOFT_SCOPES.map((scope) => `https://graph.microsoft.com/${scope}`).join(' ');
+  const scopes = oauthScopes();
 
   const authorizeUrl = new URL(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize`);
   authorizeUrl.search = new URLSearchParams({
@@ -139,5 +184,8 @@ export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
     grantedScopes: (token.scope ?? MICROSOFT_SCOPES.join(' ')).split(' ').filter(Boolean),
   };
   await chrome.storage.session.set({ [SESSION_KEY]: session });
+  if (token.refresh_token && chrome.storage.local) {
+    await chrome.storage.local.set({ [REFRESH_TOKEN_KEY]: token.refresh_token });
+  }
   return session;
 }

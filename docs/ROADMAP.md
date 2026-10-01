@@ -56,6 +56,7 @@
 
 - [x] Permitir una imagen de fondo local configurable.
 - [x] Usar confirmaciones propias para completar y eliminar tareas.
+- [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.
 

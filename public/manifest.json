@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "MiPanel",
+  "version": "0.1.0",
+  "description": "Panel personal de productividad para la página de nueva pestaña.",
+  "permissions": ["storage"],
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  }
+}

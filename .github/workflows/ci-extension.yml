@@ -1,0 +1,50 @@
+name: Validar extensión
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener el repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Comprobar TypeScript
+        run: npm run typecheck
+
+      - name: Compilar la extensión
+        run: npm run build
+
+      - name: Validar archivos esenciales
+        run: |
+          test -f dist/manifest.json
+          test -f dist/index.html
+          node -e "const m=require('./dist/manifest.json'); if(m.manifest_version!==3 || m.chrome_url_overrides?.newtab!=='index.html') process.exit(1)"
+
+      - name: Crear ZIP instalable
+        working-directory: dist
+        run: zip -r ../MiPanel-extension.zip .
+
+      - name: Subir paquete
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiPanel-extension
+          path: MiPanel-extension.zip
+          if-no-files-found: error

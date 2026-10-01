@@ -1,0 +1,126 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #eef2f7;
+  background: #0d1016;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --panel: rgba(18, 23, 32, 0.88);
+  --panel-strong: rgba(24, 31, 43, 0.96);
+  --line: rgba(255, 255, 255, 0.10);
+  --muted: #9aa5b5;
+  --accent: #7fa7ff;
+  --accent-soft: rgba(127, 167, 255, 0.16);
+  --success: #79c59a;
+  --warning: #e4b36a;
+  --violet: #b79cf7;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: #0d1016; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(79, 116, 171, 0.35), transparent 30%),
+    radial-gradient(circle at 83% 18%, rgba(64, 83, 120, 0.28), transparent 28%),
+    linear-gradient(155deg, #16202e 0%, #0d1119 45%, #151119 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.24;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.app-shell { width: min(1500px, calc(100% - 36px)); margin: 0 auto; padding: 24px 0 40px; }
+.hero { min-height: 390px; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 0 26px; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+.clock { font-size: clamp(2.3rem, 6vw, 5.4rem); font-weight: 650; letter-spacing: -0.06em; line-height: 0.95; }
+.date-label { margin-top: 8px; color: #c9d1dc; text-transform: capitalize; }
+.brand-chip, .status-pill { border: 1px solid var(--line); background: rgba(12, 15, 21, 0.48); backdrop-filter: blur(14px); border-radius: 999px; padding: 8px 12px; color: #cbd4e0; font-size: 0.82rem; }
+.hero-center { width: min(760px, 100%); margin: 40px auto 32px; text-align: center; }
+.hero-kicker, .eyebrow { margin: 0; color: #aab8ca; text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; font-weight: 700; }
+h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.02; letter-spacing: -.045em; }
+.search { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 8px 9px 8px 17px; background: rgba(245,247,250,.96); border-radius: 22px; color: #18202b; box-shadow: 0 16px 50px rgba(0,0,0,.22); }
+.search input { border: 0; outline: none; background: transparent; min-width: 0; padding: 10px 0; font-size: 1rem; color: #18202b; }
+.search button, .primary-button { border: 0; border-radius: 14px; background: #263245; color: white; padding: 10px 15px; font-weight: 650; }
+.shortcuts-section { width: min(980px, 100%); margin: 0 auto; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.section-heading h2 { margin: 3px 0 0; font-size: 1.2rem; letter-spacing: -.02em; text-transform: capitalize; }
+.compact-heading { margin-bottom: 12px; }
+.ghost-button, .text-button { border: 1px solid var(--line); background: rgba(255,255,255,.035); color: #dbe3ed; border-radius: 12px; padding: 8px 11px; }
+.text-button { border: 0; background: transparent; padding: 2px 0; color: #b7c8e8; }
+.shortcut-form { display: grid; grid-template-columns: 1fr 2fr auto; gap: 9px; margin: 0 0 12px; }
+.shortcut-form input { border: 1px solid var(--line); background: rgba(12,15,21,.72); color: #eef2f7; border-radius: 12px; padding: 10px 12px; outline: none; }
+.shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; }
+.shortcut-item { position: relative; min-width: 0; }
+.shortcut-link { text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 13px 8px; border: 1px solid transparent; border-radius: 17px; background: rgba(255,255,255,.035); color: #e9edf3; }
+.shortcut-link:hover { border-color: var(--line); background: rgba(255,255,255,.065); }
+.shortcut-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; background: rgba(255,255,255,.10); font-size: 1.35rem; }
+.remove-shortcut { position: absolute; top: 4px; right: 4px; border: 0; background: rgba(0,0,0,.28); color: #cdd5df; width: 25px; height: 25px; border-radius: 50%; opacity: 0; }
+.shortcut-item:hover .remove-shortcut, .remove-shortcut:focus { opacity: 1; }
+.content-grid { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(560px, 1.8fr); gap: 16px; align-items: start; }
+.panel { border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(18px); border-radius: 22px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.16); }
+.task-list { display: flex; flex-direction: column; gap: 8px; }
+.task-row { display: flex; align-items: flex-start; gap: 11px; padding: 12px; background: rgba(255,255,255,.035); border-radius: 14px; }
+.task-row input { margin-top: 3px; accent-color: #8aaaf0; }
+.task-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.task-title { font-weight: 650; }
+.task-meta { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+.panel-footer { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .78rem; }
+.calendar-actions { display: flex; gap: 7px; }
+.calendar-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: -4px 0 14px; color: var(--muted); font-size: .8rem; }
+.calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.event-dot { background: var(--accent); }
+.due-dot { background: var(--success); }
+.reminder-dot { background: var(--violet); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendar-weekdays { color: #8f9bae; font-size: .72rem; font-weight: 750; text-align: center; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+.calendar-days { border-left: 1px solid var(--line); border-top: 1px solid var(--line); }
+.calendar-day { min-height: 100px; padding: 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(255,255,255,.012); overflow: hidden; }
+.calendar-day.outside { opacity: .35; }
+.calendar-day.today { background: var(--accent-soft); }
+.day-number { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: .8rem; color: #d8dee7; }
+.today .day-number { background: #dce7ff; color: #182438; font-weight: 800; }
+.day-events { margin-top: 5px; display: flex; flex-direction: column; gap: 4px; }
+.calendar-event { display: flex; gap: 4px; align-items: center; border-radius: 7px; padding: 4px 5px; font-size: .68rem; line-height: 1.15; min-width: 0; }
+.calendar-event.event { background: rgba(127,167,255,.16); color: #cfddff; }
+.calendar-event.due { background: rgba(121,197,154,.15); color: #caefd9; }
+.calendar-event.reminder { background: rgba(183,156,247,.15); color: #e0d5ff; }
+.event-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.footer-note { color: #798696; font-size: .76rem; text-align: center; padding: 18px 6px 0; }
+
+@media (max-width: 980px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .calendar-day { min-height: 88px; }
+}
+
+@media (max-width: 680px) {
+  .app-shell { width: min(100% - 20px, 1500px); padding-top: 14px; }
+  .hero { min-height: auto; }
+  .brand-chip { display: none; }
+  .hero-center { margin: 30px auto 24px; }
+  .search { grid-template-columns: auto 1fr; }
+  .search button { display: none; }
+  .shortcut-form { grid-template-columns: 1fr; }
+  .content-grid { gap: 10px; }
+  .panel { padding: 14px; border-radius: 18px; }
+  .calendar-heading { align-items: flex-start; flex-direction: column; }
+  .calendar-day { min-height: 70px; padding: 5px; }
+  .calendar-event { font-size: .62rem; }
+  .calendar-event span:first-child { display: none; }
+  .panel-footer { flex-direction: column; }
+}

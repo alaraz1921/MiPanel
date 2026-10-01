@@ -3,7 +3,6 @@ import type { TaskItem } from '../../types';
 export const MICROSOFT_SCOPES = ['Tasks.Read'];
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
-const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 type GraphCollection<T> = {
   value: T[];
@@ -30,8 +29,15 @@ type GraphTodoTask = {
   isReminderOn?: boolean;
 };
 
+type GraphErrorResponse = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
 export class MicrosoftGraphError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(message: string, public readonly status: number, public readonly code?: string) {
     super(message);
     this.name = 'MicrosoftGraphError';
   }
@@ -43,12 +49,26 @@ async function graphGet<T>(url: string, accessToken: string): Promise<T> {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
-      Prefer: `outlook.timezone="${LOCAL_TIME_ZONE}"`,
     },
   });
 
   if (!response.ok) {
-    throw new MicrosoftGraphError(`Microsoft Graph respondió con el estado ${response.status}.`, response.status);
+    let graphError: GraphErrorResponse | undefined;
+    try {
+      graphError = await response.json() as GraphErrorResponse;
+    } catch {
+      // Algunas respuestas intermedias pueden no incluir un cuerpo JSON.
+    }
+    const code = graphError?.error?.code;
+    const detail = graphError?.error?.message;
+    const suffix = [code, detail].filter(Boolean).join(': ');
+    throw new MicrosoftGraphError(
+      suffix
+        ? `Microsoft Graph respondió con el estado ${response.status}: ${suffix}`
+        : `Microsoft Graph respondió con el estado ${response.status}.`,
+      response.status,
+      code,
+    );
   }
   return response.json() as Promise<T>;
 }

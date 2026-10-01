@@ -1,7 +1,13 @@
 import { MICROSOFT_SCOPES } from './microsoftGraph';
 
 const SESSION_KEY = 'mipanel.microsoft.session';
+const CONFIG_KEY = 'mipanel.microsoft.config';
 const REDIRECT_PATH = 'microsoft';
+
+export type MicrosoftPublicConfig = {
+  clientId: string;
+  tenant: string;
+};
 
 export type MicrosoftTokenSession = {
   accessToken: string;
@@ -15,16 +21,20 @@ type TokenResponse = {
   error_description?: string;
 };
 
-function getClientId() {
-  return import.meta.env.VITE_MICROSOFT_CLIENT_ID?.trim() ?? '';
+function normalizeConfig(config: MicrosoftPublicConfig): MicrosoftPublicConfig {
+  return {
+    clientId: config.clientId.trim(),
+    tenant: config.tenant.trim() || 'common',
+  };
 }
 
-function getTenant() {
-  const tenant = import.meta.env.VITE_MICROSOFT_TENANT?.trim() || 'common';
-  if (!/^[a-z0-9.-]+$/i.test(tenant)) {
-    throw new Error('La configuración VITE_MICROSOFT_TENANT no es válida.');
+function validateConfig(config: MicrosoftPublicConfig) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(config.clientId)) {
+    throw new Error('El Client ID debe ser un identificador UUID válido de Microsoft Entra.');
   }
-  return tenant;
+  if (!/^[a-z0-9.-]+$/i.test(config.tenant)) {
+    throw new Error('El tenant debe ser common, organizations, consumers, un dominio o un ID de directorio.');
+  }
 }
 
 function identityApiAvailable() {
@@ -46,8 +56,41 @@ async function createPkceChallenge(verifier: string) {
   return toBase64Url(new Uint8Array(digest));
 }
 
-export function isMicrosoftConfigured() {
-  return Boolean(getClientId());
+export async function readMicrosoftConfig(): Promise<MicrosoftPublicConfig | undefined> {
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    const result = await chrome.storage.local.get(CONFIG_KEY);
+    const stored = result[CONFIG_KEY] as MicrosoftPublicConfig | undefined;
+    if (stored?.clientId) {
+      const config = normalizeConfig(stored);
+      validateConfig(config);
+      return config;
+    }
+  }
+
+  const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID?.trim();
+  if (!clientId) return undefined;
+  const config = normalizeConfig({
+    clientId,
+    tenant: import.meta.env.VITE_MICROSOFT_TENANT?.trim() || 'common',
+  });
+  validateConfig(config);
+  return config;
+}
+
+export async function saveMicrosoftConfig(input: MicrosoftPublicConfig) {
+  const config = normalizeConfig(input);
+  validateConfig(config);
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    throw new Error('La configuración Microsoft solo puede guardarse desde la extensión instalada.');
+  }
+  await chrome.storage.local.set({ [CONFIG_KEY]: config });
+  return config;
+}
+
+export async function removeMicrosoftConfig() {
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    await chrome.storage.local.remove(CONFIG_KEY);
+  }
 }
 
 export function getMicrosoftRedirectUri() {
@@ -71,14 +114,14 @@ export async function clearMicrosoftSession() {
   }
 }
 
-export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
-  const clientId = getClientId();
-  if (!clientId) throw new Error('Microsoft no está configurado.');
+export async function connectMicrosoft(config: MicrosoftPublicConfig): Promise<MicrosoftTokenSession> {
+  const normalizedConfig = normalizeConfig(config);
+  validateConfig(normalizedConfig);
   if (!identityApiAvailable()) {
     throw new Error('La conexión Microsoft solo está disponible desde la extensión instalada.');
   }
 
-  const tenant = getTenant();
+  const { clientId, tenant } = normalizedConfig;
   const redirectUri = chrome.identity.getRedirectURL(REDIRECT_PATH);
   const verifier = randomBase64Url(64);
   const challenge = await createPkceChallenge(verifier);

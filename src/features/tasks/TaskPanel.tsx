@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { initialTasks } from '../../data/mock';
 import { useExtensionStorage } from '../../hooks/useExtensionStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
 import { dayLabel, toDateKey } from '../../lib/date';
 import type { TaskItem } from '../../types';
+import { MicrosoftConnectionDialog } from './MicrosoftConnectionDialog';
 
 export function TaskPanel() {
   const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const microsoft = useMicrosoftTodo();
+  const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const usingMicrosoft = microsoft.status === 'connected';
   const tasks = usingMicrosoft ? microsoft.tasks : demoTasks;
   const today = toDateKey(new Date());
@@ -76,7 +78,7 @@ export function TaskPanel() {
           {usingMicrosoft
             ? `${visible.length} tareas pendientes obtenidas de Microsoft To Do.`
             : microsoft.error ?? (microsoft.status === 'unconfigured'
-              ? 'Configura el Client ID público para habilitar Microsoft To Do.'
+              ? 'Pulsa Conectar Microsoft para configurar la integración.'
               : 'Conecta Microsoft para sustituir temporalmente los datos demo.')}
         </span>
         <div className="panel-actions">
@@ -86,11 +88,12 @@ export function TaskPanel() {
                 {microsoft.busy ? 'Actualizando…' : 'Actualizar'}
               </button>
               <button type="button" className="text-button" onClick={() => void microsoft.disconnect()}>Desconectar</button>
+              <button type="button" className="text-button" onClick={() => setConnectionDialogOpen(true)}>Configuración</button>
             </>
           )}
-          {(microsoft.status === 'disconnected' || microsoft.status === 'error') && (
-            <button type="button" className="text-button" disabled={microsoft.busy} onClick={() => void microsoft.connect()}>
-              {microsoft.busy ? 'Conectando…' : 'Conectar Microsoft'}
+          {(microsoft.status === 'unconfigured' || microsoft.status === 'disconnected' || microsoft.status === 'error') && (
+            <button type="button" className="text-button" disabled={microsoft.busy} onClick={() => setConnectionDialogOpen(true)}>
+              Conectar Microsoft
             </button>
           )}
           {!usingMicrosoft && (
@@ -98,6 +101,7 @@ export function TaskPanel() {
           )}
         </div>
       </div>
+      <MicrosoftConnectionDialog open={connectionDialogOpen} onClose={() => setConnectionDialogOpen(false)} />
     </section>
   );
 }

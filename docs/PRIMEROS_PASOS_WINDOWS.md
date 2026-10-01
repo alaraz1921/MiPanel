@@ -38,6 +38,6 @@ En cada navegador verifica buscador, accesos, reloj, tareas, calendario, persist
 
 Tras cualquier cambio de código, ejecuta siempre `npm run typecheck` y `npm run build`; después pulsa **Recargar** en la página de extensiones antes de abrir una pestaña nueva.
 
-Para probar Microsoft To Do, sigue primero la configuración de Entra descrita en `README.md`. Cada navegador o distribución puede tener un ID diferente y, por tanto, un redirect distinto.
+Para probar Microsoft To Do, pulsa **Conectar Microsoft** en MiPanel. El diálogo muestra el redirect que debes registrar en Entra y permite guardar el Client ID y tenant públicos directamente en la extensión. Cada navegador o distribución puede tener un ID diferente y, por tanto, un redirect distinto.
 
-No introduzcas credenciales en el código ni en archivos versionados.
+No introduzcas credenciales, client secrets ni tokens en el código, el diálogo ni archivos versionados.

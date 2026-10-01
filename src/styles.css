@@ -85,6 +85,25 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .panel-footer { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .78rem; }
 .panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; flex: 0 0 auto; }
 .text-button:disabled { cursor: wait; opacity: .55; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(4, 7, 11, .78); backdrop-filter: blur(8px); }
+.connection-dialog { width: min(680px, 100%); max-height: min(820px, calc(100vh - 40px)); overflow: auto; border: 1px solid var(--line); border-radius: 22px; padding: 22px; background: #151b25; box-shadow: 0 28px 90px rgba(0,0,0,.48); }
+.dialog-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.dialog-heading h2 { margin: 4px 0 0; }
+.dialog-close { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background: rgba(255,255,255,.04); color: #e6ebf2; font-size: 1.35rem; line-height: 1; }
+.dialog-intro, .connection-steps { color: #bdc7d5; line-height: 1.55; }
+.connection-steps { padding-left: 22px; }
+.connection-steps li + li { margin-top: 7px; }
+.connection-steps a { color: #b9ceff; }
+.redirect-field, .connection-form { display: grid; gap: 8px; margin-top: 18px; }
+.redirect-field label, .connection-form label { color: #dce3ed; font-size: .82rem; font-weight: 700; }
+.redirect-field small { color: var(--muted); }
+.copy-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.copy-row input, .connection-form input { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(7,10,15,.7); color: #eef2f7; outline: none; }
+.connection-form input:focus { border-color: rgba(127,167,255,.65); box-shadow: 0 0 0 3px rgba(127,167,255,.12); }
+.dialog-error { margin: 6px 0 0; padding: 10px 12px; border: 1px solid rgba(229,123,112,.32); border-radius: 12px; background: rgba(229,123,112,.09); color: #ffd2cc; }
+.dialog-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.dialog-action-spacer { flex: 1 1 auto; }
+.danger-text { color: #ffb8ae; }
 .calendar-actions { display: flex; gap: 7px; }
 .calendar-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: -4px 0 14px; color: var(--muted); font-size: .8rem; }
 .calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -128,4 +147,9 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
   .calendar-event { font-size: .62rem; }
   .calendar-event span:first-child { display: none; }
   .panel-footer { flex-direction: column; }
+  .modal-backdrop { padding: 8px; }
+  .connection-dialog { max-height: calc(100vh - 16px); padding: 17px; border-radius: 17px; }
+  .copy-row { grid-template-columns: 1fr; }
+  .dialog-actions { align-items: stretch; flex-direction: column; }
+  .dialog-action-spacer { display: none; }
 }

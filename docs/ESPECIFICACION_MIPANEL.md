@@ -14,7 +14,7 @@ GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trab
 
 1. Abrir MiPanel automáticamente al crear una pestaña nueva.
 2. Mostrar un dashboard agradable, rápido y configurable.
-3. Conectar Microsoft To Do mediante Microsoft Graph en una fase posterior.
+3. Conectar Microsoft To Do mediante Microsoft Graph desde la propia interfaz.
 4. Empezar con lectura y habilitar edición solo en una fase separada.
 5. Representar en calendario las tareas con fecha de vencimiento y/o recordatorio.
 6. Conectar Google Calendar y superponer sus eventos en el mismo calendario.
@@ -161,7 +161,8 @@ Cada integración deberá encargarse de:
 ### 5.3 Almacenamiento local
 
 - `chrome.storage.local` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
-- Las claves actuales son `mipanel.shortcuts` y `mipanel.mockTasks`.
+- Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks` y `mipanel.microsoft.config`.
+- `mipanel.microsoft.config` solo contiene el Client ID y tenant públicos introducidos en el diálogo de conexión.
 - La abstracción compartida notifica a todos los componentes que consumen una misma clave.
 - `localStorage` solo es respaldo de `npm run dev`, donde no existe la API de extensión.
 - No existe migración automática desde el antiguo origen localhost; una recuperación futura será mediante exportación/importación explícita.
@@ -226,6 +227,10 @@ Microsoft OAuth está implementado como cliente público mediante Authorization 
 `chrome.identity.getRedirectURL('microsoft')` genera un redirect dependiente del ID de la extensión. Chrome Web Store y Edge Add-ons pueden asignar IDs distintos, por lo que cada distribución debe registrar sus redirects reales.
 
 ### Microsoft
+
+La nueva pestaña muestra **Conectar Microsoft** cuando no existe una sesión. El diálogo guía el registro externo en Microsoft Entra, presenta el redirect real de la extensión y permite guardar el Client ID y tenant públicos sin recompilar. El registro de la aplicación sigue realizándose en Entra; MiPanel no solicita credenciales administrativas ni intenta crearlo en nombre del usuario.
+
+Los valores se guardan en `chrome.storage.local`. Opcionalmente, estas variables pueden proporcionar valores predeterminados en tiempo de compilación:
 
 Variables previstas:
 
@@ -378,6 +383,7 @@ La Fase 1 queda lista para validación real cuando:
 - listas y tareas se normalizan a los tipos internos;
 - vencimientos y recordatorios aparecen en el calendario;
 - sin Client ID o sin sesión se mantiene el modo demo;
+- el Client ID y tenant públicos pueden configurarse y eliminarse desde la interfaz;
 - los tokens no se escriben en `localStorage`, `chrome.storage.local` ni `chrome.storage.sync`;
 - un Client ID y redirects reales permiten completar pruebas en Chrome, Brave y Edge.
 

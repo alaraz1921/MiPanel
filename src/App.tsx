@@ -23,7 +23,7 @@ export default function App() {
       </div>
 
       <footer className="footer-note">
-        Versión 0.2.2 · Microsoft To Do en lectura opcional. El modo demo sigue disponible sin cuentas conectadas.
+        Versión 0.2.3 · Microsoft To Do en lectura opcional. El modo demo sigue disponible sin cuentas conectadas.
       </footer>
     </main>
   );

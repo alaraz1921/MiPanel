@@ -75,9 +75,7 @@ export function TaskPanel() {
         <span>
           {usingMicrosoft
             ? `${visible.length} tareas pendientes obtenidas de Microsoft To Do.`
-            : microsoft.error ?? (microsoft.status === 'unconfigured'
-              ? 'Microsoft To Do no está disponible en esta compilación.'
-              : 'Conecta Microsoft para sustituir temporalmente los datos demo.')}
+            : microsoft.error ?? 'Conecta Microsoft para sustituir temporalmente los datos demo.'}
         </span>
         <div className="panel-actions">
           {microsoft.status === 'connected' && (
@@ -88,7 +86,7 @@ export function TaskPanel() {
               <button type="button" className="text-button" onClick={() => void microsoft.disconnect()}>Desconectar</button>
             </>
           )}
-          {(microsoft.status === 'disconnected' || microsoft.status === 'error') && (
+          {(microsoft.status === 'unconfigured' || microsoft.status === 'disconnected' || microsoft.status === 'error') && (
             <button type="button" className="text-button" disabled={microsoft.busy} onClick={() => void microsoft.connect()}>
               {microsoft.busy ? 'Conectando…' : 'Conectar Microsoft'}
             </button>

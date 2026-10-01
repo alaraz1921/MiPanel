@@ -54,6 +54,8 @@
 
 ## Fase 4 — Productividad
 
+- [x] Permitir una imagen de fondo local configurable.
+- [x] Usar confirmaciones propias para completar y eliminar tareas.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.
 

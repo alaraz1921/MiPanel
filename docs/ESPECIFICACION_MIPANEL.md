@@ -38,7 +38,9 @@ GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trab
 
 ### 4.1 Página de inicio
 
-Debe recordar visualmente a una nueva pestaña moderna: reloj y fecha, fondo configurable, buscador grande, accesos directos, tareas próximas y calendario.
+Debe recordar visualmente a una nueva pestaña moderna: reloj y fecha, accesos directos antes del buscador, fondo configurable mediante una imagen local, tareas próximas y calendario.
+
+Completar una tarea pendiente y eliminar una tarea requieren confirmación mediante diálogos propios de MiPanel, no mediante mensajes nativos del navegador.
 
 El diseño de referencia aportado por el usuario sirve como inspiración de composición, no como copia literal.
 
@@ -162,7 +164,7 @@ Cada integración deberá encargarse de:
 ### 5.3 Almacenamiento local
 
 - `chrome.storage.local` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
-- Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks` y `mipanel.microsoft.selectedListId`.
+- Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks`, `mipanel.backgroundImage` y `mipanel.microsoft.selectedListId`.
 - La abstracción compartida notifica a todos los componentes que consumen una misma clave.
 - `localStorage` solo es respaldo de `npm run dev`, donde no existe la API de extensión.
 - No existe migración automática desde el antiguo origen localhost; una recuperación futura será mediante exportación/importación explícita.

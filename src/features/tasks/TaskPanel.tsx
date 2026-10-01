@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { initialTasks } from '../../data/mock';
 import { useExtensionStorage } from '../../hooks/useExtensionStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
@@ -6,11 +7,17 @@ import { dayLabel, toDateKey } from '../../lib/date';
 import type { TaskItem } from '../../types';
 import { TaskEditorDialog } from './TaskEditorDialog';
 
+type PendingConfirmation = {
+  action: 'complete' | 'delete';
+  task: TaskItem;
+};
+
 export function TaskPanel() {
   const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const [selectedListId, setSelectedListId] = useExtensionStorage('mipanel.microsoft.selectedListId', '');
   const [showCompleted, setShowCompleted] = useState(false);
   const [editor, setEditor] = useState<TaskItem | 'new' | null>(null);
+  const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(null);
   const microsoft = useMicrosoftTodo();
   const usingMicrosoft = microsoft.status === 'connected';
   const activeListId = microsoft.lists.some((list) => list.id === selectedListId)
@@ -30,12 +37,20 @@ export function TaskPanel() {
     [showCompleted, tasks],
   );
 
-  function toggle(task: TaskItem) {
+  async function toggleNow(task: TaskItem) {
     if (usingMicrosoft) {
-      void microsoft.toggleTask(task);
-      return;
+      return microsoft.toggleTask(task);
     }
     setDemoTasks((current) => current.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item));
+    return true;
+  }
+
+  function requestToggle(task: TaskItem) {
+    if (task.completed) {
+      void toggleNow(task);
+      return;
+    }
+    setConfirmation({ action: 'complete', task });
   }
 
   function resetMocks() {
@@ -48,9 +63,14 @@ export function TaskPanel() {
     return false;
   }
 
-  async function remove(task: TaskItem) {
-    const confirmed = window.confirm(`¿Eliminar “${task.title}” de Microsoft To Do? Esta acción no se puede deshacer.`);
-    if (confirmed) await microsoft.deleteTask(task);
+  async function confirmPendingAction() {
+    if (!confirmation) return;
+    if (confirmation.action === 'complete') {
+      await toggleNow(confirmation.task);
+    } else {
+      await microsoft.deleteTask(confirmation.task);
+    }
+    setConfirmation(null);
   }
 
   const statusLabel = {
@@ -119,7 +139,7 @@ export function TaskPanel() {
                 checked={task.completed}
                 disabled={usingMicrosoft && microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
                 aria-label={task.completed ? `Reabrir ${task.title}` : `Completar ${task.title}`}
-                onChange={() => toggle(task)}
+                onChange={() => requestToggle(task)}
               />
               <span className="task-body">
                 <span className="task-title">{task.important ? '★ ' : ''}{task.title}</span>
@@ -144,7 +164,7 @@ export function TaskPanel() {
                   type="button"
                   className="text-button danger-button"
                   disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
-                  onClick={() => void remove(task)}
+                  onClick={() => setConfirmation({ action: 'delete', task })}
                 >
                   Eliminar
                 </button>
@@ -191,6 +211,21 @@ export function TaskPanel() {
           error={microsoft.error}
           onCancel={() => setEditor(null)}
           onSave={saveEditor}
+        />
+      )}
+
+      {confirmation && (
+        <ConfirmDialog
+          key={`${confirmation.action}:${confirmation.task.listId ?? 'demo'}:${confirmation.task.id}`}
+          title={confirmation.action === 'complete' ? 'Completar tarea' : 'Eliminar tarea'}
+          message={confirmation.action === 'complete'
+            ? `¿Quieres marcar “${confirmation.task.title}” como completada?`
+            : `¿Quieres eliminar “${confirmation.task.title}” de Microsoft To Do? Esta acción no se puede deshacer.`}
+          confirmLabel={confirmation.action === 'complete' ? 'Marcar como completada' : 'Eliminar tarea'}
+          danger={confirmation.action === 'delete'}
+          busy={usingMicrosoft && microsoft.updatingTaskIds.includes(`${confirmation.task.listId}:${confirmation.task.id}`)}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => void confirmPendingAction()}
         />
       )}
     </section>

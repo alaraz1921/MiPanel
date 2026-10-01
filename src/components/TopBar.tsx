@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
+import { BackgroundSettings } from '../features/background/BackgroundSettings';
+import { useExtensionStorage } from '../hooks/useExtensionStorage';
 
 export function TopBar() {
   const [now, setNow] = useState(new Date());
+  const [backgroundImage, setBackgroundImage] = useExtensionStorage('mipanel.backgroundImage', '');
+  const [editingBackground, setEditingBackground] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -25,7 +29,22 @@ export function TopBar() {
         <div className="clock">{time}</div>
         <div className="date-label">{date}</div>
       </div>
-      <div className="brand-chip">MiPanel · nueva pestaña</div>
+      <div className="topbar-actions">
+        <button type="button" className="brand-chip background-button" onClick={() => setEditingBackground(true)}>
+          Cambiar fondo
+        </button>
+        <div className="brand-chip">MiPanel · nueva pestaña</div>
+      </div>
+      {editingBackground && (
+        <BackgroundSettings
+          value={backgroundImage}
+          onCancel={() => setEditingBackground(false)}
+          onSave={(value) => {
+            setBackgroundImage(value);
+            setEditingBackground(false);
+          }}
+        />
+      )}
     </header>
   );
 }

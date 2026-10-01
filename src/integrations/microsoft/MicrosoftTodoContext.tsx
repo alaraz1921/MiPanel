@@ -3,12 +3,8 @@ import type { TaskItem } from '../../types';
 import {
   clearMicrosoftSession,
   connectMicrosoft,
-  getMicrosoftRedirectUri,
-  readMicrosoftConfig,
+  isMicrosoftConfigured,
   readMicrosoftSession,
-  removeMicrosoftConfig,
-  saveMicrosoftConfig,
-  type MicrosoftPublicConfig,
   type MicrosoftTokenSession,
 } from './microsoftAuth';
 import { fetchMicrosoftTodoTasks, MicrosoftGraphError } from './microsoftGraph';
@@ -24,12 +20,8 @@ type MicrosoftTodoContextValue = {
   status: MicrosoftConnectionStatus;
   busy: boolean;
   tasks: TaskItem[];
-  configuration?: MicrosoftPublicConfig;
-  redirectUri?: string;
   error?: string;
-  connect: (config?: MicrosoftPublicConfig) => Promise<boolean>;
-  saveConfiguration: (config: MicrosoftPublicConfig) => Promise<MicrosoftPublicConfig>;
-  removeConfiguration: () => Promise<void>;
+  connect: () => Promise<boolean>;
   disconnect: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -42,9 +34,9 @@ function readableError(error: unknown) {
 }
 
 export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
-  const [configuration, setConfiguration] = useState<MicrosoftPublicConfig>();
-  const [status, setStatus] = useState<MicrosoftConnectionStatus>('connecting');
-  const [busy, setBusy] = useState(true);
+  const configured = isMicrosoftConfigured();
+  const [status, setStatus] = useState<MicrosoftConnectionStatus>(configured ? 'connecting' : 'unconfigured');
+  const [busy, setBusy] = useState(configured);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [error, setError] = useState<string>();
   const requestVersion = useRef(0);
@@ -78,18 +70,11 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   }
 
   useEffect(() => {
+    if (!configured) return;
     const version = ++requestVersion.current;
 
-    void readMicrosoftConfig()
-      .then(async (config) => {
-        if (version !== requestVersion.current) return;
-        if (!config) {
-          setStatus('unconfigured');
-          setBusy(false);
-          return;
-        }
-        setConfiguration(config);
-        const session = await readMicrosoftSession();
+    void readMicrosoftSession()
+      .then(async (session) => {
         if (version !== requestVersion.current) return;
         if (!session) {
           setStatus('disconnected');
@@ -108,20 +93,14 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     return () => {
       requestVersion.current += 1;
     };
-  }, []);
+  }, [configured]);
 
-  async function connect(configOverride?: MicrosoftPublicConfig) {
-    const activeConfiguration = configOverride ?? configuration;
-    if (!activeConfiguration) {
-      setStatus('unconfigured');
-      setError('Introduce el Client ID público y el tenant para conectar Microsoft.');
-      return false;
-    }
+  async function connect() {
     setStatus('connecting');
     setBusy(true);
     setError(undefined);
     try {
-      const session = await connectMicrosoft(activeConfiguration);
+      const session = await connectMicrosoft();
       return await loadTasks(session);
     } catch (connectError) {
       setStatus('error');
@@ -131,35 +110,13 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     }
   }
 
-  async function saveConfiguration(config: MicrosoftPublicConfig) {
-    const saved = await saveMicrosoftConfig(config);
-    requestVersion.current += 1;
-    await clearMicrosoftSession();
-    setConfiguration(saved);
-    setTasks([]);
-    setError(undefined);
-    setStatus('disconnected');
-    setBusy(false);
-    return saved;
-  }
-
-  async function removeConfiguration() {
-    requestVersion.current += 1;
-    await Promise.all([clearMicrosoftSession(), removeMicrosoftConfig()]);
-    setConfiguration(undefined);
-    setTasks([]);
-    setError(undefined);
-    setStatus('unconfigured');
-    setBusy(false);
-  }
-
   async function disconnect() {
     requestVersion.current += 1;
     await clearMicrosoftSession();
     setTasks([]);
     setError(undefined);
     setBusy(false);
-    setStatus(configuration ? 'disconnected' : 'unconfigured');
+    setStatus(configured ? 'disconnected' : 'unconfigured');
   }
 
   async function refresh() {
@@ -178,12 +135,8 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       status,
       busy,
       tasks,
-      configuration,
-      redirectUri: getMicrosoftRedirectUri(),
       error,
       connect,
-      saveConfiguration,
-      removeConfiguration,
       disconnect,
       refresh,
     }}>

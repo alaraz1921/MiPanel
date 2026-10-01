@@ -161,8 +161,7 @@ Cada integración deberá encargarse de:
 ### 5.3 Almacenamiento local
 
 - `chrome.storage.local` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
-- Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks` y `mipanel.microsoft.config`.
-- `mipanel.microsoft.config` solo contiene el Client ID y tenant públicos introducidos en el diálogo de conexión.
+- Las claves actuales son `mipanel.shortcuts` y `mipanel.mockTasks`.
 - La abstracción compartida notifica a todos los componentes que consumen una misma clave.
 - `localStorage` solo es respaldo de `npm run dev`, donde no existe la API de extensión.
 - No existe migración automática desde el antiguo origen localhost; una recuperación futura será mediante exportación/importación explícita.
@@ -228,11 +227,7 @@ Microsoft OAuth está implementado como cliente público mediante Authorization 
 
 ### Microsoft
 
-La nueva pestaña muestra **Conectar Microsoft** cuando no existe una sesión. El diálogo guía el registro externo en Microsoft Entra, presenta el redirect real de la extensión y permite guardar el Client ID y tenant públicos sin recompilar. El registro de la aplicación sigue realizándose en Entra; MiPanel no solicita credenciales administrativas ni intenta crearlo en nombre del usuario.
-
-Los valores se guardan en `chrome.storage.local`. Opcionalmente, estas variables pueden proporcionar valores predeterminados en tiempo de compilación:
-
-Variables previstas:
+El registro en Microsoft Entra es configuración técnica previa y no forma parte de la identificación del usuario. El Client ID y tenant públicos se incorporan a la compilación mediante:
 
 ```text
 VITE_MICROSOFT_CLIENT_ID=
@@ -383,7 +378,7 @@ La Fase 1 queda lista para validación real cuando:
 - listas y tareas se normalizan a los tipos internos;
 - vencimientos y recordatorios aparecen en el calendario;
 - sin Client ID o sin sesión se mantiene el modo demo;
-- el Client ID y tenant públicos pueden configurarse y eliminarse desde la interfaz;
+- cuando la aplicación está configurada, **Conectar Microsoft** abre directamente la identificación interactiva;
 - los tokens no se escriben en `localStorage`, `chrome.storage.local` ni `chrome.storage.sync`;
 - un Client ID y redirects reales permiten completar pruebas en Chrome, Brave y Edge.
 

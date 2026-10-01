@@ -9,7 +9,7 @@ Lee `AGENTS.md`, `docs/ESPECIFICACION_MIPANEL.md` y `docs/ROADMAP.md` antes de t
 Completa la validación real de la Fase 1 de Microsoft To Do sin ampliar permisos ni añadir escritura.
 
 - Revisa la implementación existente antes de modificarla.
-- Configura el Client ID y tenant públicos mediante el diálogo de la extensión y registra el redirect real que muestra en cada navegador.
+- Configura el Client ID y tenant públicos mediante `.env.local` y registra el redirect real de cada extensión.
 - Verifica conexión, desconexión, caducidad de sesión y actualización bajo demanda.
 - Comprueba listas, tareas, vencimientos y recordatorios con una cuenta real.
 - Mantén únicamente `Tasks.Read`; no implementes creación, edición, completado ni borrado.

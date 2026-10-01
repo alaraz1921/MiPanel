@@ -26,10 +26,10 @@
 
 ## Fase 1 — Microsoft To Do en lectura
 
-- [ ] Registrar la aplicación y definir redirects reales según cada ID de extensión.
+- [x] Registrar la aplicación en Microsoft Entra.
+- [ ] Incorporar el Client ID público y validar redirects reales según cada ID de extensión.
 - [x] Implementar cliente público con Authorization Code + PKCE.
 - [x] Conectar/desconectar cuenta sin client secret.
-- [x] Configurar el Client ID y tenant públicos desde un diálogo de la extensión.
 - [x] Solicitar únicamente `Tasks.Read`.
 - [x] Leer listas, tareas, vencimientos y recordatorios.
 - [x] Integrar datos normalizados en dashboard y calendario.

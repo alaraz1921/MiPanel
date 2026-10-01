@@ -57,6 +57,8 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
 
 4. Ejecuta `npm run typecheck` y `npm run build`, recarga la extensión y pulsa **Conectar Microsoft**. El usuario verá directamente el selector o formulario de identificación de Microsoft.
 
+Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar de `Tasks.Read` a `Tasks.ReadWrite`, desconecta y vuelve a conectar la cuenta para que Microsoft solicite el consentimiento y emita una sesión nueva.
+
 El token se guarda únicamente en `chrome.storage.session`. MiPanel nunca solicita contraseñas ni client secrets.
 
 Chrome Web Store y Edge Add-ons pueden asignar IDs diferentes. Registra cada redirect real antes de probar esa distribución. La sesión se guarda en `chrome.storage.session`, solo en memoria, y puede requerir reconexión cuando caduque o se reinicie el navegador.

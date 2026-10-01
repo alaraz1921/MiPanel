@@ -153,7 +153,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       setStatus('disconnected');
       setLists([]);
       setTasks([]);
-      setError('La sesión de Microsoft ha caducado o necesita autorizar Tasks.ReadWrite. Vuelve a conectar la cuenta.');
+      setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
       return false;
     }
 
@@ -178,6 +178,8 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
         setLists([]);
         setTasks([]);
         setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
+      } else if (updateError instanceof MicrosoftGraphError && updateError.status === 403) {
+        setError('Microsoft no ha concedido Tasks.ReadWrite a esta sesión. Desconecta y vuelve a conectar para aceptar el permiso.');
       } else {
         setError(readableError(updateError));
       }

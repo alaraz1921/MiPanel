@@ -6,7 +6,7 @@ const REDIRECT_PATH = 'microsoft';
 export type MicrosoftTokenSession = {
   accessToken: string;
   expiresAt: number;
-  grantedScopes: string[];
+  grantedScopes?: string[];
 };
 
 type TokenResponse = {
@@ -56,8 +56,7 @@ export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | un
   if (typeof chrome === 'undefined' || !chrome.storage?.session) return undefined;
   const result = await chrome.storage.session.get(SESSION_KEY);
   const session = result[SESSION_KEY] as MicrosoftTokenSession | undefined;
-  const hasRequiredScopes = MICROSOFT_SCOPES.every((scope) => session?.grantedScopes?.includes(scope));
-  if (!session || !hasRequiredScopes || session.expiresAt <= Date.now() + 60_000) {
+  if (!session || session.expiresAt <= Date.now() + 60_000) {
     await chrome.storage.session.remove(SESSION_KEY);
     return undefined;
   }

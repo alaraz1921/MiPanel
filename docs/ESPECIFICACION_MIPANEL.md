@@ -61,6 +61,7 @@ La Fase 1 implementa en modo de solo lectura:
 - iniciar sesión con Microsoft;
 - leer las listas de To Do;
 - leer tareas;
+- seleccionar la lista visible en el panel de tareas, manteniendo todas en el calendario;
 - mostrar vencimientos y recordatorios en el calendario;
 - actualizar bajo demanda;
 - desconectar la sesión local.
@@ -161,7 +162,7 @@ Cada integración deberá encargarse de:
 ### 5.3 Almacenamiento local
 
 - `chrome.storage.local` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
-- Las claves actuales son `mipanel.shortcuts` y `mipanel.mockTasks`.
+- Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks` y `mipanel.microsoft.selectedListId`.
 - La abstracción compartida notifica a todos los componentes que consumen una misma clave.
 - `localStorage` solo es respaldo de `npm run dev`, donde no existe la API de extensión.
 - No existe migración automática desde el antiguo origen localhost; una recuperación futura será mediante exportación/importación explícita.

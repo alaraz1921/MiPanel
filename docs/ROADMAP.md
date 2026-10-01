@@ -33,6 +33,7 @@
 - [x] Solicitar únicamente `Tasks.Read`.
 - [x] Leer listas, tareas, vencimientos y recordatorios.
 - [x] Integrar datos normalizados en dashboard y calendario.
+- [x] Filtrar el panel por una lista seleccionada sin limitar el calendario unificado.
 - [ ] Configurar un Client ID real y completar pruebas con cuentas Microsoft.
 
 ## Fase 2 — Edición de Microsoft To Do

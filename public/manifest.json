@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MiPanel",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "description": "Panel personal de productividad para la página de nueva pestaña.",
   "permissions": ["storage", "identity"],
   "host_permissions": [

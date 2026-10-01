@@ -7,12 +7,18 @@ export type Shortcut = {
 
 export type TaskSource = 'microsoft-todo' | 'mock';
 
+export type TaskList = {
+  id: string;
+  name: string;
+};
+
 export type TaskItem = {
   id: string;
   title: string;
   completed: boolean;
   dueDate?: string;
   reminderDateTime?: string;
+  listId?: string;
   listName: string;
   important?: boolean;
   source: TaskSource;

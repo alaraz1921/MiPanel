@@ -7,9 +7,16 @@ import type { TaskItem } from '../../types';
 
 export function TaskPanel() {
   const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
+  const [selectedListId, setSelectedListId] = useExtensionStorage('mipanel.microsoft.selectedListId', '');
   const microsoft = useMicrosoftTodo();
   const usingMicrosoft = microsoft.status === 'connected';
-  const tasks = usingMicrosoft ? microsoft.tasks : demoTasks;
+  const activeListId = microsoft.lists.some((list) => list.id === selectedListId)
+    ? selectedListId
+    : (microsoft.lists[0]?.id ?? '');
+  const activeList = microsoft.lists.find((list) => list.id === activeListId);
+  const tasks = usingMicrosoft
+    ? microsoft.tasks.filter((task) => task.listId === activeListId)
+    : demoTasks;
   const today = toDateKey(new Date());
 
   const visible = useMemo(
@@ -46,6 +53,22 @@ export function TaskPanel() {
         </span>
       </div>
 
+      {usingMicrosoft && (
+        <label className="task-list-filter">
+          <span>Lista de tareas</span>
+          <select
+            value={activeListId}
+            disabled={microsoft.busy || microsoft.lists.length === 0}
+            onChange={(event) => setSelectedListId(event.target.value)}
+          >
+            {microsoft.lists.length === 0 && <option value="">Sin listas disponibles</option>}
+            {microsoft.lists.map((list) => (
+              <option key={list.id} value={list.id}>{list.name}</option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <div className="task-list">
         {visible.length === 0 && (
           <p className="empty-state">No hay tareas pendientes para mostrar.</p>
@@ -74,7 +97,7 @@ export function TaskPanel() {
       <div className="panel-footer">
         <span>
           {usingMicrosoft
-            ? `${visible.length} tareas pendientes obtenidas de Microsoft To Do.`
+            ? `${visible.length} tareas pendientes en ${activeList?.name ?? 'la lista seleccionada'}. El calendario incluye todas las listas.`
             : microsoft.error ?? 'Conecta Microsoft para sustituir temporalmente los datos demo.'}
         </span>
         <div className="panel-actions">

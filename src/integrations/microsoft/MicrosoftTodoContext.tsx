@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
-import type { TaskItem } from '../../types';
+import type { TaskItem, TaskList } from '../../types';
 import {
   clearMicrosoftSession,
   connectMicrosoft,
@@ -7,7 +7,7 @@ import {
   readMicrosoftSession,
   type MicrosoftTokenSession,
 } from './microsoftAuth';
-import { fetchMicrosoftTodoTasks, MicrosoftGraphError } from './microsoftGraph';
+import { fetchMicrosoftTodoSnapshot, MicrosoftGraphError } from './microsoftGraph';
 
 export type MicrosoftConnectionStatus =
   | 'unconfigured'
@@ -19,6 +19,7 @@ export type MicrosoftConnectionStatus =
 type MicrosoftTodoContextValue = {
   status: MicrosoftConnectionStatus;
   busy: boolean;
+  lists: TaskList[];
   tasks: TaskItem[];
   error?: string;
   connect: () => Promise<boolean>;
@@ -37,6 +38,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   const configured = isMicrosoftConfigured();
   const [status, setStatus] = useState<MicrosoftConnectionStatus>(configured ? 'connecting' : 'unconfigured');
   const [busy, setBusy] = useState(configured);
+  const [lists, setLists] = useState<TaskList[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [error, setError] = useState<string>();
   const requestVersion = useRef(0);
@@ -48,9 +50,10 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setError(undefined);
 
     try {
-      const nextTasks = await fetchMicrosoftTodoTasks(session.accessToken);
+      const snapshot = await fetchMicrosoftTodoSnapshot(session.accessToken);
       if (version !== requestVersion.current) return false;
-      setTasks(nextTasks);
+      setLists(snapshot.lists);
+      setTasks(snapshot.tasks);
       setStatus('connected');
       return true;
     } catch (loadError) {
@@ -113,6 +116,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   async function disconnect() {
     requestVersion.current += 1;
     await clearMicrosoftSession();
+    setLists([]);
     setTasks([]);
     setError(undefined);
     setBusy(false);
@@ -123,6 +127,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     const session = await readMicrosoftSession();
     if (!session) {
       setStatus('disconnected');
+      setLists([]);
       setTasks([]);
       setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
       return;
@@ -134,6 +139,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     <MicrosoftTodoContext.Provider value={{
       status,
       busy,
+      lists,
       tasks,
       error,
       connect,

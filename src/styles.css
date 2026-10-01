@@ -17,7 +17,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #0d1016; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { cursor: pointer; }
 a { color: inherit; }
 
@@ -75,6 +75,10 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .shortcut-item:hover .remove-shortcut, .remove-shortcut:focus { opacity: 1; }
 .content-grid { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(560px, 1.8fr); gap: 16px; align-items: start; }
 .panel { border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(18px); border-radius: 22px; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.16); }
+.task-list-filter { display: grid; gap: 6px; margin: -2px 0 14px; color: var(--muted); font-size: .78rem; }
+.task-list-filter select { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 9px 34px 9px 11px; background: #171d27; color: #eef2f7; outline: none; }
+.task-list-filter select:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.task-list-filter select:disabled { opacity: .6; }
 .task-list { display: flex; flex-direction: column; gap: 8px; }
 .empty-state { margin: 0; padding: 18px 12px; color: var(--muted); text-align: center; }
 .task-row { display: flex; align-items: flex-start; gap: 11px; padding: 12px; background: rgba(255,255,255,.035); border-radius: 14px; }

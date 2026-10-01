@@ -1,4 +1,4 @@
-import type { TaskItem } from '../../types';
+import type { TaskItem, TaskList } from '../../types';
 
 export const MICROSOFT_SCOPES = ['Tasks.Read'];
 
@@ -129,12 +129,18 @@ function normalizeTask(task: GraphTodoTask, list: GraphTodoList): TaskItem {
     important: task.importance === 'high',
     dueDate: datePart(task.dueDateTime),
     reminderDateTime: task.isReminderOn ? dateTimePart(task.reminderDateTime) : undefined,
+    listId: list.id,
     listName: list.displayName,
     source: 'microsoft-todo',
   };
 }
 
-export async function fetchMicrosoftTodoTasks(accessToken: string): Promise<TaskItem[]> {
+export type MicrosoftTodoSnapshot = {
+  lists: TaskList[];
+  tasks: TaskItem[];
+};
+
+export async function fetchMicrosoftTodoSnapshot(accessToken: string): Promise<MicrosoftTodoSnapshot> {
   const lists = await getCollection<GraphTodoList>(
     `${GRAPH_ROOT}/me/todo/lists`,
     accessToken,
@@ -150,5 +156,8 @@ export async function fetchMicrosoftTodoTasks(accessToken: string): Promise<Task
     tasks.push(...listTasks.map((task) => normalizeTask(task, list)));
   }
 
-  return tasks;
+  return {
+    lists: lists.map((list) => ({ id: list.id, name: list.displayName })),
+    tasks,
+  };
 }

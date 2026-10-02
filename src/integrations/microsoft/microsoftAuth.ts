@@ -12,6 +12,7 @@ export type MicrosoftTokenSession = {
 
 let clientPromise: Promise<PublicClientApplication> | undefined;
 const ACCOUNT_HINT_KEY = 'mipanel.microsoft.accountHint';
+const RESTORE_ATTEMPT_KEY = 'mipanel.microsoft.restoreAttempted';
 
 function getClientId() {
   return import.meta.env.VITE_MICROSOFT_CLIENT_ID?.trim() ?? '';
@@ -40,6 +41,10 @@ function getRedirectUri() {
   } catch {
     throw new Error('VITE_MICROSOFT_REDIRECT_URI debe ser una URL HTTP o HTTPS válida.');
   }
+}
+
+function getApplicationRedirectUri() {
+  return new URL(import.meta.env.BASE_URL, window.location.origin).toString();
 }
 
 function graphScopes() {
@@ -71,6 +76,30 @@ function clearAccountHint() {
   }
 }
 
+function restoreWasAttempted() {
+  try {
+    return window.sessionStorage.getItem(RESTORE_ATTEMPT_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function markRestoreAttempt() {
+  try {
+    window.sessionStorage.setItem(RESTORE_ATTEMPT_KEY, 'true');
+  } catch {
+    // Si no existe sessionStorage, el flujo de Microsoft sigue determinando el resultado.
+  }
+}
+
+function clearRestoreAttempt() {
+  try {
+    window.sessionStorage.removeItem(RESTORE_ATTEMPT_KEY);
+  } catch {
+    // No hay estado efímero que limpiar.
+  }
+}
+
 async function microsoftClient() {
   if (!clientPromise) {
     const client = new PublicClientApplication({
@@ -85,7 +114,20 @@ async function microsoftClient() {
         cacheLocation: BrowserCacheLocation.LocalStorage,
       },
     });
-    clientPromise = client.initialize().then(() => client);
+    clientPromise = (async () => {
+      await client.initialize();
+      try {
+        const result = await client.handleRedirectPromise();
+        if (result?.account) {
+          client.setActiveAccount(result.account);
+          rememberAccount(result.account.username);
+          clearRestoreAttempt();
+        }
+      } catch {
+        // Una restauración sin sesión de Microsoft debe volver al estado desconectado.
+      }
+      return client;
+    })();
   }
   return clientPromise;
 }
@@ -146,16 +188,20 @@ export async function clearMicrosoftSession() {
   client.setActiveAccount(null);
   await client.clearCache();
   clearAccountHint();
+  clearRestoreAttempt();
 }
 
 async function restoreMicrosoftSession(client: PublicClientApplication) {
   const loginHint = readAccountHint();
-  if (!loginHint) return undefined;
-  return client.ssoSilent({
+  if (!loginHint || restoreWasAttempted()) return undefined;
+  markRestoreAttempt();
+  await client.loginRedirect({
     loginHint,
+    prompt: 'none',
     scopes: graphScopes(),
-    redirectUri: getRedirectUri(),
+    redirectUri: getApplicationRedirectUri(),
   });
+  return undefined;
 }
 
 export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {

@@ -166,7 +166,6 @@ export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
   const login = await client.loginPopup({
     scopes: graphScopes(),
     redirectUri: getRedirectUri(),
-    prompt: 'select_account',
   });
   const account = login.account ?? await currentAccount(client);
   if (!account) throw new Error('Microsoft no devolvió una cuenta autenticada.');

@@ -66,6 +66,8 @@ Configurar el permiso en Entra permite que la aplicación lo solicite, pero no a
 
 MSAL mantiene su caché para compartir sesión entre pestañas. Al cerrarse por completo el navegador, MiPanel conserva únicamente el identificador de la última cuenta e intenta restaurar la sesión de forma silenciosa; no escribe access tokens ni refresh tokens por su cuenta. El resultado depende de que la sesión de Microsoft siga activa y de que el navegador permita esa comprobación. **Desconectar** elimina tanto la caché de MSAL como ese identificador local. MiPanel nunca solicita contraseñas ni client secrets.
 
+Al pulsar **Conectar Microsoft**, la ventana de Microsoft reutiliza su sesión web existente cuando está disponible; no se fuerza un selector de cuenta ni se vuelven a pedir credenciales salvo que la sesión de Microsoft haya caducado.
+
 La URL de redirect debe estar registrada como tipo **SPA**, tanto para localhost como para producción. Si no se configura así, Microsoft bloqueará el intercambio de código por CORS.
 
 ## Seguridad y CI

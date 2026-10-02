@@ -12,10 +12,19 @@ type PendingConfirmation = {
   task: TaskItem;
 };
 
+function isOverdue(task: TaskItem, today: string, now: number) {
+  const dueDateOverdue = Boolean(task.dueDate && task.dueDate < today);
+  const reminderOverdue = Boolean(
+    task.reminderDateTime && new Date(task.reminderDateTime).getTime() < now,
+  );
+  return dueDateOverdue || reminderOverdue;
+}
+
 export function TaskPanel() {
   const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const [selectedListId, setSelectedListId] = useExtensionStorage('mipanel.microsoft.selectedListId', '');
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showOverdue, setShowOverdue] = useState(false);
   const [editor, setEditor] = useState<TaskItem | 'new' | null>(null);
   const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(null);
   const microsoft = useMicrosoftTodo();
@@ -28,13 +37,15 @@ export function TaskPanel() {
     ? microsoft.tasks.filter((task) => task.listId === activeListId)
     : demoTasks;
   const today = toDateKey(new Date());
+  const now = Date.now();
 
   const visible = useMemo(
     () => tasks
       .filter((task) => showCompleted || !task.completed)
+      .filter((task) => !showOverdue || isOverdue(task, today, now))
       .sort((a, b) => Number(a.completed) - Number(b.completed)
         || (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999')),
-    [showCompleted, tasks],
+    [now, showCompleted, showOverdue, tasks, today],
   );
 
   async function toggleNow(task: TaskItem) {
@@ -108,14 +119,24 @@ export function TaskPanel() {
               ))}
             </select>
           </label>
-          <label className="completed-filter">
-            <input
-              type="checkbox"
-              checked={showCompleted}
-              onChange={(event) => setShowCompleted(event.target.checked)}
-            />
-            Mostrar completadas
-          </label>
+          <div className="task-filter-options">
+            <label className="completed-filter">
+              <input
+                type="checkbox"
+                checked={showCompleted}
+                onChange={(event) => setShowCompleted(event.target.checked)}
+              />
+              Mostrar completadas
+            </label>
+            <label className="completed-filter">
+              <input
+                type="checkbox"
+                checked={showOverdue}
+                onChange={(event) => setShowOverdue(event.target.checked)}
+              />
+              Solo vencidas
+            </label>
+          </div>
           <button
             type="button"
             className="primary-button new-task-button"

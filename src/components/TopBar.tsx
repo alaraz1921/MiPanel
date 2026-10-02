@@ -30,10 +30,15 @@ export function TopBar() {
         <div className="date-label">{date}</div>
       </div>
       <div className="topbar-actions">
-        <button type="button" className="brand-chip background-button" onClick={() => setEditingBackground(true)}>
-          Cambiar fondo
+        <button
+          type="button"
+          className="background-button"
+          aria-label="Cambiar fondo"
+          title="Cambiar fondo"
+          onClick={() => setEditingBackground(true)}
+        >
+          <span aria-hidden="true">🖼️</span>
         </button>
-        <div className="brand-chip">MiPanel · nueva pestaña</div>
       </div>
       {editingBackground && (
         <BackgroundSettings

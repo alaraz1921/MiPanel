@@ -27,8 +27,9 @@ function getTenant() {
 function getRedirectUri() {
   const configured = import.meta.env.VITE_MICROSOFT_REDIRECT_URI?.trim();
   if (!configured) {
-    // BASE_URL incluye /MiPanel/ al compilar para GitHub Pages y / en local.
-    return new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+    // La página de retorno mínima transmite de forma segura la respuesta del
+    // popup a la pestaña principal mediante el redirect bridge de MSAL.
+    return new URL(`${import.meta.env.BASE_URL}microsoft-auth-redirect.html`, window.location.origin).toString();
   }
 
   try {

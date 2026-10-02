@@ -26,7 +26,7 @@ Publica el contenido de `dist/` en un hosting estático HTTPS. MiPanel no requie
 ## Microsoft To Do
 
 1. Configura `VITE_MICROSOFT_CLIENT_ID` y `VITE_MICROSOFT_TENANT` en `.env.local`.
-2. En Microsoft Entra registra `http://localhost:5173/` y `https://alaraz1921.github.io/MiPanel/` como redirects de plataforma **SPA**.
+2. En Microsoft Entra registra `http://localhost:5173/microsoft-auth-redirect.html` y `https://alaraz1921.github.io/MiPanel/microsoft-auth-redirect.html` como redirects de plataforma **SPA**.
 
 ## Publicar en GitHub Pages
 

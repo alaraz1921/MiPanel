@@ -44,11 +44,11 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
 1. En Microsoft Entra abre **Identidad > Aplicaciones > Registros de aplicaciones > MiPanel > Autenticación**. Añade una plataforma **Aplicación de página única (SPA)** y registra:
 
    ```text
-   http://localhost:5173/
-   https://alaraz1921.github.io/MiPanel/
+   http://localhost:5173/microsoft-auth-redirect.html
+   https://alaraz1921.github.io/MiPanel/microsoft-auth-redirect.html
    ```
 
-   Si se usa un dominio propio, sustituye el segundo valor por su URL HTTPS exacta. Conserva los redirects de extensión antiguos mientras sigan siendo necesarios.
+   Si se usa un dominio propio, sustituye el segundo valor por su URL HTTPS exacta terminada en `microsoft-auth-redirect.html`. Conserva los redirects de extensión antiguos mientras sigan siendo necesarios.
 
 2. Añade Microsoft Graph → permisos delegados → `Tasks.ReadWrite`.
 3. Crea `.env.local` con la configuración pública de la aplicación:

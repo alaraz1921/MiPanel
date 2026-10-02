@@ -9,6 +9,14 @@ export default defineConfig(({ mode }) => {
     // mediante VITE_BASE_PATH en su workflow de despliegue.
     base: env.VITE_BASE_PATH || '/',
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        input: {
+          main: 'index.html',
+          microsoftAuthRedirect: 'microsoft-auth-redirect.html',
+        },
+      },
+    },
     server: {
       host: 'localhost',
       port: 5173,

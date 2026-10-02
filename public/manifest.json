@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "MiPanel",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Panel personal de productividad para la página de nueva pestaña.",
-  "permissions": ["storage", "identity"],
+  "permissions": ["storage", "identity", "favicon"],
   "host_permissions": [
     "https://graph.microsoft.com/*",
     "https://login.microsoftonline.com/*"

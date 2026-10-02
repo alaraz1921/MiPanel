@@ -50,7 +50,7 @@ Cada acceso tendrá inicialmente:
 
 - nombre;
 - URL;
-- favicon del sitio cuando está disponible, con icono local alternativo;
+- favicon asociado por el navegador a la URL visitada, con icono local alternativo;
 - reordenación por arrastre y controles accesibles;
 - opción de eliminar/editar.
 
@@ -140,7 +140,7 @@ La aplicación debe seguir siendo utilizable como dashboard cuando no haya ningu
 - Manifest V3 en `public/manifest.json`, copiado a la raíz de `dist/`.
 - `chrome_url_overrides.newtab` apunta a `index.html`.
 - CSS propio inicialmente para reducir dependencias.
-- Permisos `storage` e `identity`.
+- Permisos `storage`, `identity` y `favicon`.
 - Host permissions limitados a Microsoft Login y Microsoft Graph.
 - Sin router, service worker, content scripts ni código remoto mientras no sean necesarios.
 

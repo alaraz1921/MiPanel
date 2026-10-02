@@ -58,7 +58,7 @@
 - [x] Usar confirmaciones propias para completar y eliminar tareas.
 - [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.
 - [x] Reordenar accesos directos mediante arrastre y controles accesibles.
-- [x] Mostrar el favicon de cada sitio con fallback local sin servicios externos.
+- [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
 - [x] Filtrar las tareas para mostrar únicamente las vencidas por fecha o recordatorio.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.

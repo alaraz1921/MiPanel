@@ -3,10 +3,18 @@ import { defaultShortcuts } from '../../data/mock';
 import { useExtensionStorage } from '../../hooks/useExtensionStorage';
 import type { Shortcut } from '../../types';
 
-function faviconUrl(url: string) {
+function faviconUrl(pageUrl: string) {
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(pageUrl);
     if (!['http:', 'https:'].includes(parsed.protocol)) return undefined;
+
+    if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+      const favicon = new URL(chrome.runtime.getURL('/_favicon/'));
+      favicon.searchParams.set('pageUrl', parsed.toString());
+      favicon.searchParams.set('size', '64');
+      return favicon.toString();
+    }
+
     return `${parsed.origin}/favicon.ico`;
   } catch {
     return undefined;

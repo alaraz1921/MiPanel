@@ -54,7 +54,9 @@ async function microsoftClient() {
         redirectUri: getRedirectUri(),
       },
       cache: {
-        cacheLocation: BrowserCacheLocation.SessionStorage,
+        // MSAL renueva la sesión entre aperturas sin que MiPanel escriba
+        // ni manipule tokens directamente.
+        cacheLocation: BrowserCacheLocation.LocalStorage,
       },
     });
     clientPromise = client.initialize().then(() => client);

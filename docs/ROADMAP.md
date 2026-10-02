@@ -3,7 +3,7 @@
 ## Fase 0 — Base visual
 
 - [x] Buscador, accesos directos y reloj.
-- [x] Tareas demo y calendario mensual unificado.
+- [x] Panel de tareas y calendario mensual unificado, sin datos ficticios.
 - [x] Persistencia local simple y diseño responsive.
 
 ## Fase 0.5 — Extensión Chromium (legacy)
@@ -69,6 +69,7 @@
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
 - [x] Filtrar las tareas para mostrar únicamente las vencidas por fecha o recordatorio.
 - [x] Editar y eliminar accesos desde un menú contextual con confirmación.
+- [ ] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.
 

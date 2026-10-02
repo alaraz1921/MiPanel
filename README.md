@@ -2,7 +2,7 @@
 
 MiPanel es una aplicación web SPA de productividad desarrollada con React, TypeScript y Vite. Se despliega como un sitio estático y funciona en navegadores modernos, incluidos Chrome, Edge, Brave, Firefox y Safari.
 
-La versión actual mantiene buscador, reloj, accesos directos reordenables, fondo configurable y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do. El panel permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
+La versión actual mantiene buscador, reloj, accesos directos reordenables, fondo configurable y calendario mensual. Al conectar Microsoft To Do permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. Sin una cuenta conectada no muestra tareas ni eventos ficticios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
 
 ## Requisitos de desarrollo
 
@@ -25,11 +25,11 @@ npm run build
 
 El workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) publica la rama `main` en `https://alaraz1921.github.io/MiPanel/`. En el repositorio, activa una sola vez **Settings → Pages → Build and deployment → Source: GitHub Actions**. Cada push posterior a `main` ejecuta `npm run build:pages`, que fija la ruta pública `/MiPanel/`, y la despliega.
 
-Para incluir Microsoft To Do en el build publicado, crea en **Settings → Secrets and variables → Actions → Variables** la variable `MICROSOFT_CLIENT_ID` con el Client ID de Entra. Opcionalmente crea `MICROSOFT_TENANT` (`common` por defecto). Son valores públicos de una SPA, no secretos. Sin `MICROSOFT_CLIENT_ID`, la página se publica y funciona en modo demo.
+Para incluir Microsoft To Do en el build publicado, crea en **Settings → Secrets and variables → Actions → Variables** la variable `MICROSOFT_CLIENT_ID` con el Client ID de Entra. Opcionalmente crea `MICROSOFT_TENANT` (`common` por defecto). Son valores públicos de una SPA, no secretos. Sin `MICROSOFT_CLIENT_ID`, la página se publica pero no puede cargar tareas remotas.
 
 ## Persistencia local
 
-Las preferencias propias se guardan en `localStorage` del navegador y quedan limitadas al origen donde se ejecute MiPanel: accesos directos, tareas demo, imagen de fondo y lista seleccionada. La caché temporal de listas y tareas de Microsoft usa `sessionStorage` durante dos minutos.
+Las preferencias propias se guardan en `localStorage` del navegador y quedan limitadas al origen donde se ejecute MiPanel: accesos directos, imagen de fondo y lista seleccionada. La caché temporal de listas y tareas de Microsoft usa `sessionStorage` durante dos minutos.
 
 No existe migración automática desde los datos de la antigua extensión: `chrome.storage.local` y el origen de la web están aislados. Una importación/exportación explícita podrá resolverlo en una fase posterior.
 
@@ -64,7 +64,7 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
 
 Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar permisos, desconecta y vuelve a conectar la cuenta para renovar el consentimiento.
 
-MSAL gestiona su propia caché de autenticación en `sessionStorage`; MiPanel no escribe access tokens ni refresh tokens por su cuenta. **Desconectar** elimina la caché local de esta aplicación. MiPanel nunca solicita contraseñas ni client secrets.
+MSAL gestiona su propia caché de autenticación persistente en `localStorage`, de modo que puede renovar la sesión al volver a abrir el navegador. MiPanel no escribe access tokens ni refresh tokens por su cuenta. **Desconectar** elimina la caché local de esta aplicación. MiPanel nunca solicita contraseñas ni client secrets.
 
 La URL de redirect debe estar registrada como tipo **SPA**, tanto para localhost como para producción. Si no se configura así, Microsoft bloqueará el intercambio de código por CORS.
 

@@ -2,11 +2,11 @@
 
 **Versión:** 0.6
 **Fecha:** 02/10/2026
-**Estado:** aplicación web SPA con modo demo
+**Estado:** aplicación web SPA
 
 ## 1. Visión
 
-MiPanel es una aplicación web SPA de escritorio que se sirve desde una URL HTTP/HTTPS. Mantiene una única interfaz React + TypeScript + Vite y evolucionará para consultar Microsoft To Do y Google Calendar sin abandonar el modo demo.
+MiPanel es una aplicación web SPA de escritorio que se sirve desde una URL HTTP/HTTPS. Mantiene una única interfaz React + TypeScript + Vite y evolucionará para consultar Microsoft To Do y Google Calendar sin requerir cuentas conectadas para usar el resto del panel.
 
 GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trabajo local. La web se compila en `dist/` y se puede desplegar en cualquier hosting estático HTTPS, sin backend propio.
 
@@ -162,8 +162,8 @@ Cada integración deberá encargarse de:
 
 ### 5.3 Almacenamiento local
 
-- `localStorage` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
-- Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks`, `mipanel.backgroundImage` y `mipanel.microsoft.selectedListId`.
+- `localStorage` es el almacenamiento principal de accesos y preferencias locales.
+- Las claves actuales son `mipanel.shortcuts`, `mipanel.backgroundImage` y `mipanel.microsoft.selectedListId`.
 - La abstracción compartida notifica a todos los componentes que consumen una misma clave.
 - `sessionStorage` mantiene la caché efímera de Microsoft To Do durante dos minutos.
 - No existe migración automática desde la antigua extensión; una recuperación futura será mediante exportación/importación explícita.
@@ -237,7 +237,7 @@ VITE_MICROSOFT_TENANT=common
 
 La app registrada en Microsoft Entra deberá admitir las URI de redirección de tipo SPA para `http://localhost:5173/microsoft-auth-redirect.html` y `https://alaraz1921.github.io/MiPanel/microsoft-auth-redirect.html` mientras GitHub Pages sea el despliegue de producción. Esta página mínima incorpora el redirect bridge de MSAL para los flujos popup.
 
-MSAL gestiona la caché de autenticación en `sessionStorage`. MiPanel no persiste access tokens ni refresh tokens manualmente. Al invalidarse la sesión se solicita al usuario conectar de nuevo. La acción **Desconectar** elimina la caché local de la aplicación.
+MSAL gestiona su caché de autenticación persistente en `localStorage` para renovar la sesión entre aperturas del navegador. MiPanel no persiste access tokens ni refresh tokens manualmente. Al invalidarse la sesión se solicita al usuario conectar de nuevo. La acción **Desconectar** elimina la caché local de la aplicación.
 
 ### Google
 
@@ -343,7 +343,7 @@ La UI debe distinguir:
 - API temporalmente no disponible;
 - error de datos.
 
-Nunca ocultar un fallo remoto sustituyéndolo silenciosamente por datos demo sin indicarlo.
+Nunca ocultar un fallo remoto sustituyéndolo silenciosamente por datos ficticios.
 
 ## 15. Fases de implementación
 
@@ -363,7 +363,7 @@ La aplicación web queda lista para validación real cuando:
 
 - `dist/index.html` y `dist/assets/` se generan correctamente;
 - MiPanel se abre desde una URL HTTP/HTTPS en navegadores modernos;
-- buscador, accesos, reloj, tareas demo, calendario y responsive siguen funcionando;
+- buscador, accesos, reloj, calendario y responsive siguen funcionando;
 - accesos y preferencias persisten en `localStorage`;
 - cambios de tareas se reflejan inmediatamente en el calendario;
 - CI ejecuta `npm ci`, typecheck y build sin validar manifiestos ni ZIPs de extensión;
@@ -376,7 +376,7 @@ Microsoft To Do queda listo para validación real cuando:
 - se solicita exclusivamente `Tasks.ReadWrite`, necesario para la edición actual;
 - listas y tareas se normalizan a los tipos internos;
 - vencimientos y recordatorios aparecen en el calendario;
-- sin Client ID o sin sesión se mantiene el modo demo;
+- sin Client ID o sin sesión no se muestran tareas remotas ni datos ficticios;
 - cuando la aplicación está configurada, **Conectar Microsoft** abre directamente la identificación interactiva;
 - MiPanel no escribe access tokens ni refresh tokens manualmente;
 - un Client ID y redirects SPA reales permiten completar pruebas en desarrollo y producción.

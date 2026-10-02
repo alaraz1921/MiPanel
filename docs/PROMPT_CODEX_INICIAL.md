@@ -16,7 +16,7 @@ Completa la validación real de la Fase 1 de Microsoft To Do sin ampliar permiso
 - Comprueba listas, tareas, vencimientos y recordatorios con una cuenta real.
 - Mantén únicamente `Tasks.Read`; no implementes creación, edición, completado ni borrado.
 - Nunca uses client secret ni persistas tokens fuera de `chrome.storage.session`.
-- Mantén el modo demo cuando Microsoft no esté configurado o conectado.
+- Sin Microsoft configurado o conectado, muestra el panel sin tareas ni eventos ficticios.
 - No implementes Google Calendar, backend, Electron, Tauri ni PWA.
 - Documenta los resultados de Chrome, Brave y Edge sin publicar en tiendas.
 

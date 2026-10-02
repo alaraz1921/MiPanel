@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { initialTasks } from '../../data/mock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
 import { dayLabel, toDateKey } from '../../lib/date';
@@ -21,7 +20,6 @@ function isOverdue(task: TaskItem, today: string, now: number) {
 }
 
 export function TaskPanel() {
-  const [demoTasks, setDemoTasks] = useLocalStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const [selectedListId, setSelectedListId] = useLocalStorage('mipanel.microsoft.selectedListId', '');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
@@ -35,7 +33,7 @@ export function TaskPanel() {
   const activeList = microsoft.lists.find((list) => list.id === activeListId);
   const tasks = usingMicrosoft
     ? microsoft.tasks.filter((task) => task.listId === activeListId)
-    : demoTasks;
+    : [];
   const today = toDateKey(new Date());
   const now = Date.now();
 
@@ -49,11 +47,7 @@ export function TaskPanel() {
   );
 
   async function toggleNow(task: TaskItem) {
-    if (usingMicrosoft) {
-      return microsoft.toggleTask(task);
-    }
-    setDemoTasks((current) => current.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item));
-    return true;
+    return microsoft.toggleTask(task);
   }
 
   function requestToggle(task: TaskItem) {
@@ -62,10 +56,6 @@ export function TaskPanel() {
       return;
     }
     setConfirmation({ action: 'complete', task });
-  }
-
-  function resetMocks() {
-    setDemoTasks(initialTasks);
   }
 
   async function saveEditor(fields: Parameters<typeof microsoft.createTask>[1]) {
@@ -100,7 +90,7 @@ export function TaskPanel() {
           <h2 id="tasks-title">Próximas tareas</h2>
         </div>
         <span className={`status-pill status-${microsoft.status}`} aria-live="polite">
-          {usingMicrosoft ? statusLabel : `Datos demo · ${statusLabel}`}
+          {statusLabel}
         </span>
       </div>
 
@@ -153,7 +143,7 @@ export function TaskPanel() {
           <p className="empty-state">No hay tareas pendientes para mostrar.</p>
         )}
         {visible.map((task) => (
-          <div className={`task-row${task.completed ? ' completed' : ''}`} key={`${task.listId ?? 'demo'}:${task.id}`}>
+          <div className={`task-row${task.completed ? ' completed' : ''}`} key={`${task.listId}:${task.id}`}>
             <label className="task-check">
               <input
                 type="checkbox"
@@ -199,7 +189,7 @@ export function TaskPanel() {
         <span>
           {usingMicrosoft
             ? microsoft.error ?? `${visible.filter((task) => !task.completed).length} tareas pendientes en ${activeList?.name ?? 'la lista seleccionada'}. El calendario incluye todas las listas.`
-            : microsoft.error ?? 'Conecta Microsoft para sustituir temporalmente los datos demo.'}
+            : microsoft.error ?? 'Conecta Microsoft para cargar tus tareas.'}
         </span>
         <div className="panel-actions">
           {microsoft.status === 'connected' && (
@@ -214,9 +204,6 @@ export function TaskPanel() {
             <button type="button" className="text-button" disabled={microsoft.busy} onClick={() => void microsoft.connect()}>
               {microsoft.busy ? 'Conectando…' : 'Conectar Microsoft'}
             </button>
-          )}
-          {!usingMicrosoft && (
-            <button type="button" className="text-button" onClick={resetMocks}>Restaurar demo</button>
           )}
         </div>
       </div>
@@ -237,7 +224,7 @@ export function TaskPanel() {
 
       {confirmation && (
         <ConfirmDialog
-          key={`${confirmation.action}:${confirmation.task.listId ?? 'demo'}:${confirmation.task.id}`}
+          key={`${confirmation.action}:${confirmation.task.listId}:${confirmation.task.id}`}
           title={confirmation.action === 'complete' ? 'Completar tarea' : 'Eliminar tarea'}
           message={confirmation.action === 'complete'
             ? `¿Quieres marcar “${confirmation.task.title}” como completada?`

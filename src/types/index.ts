@@ -5,7 +5,7 @@ export type Shortcut = {
   icon?: string;
 };
 
-export type TaskSource = 'microsoft-todo' | 'mock';
+export type TaskSource = 'microsoft-todo';
 
 export type TaskList = {
   id: string;
@@ -31,7 +31,7 @@ export type TaskFields = {
   important: boolean;
 };
 
-export type CalendarSource = 'google-calendar' | 'microsoft-todo' | 'mock';
+export type CalendarSource = 'google-calendar' | 'microsoft-todo';
 
 export type CalendarEntry = {
   id: string;

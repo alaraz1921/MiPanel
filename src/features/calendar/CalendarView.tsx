@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react';
-import { initialTasks, mockCalendarEntries } from '../../data/mock';
-import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
 import { monthLabel, startOfMonthGrid, toDateKey } from '../../lib/date';
 import type { CalendarEntry, TaskItem } from '../../types';
@@ -38,12 +36,11 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
 
 export function CalendarView() {
   const [cursor, setCursor] = useState(() => new Date());
-  const [demoTasks] = useLocalStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
   const microsoft = useMicrosoftTodo();
-  const tasks = microsoft.status === 'connected' ? microsoft.tasks : demoTasks;
+  const tasks = microsoft.status === 'connected' ? microsoft.tasks : [];
   const today = toDateKey(new Date());
 
-  const entries = useMemo(() => [...mockCalendarEntries, ...taskEntries(tasks)], [tasks]);
+  const entries = useMemo(() => taskEntries(tasks), [tasks]);
   const start = startOfMonthGrid(cursor);
   const days = Array.from({ length: 42 }, (_, index) => {
     const day = new Date(start);

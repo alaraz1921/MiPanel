@@ -64,7 +64,7 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
 
 Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar permisos, desconecta y vuelve a conectar la cuenta para renovar el consentimiento.
 
-MSAL mantiene su caché para compartir sesión entre pestañas. Al cerrarse por completo el navegador, MiPanel conserva únicamente el identificador de la última cuenta e intenta restaurar la sesión mediante una redirección automática sin pedir credenciales (`prompt=none`); no escribe access tokens ni refresh tokens por su cuenta. El resultado depende de que la sesión de Microsoft siga activa. **Desconectar** elimina tanto la caché de MSAL como ese identificador local. MiPanel nunca solicita contraseñas ni client secrets.
+MSAL mantiene su caché para compartir sesión entre pestañas. Al cerrarse por completo el navegador, MiPanel conserva únicamente el identificador de la última cuenta e intenta restaurar la sesión de forma silenciosa; no escribe access tokens ni refresh tokens por su cuenta. El resultado depende de que la sesión de Microsoft siga activa y de que el navegador permita esa comprobación. **Desconectar** elimina tanto la caché de MSAL como ese identificador local. MiPanel nunca solicita contraseñas ni client secrets.
 
 La URL de redirect debe estar registrada como tipo **SPA**, tanto para localhost como para producción. Si no se configura así, Microsoft bloqueará el intercambio de código por CORS.
 

@@ -38,10 +38,10 @@ body::before {
 .app-shell { position: relative; z-index: 1; width: min(1500px, calc(100% - 36px)); margin: 0 auto; padding: 24px 0 40px; }
 .hero { display: grid; grid-template-columns: minmax(140px, .38fr) minmax(420px, 1.5fr) minmax(190px, .52fr); grid-template-rows: auto auto 1fr; column-gap: 24px; row-gap: 22px; min-height: calc(100vh + 80px); padding: 10px 0 0; }
 .topbar { display: contents; }
-.topbar > div:first-child { grid-column: 1; grid-row: 1; }
+.topbar > div:first-child { grid-column: 1; grid-row: 1; text-align: center; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 .topbar-actions { grid-column: 3; grid-row: 1; align-self: start; justify-content: flex-end; }
-.clock { font-size: clamp(2.3rem, 6vw, 5.4rem); font-weight: 400; letter-spacing: -0.04em; line-height: 0.95; }
+.clock { font-size: clamp(2.2rem, 5.5vw, 5.2rem); font-weight: 400; letter-spacing: -0.04em; line-height: 0.95; }
 .date-label { margin-top: 8px; color: #c9d1dc; text-transform: capitalize; }
 .brand-chip, .status-pill { border: 1px solid var(--line); background: rgba(12, 15, 21, 0.48); backdrop-filter: blur(14px); border-radius: 999px; padding: 8px 12px; color: #cbd4e0; font-size: 0.82rem; }
 .background-button { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(255,255,255,.40); border-radius: 50%; background: rgba(255,255,255,.20); color: #f7f9fc; box-shadow: 0 4px 12px rgba(20,35,52,.12); cursor: pointer; font-size: 1.05rem; }

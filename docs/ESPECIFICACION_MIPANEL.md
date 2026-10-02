@@ -51,8 +51,8 @@ Cada acceso tendrá inicialmente:
 - nombre;
 - URL;
 - favicon asociado por el navegador a la URL visitada, con icono local alternativo;
-- reordenación por arrastre y controles accesibles;
-- opción de eliminar/editar.
+- reordenación por arrastre y menú contextual;
+- edición y eliminación desde un menú contextual, con confirmación previa al borrar.
 
 Los accesos son datos propios de MiPanel. No dependen de los favoritos del navegador.
 

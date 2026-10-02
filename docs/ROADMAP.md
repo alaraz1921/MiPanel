@@ -60,6 +60,7 @@
 - [x] Reordenar accesos directos mediante arrastre y controles accesibles.
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
 - [x] Filtrar las tareas para mostrar únicamente las vencidas por fecha o recordatorio.
+- [x] Editar y eliminar accesos desde un menú contextual con confirmación.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.
 

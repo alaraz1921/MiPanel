@@ -13,8 +13,8 @@ type TaskEditorDialogProps = {
 export function TaskEditorDialog({ task, listName, busy, error, onCancel, onSave }: TaskEditorDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState(task?.title ?? '');
-  const [dueDate, setDueDate] = useState(task?.dueDate ?? '');
-  const [reminderDateTime, setReminderDateTime] = useState(task?.reminderDateTime ?? '');
+  const [date, setDate] = useState(task?.dueDate ?? task?.reminderDateTime?.slice(0, 10) ?? '');
+  const [time, setTime] = useState(task?.reminderDateTime?.slice(11, 16) ?? '');
   const [important, setImportant] = useState(task?.important ?? false);
   const [saveFailed, setSaveFailed] = useState(false);
 
@@ -27,8 +27,8 @@ export function TaskEditorDialog({ task, listName, busy, error, onCancel, onSave
     event.preventDefault();
     const saved = await onSave({
       title,
-      dueDate: dueDate || undefined,
-      reminderDateTime: reminderDateTime || undefined,
+      dueDate: date || undefined,
+      reminderDateTime: date && time ? `${date}T${time}` : undefined,
       important,
     });
     if (saved) onCancel();
@@ -65,15 +65,16 @@ export function TaskEditorDialog({ task, listName, busy, error, onCancel, onSave
 
         <div className="task-editor-dates">
           <label>
-            <span>Fecha de vencimiento</span>
-            <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+            <span>Fecha</span>
+            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           </label>
           <label>
-            <span>Recordatorio</span>
+            <span>Hora</span>
             <input
-              type="datetime-local"
-              value={reminderDateTime}
-              onChange={(event) => setReminderDateTime(event.target.value)}
+              type="time"
+              value={time}
+              disabled={!date}
+              onChange={(event) => setTime(event.target.value)}
             />
           </label>
         </div>

@@ -77,6 +77,8 @@ La Fase 2 incluye:
 - mostrar notas y recurrencia en una fase posterior;
 - reflejar los cambios en Microsoft To Do real.
 
+El editor usa una única **Fecha** y una **Hora** opcional: la fecha se guarda como vencimiento; si se indica además una hora, se guarda un recordatorio en esa misma fecha y hora.
+
 El calendario debe poder representar por separado:
 
 - `dueDateTime` como **vencimiento**;

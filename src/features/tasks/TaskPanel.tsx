@@ -21,7 +21,7 @@ function isOverdue(task: TaskItem, today: string, now: number) {
 
 export function TaskPanel() {
   const [selectedListId, setSelectedListId] = useLocalStorage('mipanel.microsoft.selectedListId', '');
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
   const [showOverdue, setShowOverdue] = useState(false);
   const [editor, setEditor] = useState<TaskItem | 'new' | null>(null);
   const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(null);
@@ -89,9 +89,21 @@ export function TaskPanel() {
           <span className="eyebrow">Microsoft To Do</span>
           <h2 id="tasks-title">Próximas tareas</h2>
         </div>
-        <span className={`status-pill status-${microsoft.status}`} aria-live="polite">
-          {statusLabel}
-        </span>
+        <div className="task-panel-header-actions">
+          {microsoft.status === 'connected' && (
+            <button
+              type="button"
+              className="status-pill status-connected status-action"
+              disabled={microsoft.busy}
+              onClick={() => void microsoft.refresh()}
+            >
+              {microsoft.busy ? 'Actualizando…' : 'Actualizar'}
+            </button>
+          )}
+          <span className={`status-pill status-${microsoft.status}`} aria-live="polite">
+            {statusLabel}
+          </span>
+        </div>
       </div>
 
       {usingMicrosoft && (
@@ -194,9 +206,6 @@ export function TaskPanel() {
         <div className="panel-actions">
           {microsoft.status === 'connected' && (
             <>
-              <button type="button" className="text-button" disabled={microsoft.busy} onClick={() => void microsoft.refresh()}>
-                {microsoft.busy ? 'Actualizando…' : 'Actualizar'}
-              </button>
               <button type="button" className="text-button" onClick={() => void microsoft.disconnect()}>Desconectar</button>
             </>
           )}

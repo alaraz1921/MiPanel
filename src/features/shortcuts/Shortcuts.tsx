@@ -195,12 +195,6 @@ export function Shortcuts() {
 
   return (
     <section className="shortcuts-section" aria-label="Accesos directos">
-      <div className="shortcuts-actions">
-        <button className="ghost-button" type="button" onClick={() => setAdding((value) => !value)}>
-          {adding ? 'Cancelar' : '+ Añadir'}
-        </button>
-      </div>
-
       {adding && (
         <form className="shortcut-form" onSubmit={addShortcut}>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nombre" aria-label="Nombre del acceso" />
@@ -235,6 +229,15 @@ export function Shortcuts() {
             </a>
           </div>
         ))}
+        <button
+          type="button"
+          className="shortcut-link shortcut-add-card"
+          onClick={() => setAdding((value) => !value)}
+          aria-expanded={adding}
+        >
+          <span className="shortcut-icon shortcut-add-icon" aria-hidden="true">+</span>
+          <span>{adding ? 'Cancelar' : 'Añadir'}</span>
+        </button>
       </div>
 
       {contextMenu && contextShortcut && (

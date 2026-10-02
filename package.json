@@ -1,7 +1,7 @@
 {
   "name": "mipanel",
   "private": true,
-  "version": "0.5.5",
+  "version": "0.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -10,6 +10,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@azure/msal-browser": "^5.23.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

@@ -1,6 +1,6 @@
 # Primeros pasos en Windows
 
-## Preparar la extensión
+## Preparar la web
 
 Instala Node.js 20.19+ o 22.12+ y ejecuta:
 
@@ -11,33 +11,30 @@ npm run typecheck
 npm run build
 ```
 
-La carpeta `dist` resultante es la extensión desempaquetada. Repite `npm run build` después de cambiar el código y pulsa **Actualizar** en la ficha de la extensión.
+La carpeta `dist` resultante contiene la SPA estática. Repite `npm run build` después de cambiar el código antes de desplegarla.
 
-## Google Chrome
+## Desarrollo local
 
-1. Abre `chrome://extensions`.
-2. Activa **Modo desarrollador**.
-3. Selecciona **Cargar descomprimida** y elige `V:\Proyectos\Git\MiPanel\dist`.
-4. Abre una pestaña nueva y comprueba que aparece MiPanel.
+1. Ejecuta `npm run dev`.
+2. Abre `http://localhost:5173` en Chrome, Brave, Edge, Firefox o Safari.
+3. Comprueba buscador, accesos, reloj, tareas, calendario y persistencia tras recargar.
 
-## Brave
+## Despliegue
 
-1. Abre `brave://extensions`.
-2. Activa **Modo desarrollador**.
-3. Selecciona **Cargar descomprimida** y elige la misma carpeta `dist`.
-4. Abre una pestaña nueva y comprueba MiPanel.
+Publica el contenido de `dist/` en un hosting estático HTTPS. MiPanel no requiere backend ni instalación de extensión.
 
-## Microsoft Edge
+## Microsoft To Do
 
-1. Abre `edge://extensions`.
-2. Activa **Modo de desarrollador**.
-3. Selecciona **Cargar desempaquetado** y elige la misma carpeta `dist`.
-4. Abre una pestaña nueva y comprueba MiPanel.
+1. Configura `VITE_MICROSOFT_CLIENT_ID` y `VITE_MICROSOFT_TENANT` en `.env.local`.
+2. En Microsoft Entra registra `http://localhost:5173/` y `https://alaraz1921.github.io/MiPanel/` como redirects de plataforma **SPA**.
 
-En cada navegador verifica buscador, accesos, reloj, tareas, calendario, persistencia tras abrir otra pestaña y ausencia de errores en la ficha de la extensión y DevTools. MiPanel no necesita localhost ni una URL pública. `npm run dev` es solo una ayuda opcional de maquetación.
+## Publicar en GitHub Pages
 
-Tras cualquier cambio de código, ejecuta siempre `npm run typecheck` y `npm run build`; después pulsa **Recargar** en la página de extensiones antes de abrir una pestaña nueva.
+1. En GitHub abre **Settings → Pages** y selecciona **GitHub Actions** como origen.
+2. Haz push a `main`. El workflow `Desplegar en GitHub Pages` publica `https://alaraz1921.github.io/MiPanel/`.
+3. Configura después esa URL exacta en Microsoft Entra y vuelve a conectar la cuenta para renovar el consentimiento.
+3. Pulsa **Conectar Microsoft** desde MiPanel y completa la identificación en la ventana emergente.
 
-Para probar Microsoft To Do, configura primero el Client ID y tenant públicos en `.env.local`, recompila y pulsa **Conectar Microsoft**. El usuario pasa directamente a la identificación de Microsoft. Cada navegador o distribución puede tener un ID diferente y, por tanto, un redirect distinto.
+Tras cualquier cambio de código, ejecuta siempre `npm run typecheck` y `npm run build`. Abre el sitio en el navegador y revisa DevTools si aparece algún error.
 
 No introduzcas credenciales, client secrets ni tokens en el código ni en archivos versionados.

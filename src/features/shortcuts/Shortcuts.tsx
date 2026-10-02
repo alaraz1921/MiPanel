@@ -1,20 +1,13 @@
 import { FormEvent, useEffect, useRef, useState, type DragEvent } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { defaultShortcuts } from '../../data/mock';
-import { useExtensionStorage } from '../../hooks/useExtensionStorage';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { Shortcut } from '../../types';
 
 function faviconUrl(pageUrl: string) {
   try {
     const parsed = new URL(pageUrl);
     if (!['http:', 'https:'].includes(parsed.protocol)) return undefined;
-
-    if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
-      const favicon = new URL(chrome.runtime.getURL('/_favicon/'));
-      favicon.searchParams.set('pageUrl', parsed.toString());
-      favicon.searchParams.set('size', '64');
-      return favicon.toString();
-    }
 
     return `${parsed.origin}/favicon.ico`;
   } catch {
@@ -105,7 +98,7 @@ function ShortcutEditorDialog({
 }
 
 export function Shortcuts() {
-  const [shortcuts, setShortcuts] = useExtensionStorage<Shortcut[]>('mipanel.shortcuts', defaultShortcuts);
+  const [shortcuts, setShortcuts] = useLocalStorage<Shortcut[]>('mipanel.shortcuts', defaultShortcuts);
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { initialTasks } from '../../data/mock';
-import { useExtensionStorage } from '../../hooks/useExtensionStorage';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
 import { dayLabel, toDateKey } from '../../lib/date';
 import type { TaskItem } from '../../types';
@@ -21,8 +21,8 @@ function isOverdue(task: TaskItem, today: string, now: number) {
 }
 
 export function TaskPanel() {
-  const [demoTasks, setDemoTasks] = useExtensionStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
-  const [selectedListId, setSelectedListId] = useExtensionStorage('mipanel.microsoft.selectedListId', '');
+  const [demoTasks, setDemoTasks] = useLocalStorage<TaskItem[]>('mipanel.mockTasks', initialTasks);
+  const [selectedListId, setSelectedListId] = useLocalStorage('mipanel.microsoft.selectedListId', '');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
   const [editor, setEditor] = useState<TaskItem | 'new' | null>(null);

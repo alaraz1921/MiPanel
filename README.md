@@ -1,16 +1,16 @@
 # MiPanel
 
-MiPanel es una extensión Chromium Manifest V3 para escritorio que sustituye la página de nueva pestaña por un panel personal de productividad. Una única base React + TypeScript + Vite sirve para Google Chrome, Brave y Microsoft Edge.
+MiPanel es una aplicación web SPA de productividad desarrollada con React, TypeScript y Vite. Se despliega como un sitio estático y funciona en navegadores modernos, incluidos Chrome, Edge, Brave, Firefox y Safari.
 
-La versión actual mantiene buscador, reloj, accesos directos reordenables con favicon, fondo configurable y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do. El panel permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
+La versión actual mantiene buscador, reloj, accesos directos reordenables, fondo configurable y calendario mensual. Puede funcionar completamente en modo demo o conectar Microsoft To Do. El panel permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
 
 ## Requisitos de desarrollo
 
 - Node.js 20.19+ o 22.12+ (se recomienda Node 22 LTS).
 - npm.
-- Chrome, Brave o Edge de escritorio para probar la extensión.
+- Un navegador moderno para probar la SPA.
 
-## Compilar e instalar
+## Desarrollo y build web
 
 ```powershell
 cd V:\Proyectos\Git\MiPanel
@@ -19,33 +19,34 @@ npm run typecheck
 npm run build
 ```
 
-El resultado instalable queda en `dist/`. No se versiona.
+`npm run dev` inicia la web en `http://localhost:5173`. `npm run build` genera una SPA estática en `dist/`, lista para desplegarse en un hosting convencional. No requiere extensión, Manifest V3 ni localhost en producción.
 
-1. Abre `chrome://extensions`, `brave://extensions` o `edge://extensions`.
-2. Activa **Modo desarrollador**.
-3. Pulsa **Cargar descomprimida**.
-4. Selecciona `V:\Proyectos\Git\MiPanel\dist`.
-5. Abre una nueva pestaña.
+## Publicación en GitHub Pages
 
-`npm run dev` sigue disponible únicamente como ayuda de desarrollo visual. La extensión instalada no depende de localhost ni de GitHub Pages.
+El workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) publica la rama `main` en `https://alaraz1921.github.io/MiPanel/`. En el repositorio, activa una sola vez **Settings → Pages → Build and deployment → Source: GitHub Actions**. Cada push posterior a `main` compila la aplicación con la ruta pública `/MiPanel/` y la despliega.
 
-## Persistencia
+## Persistencia local
 
-La extensión guarda `mipanel.shortcuts`, `mipanel.mockTasks`, `mipanel.backgroundImage` y la preferencia `mipanel.microsoft.selectedListId` en `chrome.storage.local`. La imagen se selecciona desde el equipo, tiene un límite de 4 MB y no se envía a ningún servicio. La capa de almacenamiento mantiene sincronizados los componentes que consumen la misma clave. Durante `npm run dev`, donde la API de extensión no existe, usa `localStorage` como respaldo de desarrollo para los datos locales del panel.
+Las preferencias propias se guardan en `localStorage` del navegador y quedan limitadas al origen donde se ejecute MiPanel: accesos directos, tareas demo, imagen de fondo y lista seleccionada. La caché temporal de listas y tareas de Microsoft usa `sessionStorage` durante dos minutos.
 
-No existe migración automática desde el antiguo origen localhost: ambos orígenes están aislados. `chrome.storage.sync` no se usa en esta fase y, si se estudia más adelante, solo servirá para preferencias pequeñas y no sensibles; no proporciona sincronización universal entre Chrome, Brave y Edge.
+No existe migración automática desde los datos de la antigua extensión: `chrome.storage.local` y el origen de la web están aislados. Una importación/exportación explícita podrá resolverlo en una fase posterior.
+
+Los accesos directos utilizan el favicon web convencional de cada dominio. El favicon dinámico que proporcionaba Chromium a la antigua extensión no forma parte de las APIs web estándar.
 
 ## Microsoft To Do — configuración
 
-La integración usa Authorization Code + PKCE, `chrome.identity` y el permiso delegado `Tasks.ReadWrite`, necesario para completar y reabrir tareas. Solicita también `offline_access` para renovar la sesión entre reinicios. No utiliza client secret.
+La integración usa MSAL Browser con Authorization Code + PKCE y el permiso delegado `Tasks.ReadWrite`, necesario para editar tareas. No utiliza client secret ni almacena refresh tokens manualmente.
 
 La aplicación se registra y configura una sola vez por el desarrollador. Esa configuración técnica no se solicita a cada usuario.
 
-1. En Microsoft Entra registra una aplicación compatible con los tipos de cuenta que quieras admitir y añade como plataforma **Aplicación de página única (SPA)** el redirect de la extensión:
+1. En Microsoft Entra abre **Identidad > Aplicaciones > Registros de aplicaciones > MiPanel > Autenticación**. Añade una plataforma **Aplicación de página única (SPA)** y registra:
 
    ```text
-   https://<ID_DE_LA_EXTENSION>.chromiumapp.org/microsoft
+   http://localhost:5173/
+   https://alaraz1921.github.io/MiPanel/
    ```
+
+   Si se usa un dominio propio, sustituye el segundo valor por su URL HTTPS exacta. Conserva los redirects de extensión antiguos mientras sigan siendo necesarios.
 
 2. Añade Microsoft Graph → permisos delegados → `Tasks.ReadWrite`.
 3. Crea `.env.local` con la configuración pública de la aplicación:
@@ -53,24 +54,25 @@ La aplicación se registra y configura una sola vez por el desarrollador. Esa co
    ```dotenv
    VITE_MICROSOFT_CLIENT_ID=<application-client-id>
    VITE_MICROSOFT_TENANT=common
+   # Opcional; por defecto se calcula desde la URL actual y la ruta base.
+   VITE_MICROSOFT_REDIRECT_URI=
    ```
 
-4. Ejecuta `npm run typecheck` y `npm run build`, recarga la extensión y pulsa **Conectar Microsoft**. El usuario verá directamente el selector o formulario de identificación de Microsoft.
+4. Ejecuta `npm run dev` y pulsa **Conectar Microsoft**. El usuario verá el selector o formulario de identificación de Microsoft en una ventana emergente.
 
-Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar de `Tasks.Read` a `Tasks.ReadWrite`, desconecta y vuelve a conectar la cuenta para que Microsoft solicite el consentimiento y emita una sesión nueva. La primera conexión después de instalar esta versión también debe aceptar `offline_access`.
+Configurar el permiso en Entra permite que la aplicación lo solicite, pero no actualiza los tokens ya emitidos. Tras cambiar permisos, desconecta y vuelve a conectar la cuenta para renovar el consentimiento.
 
-El access token se guarda únicamente en `chrome.storage.session`. El refresh token se guarda únicamente en `chrome.storage.local` para renovar la sesión entre reinicios; **Desconectar** elimina ambos. En el almacenamiento temporal de sesión se mantiene durante dos minutos una caché de listas y tareas para evitar recargarlas desde Graph al abrir varias pestañas seguidas. MiPanel nunca solicita contraseñas ni client secrets.
+MSAL gestiona su propia caché de autenticación en `sessionStorage`; MiPanel no escribe access tokens ni refresh tokens por su cuenta. **Desconectar** elimina la caché local de esta aplicación. MiPanel nunca solicita contraseñas ni client secrets.
 
-Chrome Web Store y Edge Add-ons pueden asignar IDs diferentes. Registra cada redirect real antes de probar esa distribución. La sesión se guarda en `chrome.storage.session`, solo en memoria, y puede requerir reconexión cuando caduque o se reinicie el navegador.
+La URL de redirect debe estar registrada como tipo **SPA**, tanto para localhost como para producción. Si no se configura así, Microsoft bloqueará el intercambio de código por CORS.
 
 ## Seguridad y CI
 
-- El manifiesto solicita `storage` e `identity`.
-- Los únicos hosts permitidos son Microsoft Graph y Microsoft Login.
-- La escritura se limita a las operaciones de tareas documentadas mediante Microsoft Graph; no hay content scripts ni service worker.
+- No existe manifiesto ni permisos de extensión.
+- La escritura se limita a las operaciones de tareas documentadas mediante Microsoft Graph.
 - Todo JavaScript se empaqueta localmente; no hay scripts remotos.
 - Las variables `VITE_*` son públicas porque terminan en el bundle. Nunca deben contener secretos.
-- El refresh token se mantiene solo en el almacenamiento privado de la extensión y nunca se escribe en `localStorage`, `chrome.storage.sync` ni Git.
-- `.github/workflows/ci-extension.yml` ejecuta `npm ci`, typecheck y build, valida los archivos esenciales y publica un artifact ZIP con `manifest.json` en su raíz.
+- MiPanel no escribe refresh tokens en `localStorage`, `sessionStorage` ni Git.
+- `.github/workflows/ci-extension.yml` ejecuta `npm ci`, typecheck y build y valida `dist/index.html` y `dist/assets/`.
 
 GitHub es la fuente principal: <https://github.com/alaraz1921/MiPanel>. Esta carpeta es únicamente la copia de trabajo local.

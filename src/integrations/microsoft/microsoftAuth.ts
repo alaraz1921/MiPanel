@@ -1,8 +1,8 @@
+import {
+  BrowserCacheLocation,
+  PublicClientApplication,
+} from '@azure/msal-browser';
 import { MICROSOFT_SCOPES } from './microsoftGraph';
-
-const SESSION_KEY = 'mipanel.microsoft.session';
-const REFRESH_TOKEN_KEY = 'mipanel.microsoft.refreshToken';
-const REDIRECT_PATH = 'microsoft';
 
 export type MicrosoftTokenSession = {
   accessToken: string;
@@ -10,14 +10,7 @@ export type MicrosoftTokenSession = {
   grantedScopes?: string[];
 };
 
-type TokenResponse = {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  scope?: string;
-  error?: string;
-  error_description?: string;
-};
+let clientPromise: Promise<PublicClientApplication> | undefined;
 
 function getClientId() {
   return import.meta.env.VITE_MICROSOFT_CLIENT_ID?.trim() ?? '';
@@ -31,27 +24,57 @@ function getTenant() {
   return tenant;
 }
 
-function identityApiAvailable() {
-  return typeof chrome !== 'undefined' && Boolean(chrome.identity?.launchWebAuthFlow);
+function getRedirectUri() {
+  const configured = import.meta.env.VITE_MICROSOFT_REDIRECT_URI?.trim();
+  if (!configured) {
+    // BASE_URL incluye /MiPanel/ al compilar para GitHub Pages y / en local.
+    return new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+  }
+
+  try {
+    const redirect = new URL(configured);
+    if (!['http:', 'https:'].includes(redirect.protocol)) throw new Error();
+    return redirect.toString();
+  } catch {
+    throw new Error('VITE_MICROSOFT_REDIRECT_URI debe ser una URL HTTP o HTTPS válida.');
+  }
 }
 
-function oauthScopes() {
-  return [...MICROSOFT_SCOPES.map((scope) => `https://graph.microsoft.com/${scope}`), 'offline_access'].join(' ');
+function graphScopes() {
+  return MICROSOFT_SCOPES.map((scope) => `https://graph.microsoft.com/${scope}`);
 }
 
-function toBase64Url(bytes: Uint8Array) {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function microsoftClient() {
+  if (!clientPromise) {
+    const client = new PublicClientApplication({
+      auth: {
+        clientId: getClientId(),
+        authority: `https://login.microsoftonline.com/${getTenant()}`,
+        redirectUri: getRedirectUri(),
+      },
+      cache: {
+        cacheLocation: BrowserCacheLocation.SessionStorage,
+      },
+    });
+    clientPromise = client.initialize().then(() => client);
+  }
+  return clientPromise;
 }
 
-function randomBase64Url(byteLength: number) {
-  return toBase64Url(crypto.getRandomValues(new Uint8Array(byteLength)));
+async function currentAccount(client: PublicClientApplication) {
+  const active = client.getActiveAccount();
+  if (active) return active;
+  const account = client.getAllAccounts()[0];
+  if (account) client.setActiveAccount(account);
+  return account;
 }
 
-async function createPkceChallenge(verifier: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return toBase64Url(new Uint8Array(digest));
+function sessionFromToken(accessToken: string, expiresOn: Date | null, scopes: string[]) {
+  return {
+    accessToken,
+    expiresAt: expiresOn?.getTime() ?? Date.now() + 55 * 60 * 1000,
+    grantedScopes: scopes,
+  } satisfies MicrosoftTokenSession;
 }
 
 export function isMicrosoftConfigured() {
@@ -59,133 +82,48 @@ export function isMicrosoftConfigured() {
 }
 
 export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | undefined> {
-  if (typeof chrome === 'undefined' || !chrome.storage?.session) return undefined;
-  const result = await chrome.storage.session.get(SESSION_KEY);
-  const session = result[SESSION_KEY] as MicrosoftTokenSession | undefined;
-  if (session && session.expiresAt > Date.now() + 60_000) return session;
+  if (!isMicrosoftConfigured()) return undefined;
 
-  await chrome.storage.session.remove(SESSION_KEY);
-  if (!chrome.storage.local) return undefined;
-  const stored = await chrome.storage.local.get(REFRESH_TOKEN_KEY);
-  const refreshToken = stored[REFRESH_TOKEN_KEY] as string | undefined;
-  if (!refreshToken) return undefined;
-
-  const refreshed = await refreshMicrosoftSession(refreshToken);
-  if (!refreshed) await chrome.storage.local.remove(REFRESH_TOKEN_KEY);
-  return refreshed;
+  try {
+    const client = await microsoftClient();
+    const account = await currentAccount(client);
+    if (!account) return undefined;
+    const result = await client.acquireTokenSilent({
+      account,
+      scopes: graphScopes(),
+      redirectUri: getRedirectUri(),
+    });
+    return sessionFromToken(result.accessToken, result.expiresOn, result.scopes);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function clearMicrosoftSession() {
-  if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-    await chrome.storage.session.remove(SESSION_KEY);
-  }
-  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-    await chrome.storage.local.remove(REFRESH_TOKEN_KEY);
-  }
-}
-
-async function refreshMicrosoftSession(refreshToken: string): Promise<MicrosoftTokenSession | undefined> {
-  const clientId = getClientId();
-  if (!clientId) return undefined;
-  const tenant = getTenant();
-  const tokenResponse = await fetch(
-    `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        scope: oauthScopes(),
-      }),
-    },
-  );
-  const token = await tokenResponse.json() as TokenResponse;
-  if (!tokenResponse.ok || !token.access_token) return undefined;
-
-  const session: MicrosoftTokenSession = {
-    accessToken: token.access_token,
-    expiresAt: Date.now() + Math.max(token.expires_in ?? 3600, 60) * 1000,
-    grantedScopes: (token.scope ?? MICROSOFT_SCOPES.join(' ')).split(' ').filter(Boolean),
-  };
-  await chrome.storage.session.set({ [SESSION_KEY]: session });
-  if (token.refresh_token) await chrome.storage.local.set({ [REFRESH_TOKEN_KEY]: token.refresh_token });
-  return session;
+  if (!isMicrosoftConfigured()) return;
+  const client = await microsoftClient();
+  client.setActiveAccount(null);
+  await client.clearCache();
 }
 
 export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
   const clientId = getClientId();
   if (!clientId) throw new Error('Microsoft no está configurado en esta compilación.');
-  if (!identityApiAvailable()) {
-    throw new Error('La conexión Microsoft solo está disponible desde la extensión instalada.');
-  }
 
-  const tenant = getTenant();
-  const redirectUri = chrome.identity.getRedirectURL(REDIRECT_PATH);
-  const verifier = randomBase64Url(64);
-  const challenge = await createPkceChallenge(verifier);
-  const state = randomBase64Url(32);
-  const scopes = oauthScopes();
-
-  const authorizeUrl = new URL(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/authorize`);
-  authorizeUrl.search = new URLSearchParams({
-    client_id: clientId,
-    response_type: 'code',
-    redirect_uri: redirectUri,
-    response_mode: 'query',
-    scope: scopes,
-    state,
-    code_challenge: challenge,
-    code_challenge_method: 'S256',
+  const client = await microsoftClient();
+  const login = await client.loginPopup({
+    scopes: graphScopes(),
+    redirectUri: getRedirectUri(),
     prompt: 'select_account',
-  }).toString();
-
-  const responseUrl = await chrome.identity.launchWebAuthFlow({
-    url: authorizeUrl.toString(),
-    interactive: true,
   });
+  const account = login.account ?? await currentAccount(client);
+  if (!account) throw new Error('Microsoft no devolvió una cuenta autenticada.');
 
-  if (!responseUrl) throw new Error('Microsoft no devolvió una respuesta de autenticación.');
-  const response = new URL(responseUrl);
-  const errorDescription = response.searchParams.get('error_description');
-  if (errorDescription) throw new Error(errorDescription);
-  if (response.searchParams.get('state') !== state) {
-    throw new Error('La respuesta de Microsoft no superó la validación de estado.');
-  }
-
-  const code = response.searchParams.get('code');
-  if (!code) throw new Error('Microsoft no devolvió el código de autorización.');
-
-  const tokenResponse = await fetch(
-    `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: redirectUri,
-        code_verifier: verifier,
-        scope: scopes,
-      }),
-    },
-  );
-
-  const token = await tokenResponse.json() as TokenResponse;
-  if (!tokenResponse.ok || !token.access_token) {
-    throw new Error(token.error_description || token.error || 'No se pudo obtener el token de Microsoft.');
-  }
-
-  const session: MicrosoftTokenSession = {
-    accessToken: token.access_token,
-    expiresAt: Date.now() + Math.max(token.expires_in ?? 3600, 60) * 1000,
-    grantedScopes: (token.scope ?? MICROSOFT_SCOPES.join(' ')).split(' ').filter(Boolean),
-  };
-  await chrome.storage.session.set({ [SESSION_KEY]: session });
-  if (token.refresh_token && chrome.storage.local) {
-    await chrome.storage.local.set({ [REFRESH_TOKEN_KEY]: token.refresh_token });
-  }
-  return session;
+  client.setActiveAccount(account);
+  const token = await client.acquireTokenSilent({
+    account,
+    scopes: graphScopes(),
+    redirectUri: getRedirectUri(),
+  });
+  return sessionFromToken(token.accessToken, token.expiresOn, token.scopes);
 }

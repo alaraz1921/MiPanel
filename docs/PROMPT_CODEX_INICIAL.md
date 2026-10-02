@@ -1,4 +1,6 @@
-# Prompt sugerido para validar Microsoft To Do
+# Prompt histórico de validación de la extensión
+
+> Este documento corresponde al antiguo target Chromium. La referencia vigente para MiPanel Web es `README.md`, `docs/ESPECIFICACION_MIPANEL.md` y `docs/ROADMAP.md`.
 
 La implementación de lectura ya existe. Usar este texto cuando se disponga de un registro real en Microsoft Entra:
 

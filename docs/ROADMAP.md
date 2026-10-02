@@ -6,7 +6,7 @@
 - [x] Tareas demo y calendario mensual unificado.
 - [x] Persistencia local simple y diseño responsive.
 
-## Fase 0.5 — Extensión Chromium
+## Fase 0.5 — Extensión Chromium (legacy)
 
 - [x] Manifest V3 y sustitución de nueva pestaña.
 - [x] Una base compatible con Chrome, Brave y Edge.
@@ -16,6 +16,14 @@
 - [x] CI con typecheck, build y ZIP instalable.
 - [x] Documentación de instalación y pruebas.
 - [x] Completar pruebas manuales reales en Chrome, Brave y Edge.
+
+## Fase 0.6 — Aplicación web SPA
+
+- [x] Convertir el build principal a una SPA estática desplegable.
+- [x] Sustituir `chrome.storage` por adaptadores basados en `localStorage` y `sessionStorage`.
+- [x] Sustituir `chrome.identity` por MSAL Browser con Authorization Code + PKCE.
+- [x] Eliminar `manifest.json` y el empaquetado de extensión del build y CI principales.
+- [x] Documentar los redirects SPA de Microsoft Entra y la limitación de migración de datos locales.
 
 ## Fase 0.75 — Distribución (solo tras confirmación)
 
@@ -27,14 +35,14 @@
 ## Fase 1 — Microsoft To Do en lectura
 
 - [x] Registrar la aplicación en Microsoft Entra.
-- [ ] Incorporar el Client ID público y validar redirects reales según cada ID de extensión.
+- [ ] Incorporar el Client ID público y validar redirects SPA reales en localhost y GitHub Pages.
 - [x] Implementar cliente público con Authorization Code + PKCE.
 - [x] Conectar/desconectar cuenta sin client secret.
 - [x] Solicitar únicamente `Tasks.Read`.
 - [x] Leer listas, tareas, vencimientos y recordatorios.
 - [x] Integrar datos normalizados en dashboard y calendario.
 - [x] Filtrar el panel por una lista seleccionada sin limitar el calendario unificado.
-- [ ] Configurar un Client ID real y completar pruebas con cuentas Microsoft.
+- [ ] Configurar un Client ID real y completar pruebas con cuentas Microsoft en la web desplegada.
 
 ## Fase 2 — Edición de Microsoft To Do
 
@@ -47,7 +55,7 @@
 
 ## Fase 3 — Google Calendar
 
-- [ ] Registrar/configurar la aplicación y OAuth de extensión.
+- [ ] Registrar/configurar la aplicación y OAuth web.
 - [ ] Empezar con permisos de lectura.
 - [ ] Leer calendarios y eventos por intervalo.
 - [ ] Integrar eventos en el calendario unificado.

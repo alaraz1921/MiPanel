@@ -1,18 +1,18 @@
 # Especificación funcional y técnica — MiPanel
 
-**Versión:** 0.3
-**Fecha:** 01/10/2026
-**Estado:** extensión Chromium Manifest V3 con modo demo
+**Versión:** 0.6
+**Fecha:** 02/10/2026
+**Estado:** aplicación web SPA con modo demo
 
 ## 1. Visión
 
-MiPanel es una extensión Chromium Manifest V3 de escritorio que sustituye la página de nueva pestaña en Google Chrome, Brave y Microsoft Edge. Mantiene una única interfaz React + TypeScript + Vite y evolucionará para consultar Microsoft To Do y Google Calendar sin abandonar el modo demo.
+MiPanel es una aplicación web SPA de escritorio que se sirve desde una URL HTTP/HTTPS. Mantiene una única interfaz React + TypeScript + Vite y evolucionará para consultar Microsoft To Do y Google Calendar sin abandonar el modo demo.
 
-GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trabajo local. La extensión se compila en `dist/` y no depende de localhost, GitHub Pages ni un backend propio para funcionar.
+GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trabajo local. La web se compila en `dist/` y se puede desplegar en cualquier hosting estático HTTPS, sin backend propio.
 
 ## 2. Objetivos principales
 
-1. Abrir MiPanel automáticamente al crear una pestaña nueva.
+1. Abrir MiPanel directamente desde una URL en un navegador moderno.
 2. Mostrar un dashboard agradable, rápido y configurable.
 3. Conectar Microsoft To Do mediante Microsoft Graph desde la propia interfaz.
 4. Empezar con lectura y habilitar edición solo en una fase separada.
@@ -20,15 +20,15 @@ GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trab
 6. Conectar Google Calendar y superponer sus eventos en el mismo calendario.
 7. Diferenciar visualmente eventos, vencimientos y recordatorios.
 8. Mantener accesos directos web propios, editables y reordenables.
-9. Mantener un paquete común compatible con Chrome, Brave y Edge.
-10. Aplicar mínimo privilegio y no incluir secretos en la extensión.
+9. Mantener una SPA compatible con Chrome, Brave, Edge, Firefox y Safari.
+10. Aplicar mínimo privilegio y no incluir secretos en el navegador.
 
 ## 3. No objetivos iniciales
 
 - Sustituir por completo a Microsoft To Do o Google Calendar.
 - Sincronizar o copiar datos entre Microsoft y Google.
 - Leer automáticamente los marcadores internos de Brave/Chrome en la primera versión.
-- Ejecutar un servidor público o local para usar la extensión compilada.
+- Ejecutar un backend propio para usar la aplicación web compilada.
 - Guardar contraseñas de Microsoft o Google.
 - Implementar colaboración multiusuario.
 - Convertir el producto en Electron, Tauri o PWA.
@@ -50,7 +50,7 @@ Cada acceso tendrá inicialmente:
 
 - nombre;
 - URL;
-- favicon asociado por el navegador a la URL visitada, con icono local alternativo;
+- favicon web convencional del dominio, con icono local alternativo;
 - reordenación por arrastre y menú contextual;
 - edición y eliminación desde un menú contextual, con confirmación previa al borrar.
 
@@ -136,12 +136,11 @@ La aplicación debe seguir siendo utilizable como dashboard cuando no haya ningu
 
 - React.
 - TypeScript estricto.
-- Vite para desarrollo y build con `base: './'`.
-- Manifest V3 en `public/manifest.json`, copiado a la raíz de `dist/`.
-- `chrome_url_overrides.newtab` apunta a `index.html`.
+- Vite para desarrollo y build con `base: '/'`.
+- `npm run dev` usa `http://localhost:5173`.
+- `npm run build` produce una SPA estática en `dist/`.
 - CSS propio inicialmente para reducir dependencias.
-- Permisos `storage`, `identity` y `favicon`.
-- Host permissions limitados a Microsoft Login y Microsoft Graph.
+- Sin permisos ni APIs exclusivas de extensión.
 - Sin router, service worker, content scripts ni código remoto mientras no sean necesarios.
 
 ### 5.2 Integraciones
@@ -163,16 +162,15 @@ Cada integración deberá encargarse de:
 
 ### 5.3 Almacenamiento local
 
-- `chrome.storage.local` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
+- `localStorage` es el almacenamiento principal de accesos, tareas demo y preferencias locales.
 - Las claves actuales son `mipanel.shortcuts`, `mipanel.mockTasks`, `mipanel.backgroundImage` y `mipanel.microsoft.selectedListId`.
 - La abstracción compartida notifica a todos los componentes que consumen una misma clave.
-- `localStorage` solo es respaldo de `npm run dev`, donde no existe la API de extensión.
-- No existe migración automática desde el antiguo origen localhost; una recuperación futura será mediante exportación/importación explícita.
-- `chrome.storage.sync` no se usa en esta fase. Si se adopta, será únicamente para configuración pequeña y no sensible; no equivale a sincronización universal entre navegadores.
+- `sessionStorage` mantiene la caché efímera de Microsoft To Do durante dos minutos.
+- No existe migración automática desde la antigua extensión; una recuperación futura será mediante exportación/importación explícita.
 
 ### 5.4 Backend
 
-No existe backend propio. Las futuras integraciones tratarán la extensión como cliente público y usarán Authorization Code + PKCE y las APIs de identidad adecuadas. Añadir un backend requerirá una necesidad técnica demostrable y una decisión explícita.
+No existe backend propio. Las futuras integraciones tratarán la SPA como cliente público y usarán Authorization Code + PKCE y las APIs de identidad adecuadas. Añadir un backend requerirá una necesidad técnica demostrable y una decisión explícita.
 
 ## 6. Microsoft To Do — diseño técnico
 
@@ -195,7 +193,7 @@ Tasks.ReadWrite
 
 `Tasks.ReadWrite` se solicita al existir ya la función de completar y reabrir tareas. Se utiliza autenticación interactiva y autorización del usuario; no se guardan credenciales.
 
-Las listas y tareas se guardan en una caché de `chrome.storage.session` con una duración máxima de dos minutos. La caché evita lecturas completas repetidas al abrir nuevas pestañas, se actualiza después de cada escritura y se elimina al desconectar. No se persisten datos remotos en `chrome.storage.local`.
+Las listas y tareas se guardan en una caché de `sessionStorage` con una duración máxima de dos minutos. La caché evita lecturas completas repetidas al recargar la SPA, se actualiza después de cada escritura y se elimina al desconectar. No se persisten datos remotos en `localStorage`.
 
 Para sincronización incremental se valorará:
 
@@ -226,9 +224,7 @@ No solicitar permisos de escritura hasta que haya una función concreta que los 
 
 ## 8. Configuración OAuth
 
-Microsoft OAuth está implementado como cliente público mediante Authorization Code + PKCE y `chrome.identity.launchWebAuthFlow`. La extensión no puede proteger un client secret y no incluye ninguno.
-
-`chrome.identity.getRedirectURL('microsoft')` genera un redirect dependiente del ID de la extensión. Chrome Web Store y Edge Add-ons pueden asignar IDs distintos, por lo que cada distribución debe registrar sus redirects reales.
+Microsoft OAuth está implementado como cliente público mediante MSAL Browser, Authorization Code + PKCE y una ventana emergente. La SPA no puede proteger un client secret y no incluye ninguno.
 
 ### Microsoft
 
@@ -239,9 +235,9 @@ VITE_MICROSOFT_CLIENT_ID=
 VITE_MICROSOFT_TENANT=common
 ```
 
-La app registrada en Microsoft Entra deberá admitir las URI de redirección de los IDs reales de extensión.
+La app registrada en Microsoft Entra deberá admitir las URI de redirección de tipo SPA para `http://localhost:5173/` y `https://alaraz1921.github.io/MiPanel/` mientras GitHub Pages sea el despliegue de producción.
 
-El token de acceso se guarda únicamente en `chrome.storage.session`, que reside en memoria. Se solicita `offline_access` y el refresh token se guarda únicamente en `chrome.storage.local` para renovar la sesión entre reinicios. Al invalidarse el refresh token se solicita al usuario conectar de nuevo. La acción **Desconectar** elimina ambos tokens.
+MSAL gestiona la caché de autenticación en `sessionStorage`. MiPanel no persiste access tokens ni refresh tokens manualmente. Al invalidarse la sesión se solicita al usuario conectar de nuevo. La acción **Desconectar** elimina la caché local de la aplicación.
 
 ### Google
 
@@ -251,7 +247,7 @@ Variables previstas:
 VITE_GOOGLE_CLIENT_ID=
 ```
 
-En Google Cloud deberá configurarse el consentimiento OAuth y los redirects de extensión necesarios para la implementación elegida. Una API key pública solo se añadirá si existe una necesidad concreta y con restricciones documentadas.
+En Google Cloud deberá configurarse el consentimiento OAuth y los redirects web necesarios para la implementación elegida. Una API key pública solo se añadirá si existe una necesidad concreta y con restricciones documentadas.
 
 Toda variable `VITE_*` se incluye en el bundle y es visible: solo puede contener identificadores o configuración pública, nunca secretos.
 
@@ -259,7 +255,7 @@ Toda variable `VITE_*` se incluye en el bundle y es visible: solo puede contener
 
 - No incluir `.env.local` en Git.
 - No usar client secrets en código de navegador.
-- No guardar tokens sensibles en `chrome.storage.sync`.
+- No guardar tokens manualmente fuera de la caché gestionada por MSAL.
 - Solicitar permisos mínimos.
 - No registrar tokens en consola.
 - No almacenar contraseñas.
@@ -271,14 +267,14 @@ Toda variable `VITE_*` se incluye en el bundle y es visible: solo puede contener
 
 ## 10. Compilación, instalación y distribución
 
-El producto principal es una única extensión Chromium:
+El producto principal es una SPA web:
 
-1. `npm run build` genera `dist/` con `manifest.json`, `index.html` y assets relativos.
-2. `dist/` se carga como extensión desempaquetada en Chrome, Brave o Edge.
-3. GitHub Actions valida el proyecto y crea `MiPanel-extension.zip` con `manifest.json` en la raíz.
-4. `npm run dev` se conserva solo para desarrollo visual opcional.
+1. `npm run build` genera `dist/` con `index.html` y assets web.
+2. `dist/` se despliega en un hosting estático convencional.
+3. GitHub Actions valida `index.html` y `assets/` tras compilar.
+4. `npm run dev` inicia la SPA en `http://localhost:5173`.
 
-GitHub Pages no es requisito ni destino principal. La publicación en Chrome Web Store o Edge Add-ons se decidirá en la Fase 0.75 y nunca será automática desde este repositorio.
+GitHub Pages publica la rama `main` en `https://alaraz1921.github.io/MiPanel/` mediante un workflow. Una extensión Chromium opcional podrá construirse como wrapper separado si vuelve a ser necesaria.
 
 ## 11. Datos locales previstos
 
@@ -354,7 +350,7 @@ Nunca ocultar un fallo remoto sustituyéndolo silenciosamente por datos demo sin
 Consultar `ROADMAP.md`. Orden preferente:
 
 1. base visual;
-2. conversión a extensión Chromium;
+2. conversión a aplicación web SPA;
 3. distribución, solo tras confirmación;
 4. Microsoft To Do en lectura;
 5. edición de Microsoft To Do;
@@ -363,29 +359,27 @@ Consultar `ROADMAP.md`. Orden preferente:
 
 ## 16. Criterios de aceptación para la primera versión útil
 
-La Fase 0.5 puede considerarse completa cuando:
+La aplicación web queda lista para validación real cuando:
 
-- `dist/` se carga sin errores como Manifest V3;
-- una pestaña nueva abre MiPanel en Chrome, Brave y Edge;
-- CSS, JavaScript y recursos usan rutas relativas y no dependen de localhost o GitHub Pages;
+- `dist/index.html` y `dist/assets/` se generan correctamente;
+- MiPanel se abre desde una URL HTTP/HTTPS en navegadores modernos;
 - buscador, accesos, reloj, tareas demo, calendario y responsive siguen funcionando;
-- accesos y tareas persisten en `chrome.storage.local`;
+- accesos y preferencias persisten en `localStorage`;
 - cambios de tareas se reflejan inmediatamente en el calendario;
-- el manifiesto solo solicita `storage` y no incluye OAuth, `identity`, host permissions, content scripts ni service worker;
-- CI ejecuta `npm ci`, typecheck y build y genera un ZIP instalable;
+- CI ejecuta `npm ci`, typecheck y build sin validar manifiestos ni ZIPs de extensión;
 - las pruebas reales pendientes se documentan sin afirmar resultados no comprobados.
 
-La Fase 1 queda lista para validación real cuando:
+Microsoft To Do queda listo para validación real cuando:
 
-- el manifiesto solo añade `identity` y los hosts concretos de Microsoft;
-- el flujo usa PKCE, state y no incluye client secret;
-- durante la Fase 1 solo se solicita `Tasks.Read` y la Fase 2 documenta el cambio a `Tasks.ReadWrite`;
+- el flujo MSAL Browser usa Authorization Code + PKCE sin client secret;
+- el redirect URI está registrado como tipo SPA en Microsoft Entra;
+- se solicita exclusivamente `Tasks.ReadWrite`, necesario para la edición actual;
 - listas y tareas se normalizan a los tipos internos;
 - vencimientos y recordatorios aparecen en el calendario;
 - sin Client ID o sin sesión se mantiene el modo demo;
 - cuando la aplicación está configurada, **Conectar Microsoft** abre directamente la identificación interactiva;
-- el access token no se escribe en `localStorage`, `chrome.storage.local` ni `chrome.storage.sync`; el refresh token solo se guarda en `chrome.storage.local` para renovar la sesión;
-- un Client ID y redirects reales permiten completar pruebas en Chrome, Brave y Edge.
+- MiPanel no escribe access tokens ni refresh tokens manualmente;
+- un Client ID y redirects SPA reales permiten completar pruebas en desarrollo y producción.
 
 ## 17. Referencias oficiales
 
@@ -404,8 +398,8 @@ https://developers.google.com/workspace/calendar/api/auth
 Google Calendar API — JavaScript quickstart:
 https://developers.google.com/workspace/calendar/api/quickstart/js
 
-Chrome Extensions — Identity API:
-https://developer.chrome.com/docs/extensions/reference/api/identity
+Microsoft identity platform — SPA and Authorization Code + PKCE:
+https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow
 
-Chrome Extensions — Storage API:
-https://developer.chrome.com/docs/extensions/reference/api/storage
+MSAL Browser — initialization:
+https://learn.microsoft.com/en-us/entra/msal/javascript/browser/initialization

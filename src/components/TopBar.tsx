@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { BackgroundSettings } from '../features/background/BackgroundSettings';
-import { useExtensionStorage } from '../hooks/useExtensionStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export function TopBar() {
   const [now, setNow] = useState(new Date());
-  const [backgroundImage, setBackgroundImage] = useExtensionStorage('mipanel.backgroundImage', '');
+  const [backgroundImage, setBackgroundImage] = useLocalStorage('mipanel.backgroundImage', '');
   const [editingBackground, setEditingBackground] = useState(false);
 
   useEffect(() => {

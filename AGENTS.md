@@ -4,17 +4,17 @@ Antes de modificar el repositorio, leer `docs/ESPECIFICACION_MIPANEL.md` y `docs
 
 ## Principios
 
-- MiPanel es una extensión Chromium Manifest V3 de escritorio para Chrome, Brave y Edge.
+- MiPanel es una aplicación web SPA para navegadores modernos.
 - Mantener una única base React + TypeScript + Vite con `strict: true`.
-- La aplicación compilada debe funcionar desde `dist/` sin localhost ni GitHub Pages.
-- Mantener `base: './'` y evitar rutas absolutas incompatibles con `chrome-extension://`.
-- Aplicar mínimo privilegio en el manifiesto; no añadir permisos preventivos.
+- La aplicación compilada debe funcionar desde `dist/` en un hosting estático, sin depender de localhost en producción.
+- Mantener una configuración Vite compatible con la URL web de despliegue.
+- No añadir dependencias ni permisos de navegador preventivos.
 - Evitar dependencias innecesarias y conservar la interfaz, accesibilidad, teclado y responsive.
 - Mantener separadas las integraciones en `src/integrations/microsoft` y `src/integrations/google`.
 - Normalizar tareas y eventos antes de mostrarlos; no acoplar el calendario a un proveedor.
 - No almacenar contraseñas, client secrets, tokens ni claves privadas.
 - Recordar que toda variable `VITE_*` es visible en el bundle.
-- La extensión debe seguir funcionando en modo demo sin cuentas conectadas.
+- La aplicación web debe seguir funcionando en modo demo sin cuentas conectadas.
 - No añadir Electron, Tauri, PWA, backend ni publicación en tiendas sin petición expresa.
 
 ## Antes de finalizar un cambio
@@ -26,7 +26,7 @@ npm run typecheck
 npm run build
 ```
 
-Si cambia el empaquetado, comprobar `dist/manifest.json`, `dist/index.html` y probar `dist/` como extensión desempaquetada. Indicar claramente cualquier navegador o integración no probados de forma real.
+Si cambia el empaquetado, comprobar `dist/index.html` y `dist/assets/`. Indicar claramente cualquier navegador o integración no probados de forma real.
 
 ## Flujo de trabajo
 

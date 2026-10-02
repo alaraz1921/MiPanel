@@ -3,10 +3,10 @@ import { CalendarView } from './features/calendar/CalendarView';
 import { SearchBar } from './features/search/SearchBar';
 import { Shortcuts } from './features/shortcuts/Shortcuts';
 import { TaskPanel } from './features/tasks/TaskPanel';
-import { useExtensionStorage } from './hooks/useExtensionStorage';
+import { useLocalStorage } from './hooks/useLocalStorage';
 
 export default function App() {
-  const [backgroundImage] = useExtensionStorage('mipanel.backgroundImage', '');
+  const [backgroundImage] = useLocalStorage('mipanel.backgroundImage', '');
 
   return (
     <>
@@ -28,7 +28,7 @@ export default function App() {
         </div>
 
         <footer className="footer-note">
-          Versión 0.5.5 · Microsoft To Do conectado. El modo demo sigue disponible sin cuentas conectadas.
+          Versión 0.6.0 · Microsoft To Do conectado. El modo demo sigue disponible sin cuentas conectadas.
         </footer>
       </main>
     </>

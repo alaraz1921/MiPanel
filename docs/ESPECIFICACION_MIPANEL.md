@@ -237,7 +237,7 @@ VITE_MICROSOFT_TENANT=common
 
 La app registrada en Microsoft Entra deberá admitir las URI de redirección de tipo SPA para `http://localhost:5173/microsoft-auth-redirect.html` y `https://alaraz1921.github.io/MiPanel/microsoft-auth-redirect.html` mientras GitHub Pages sea el despliegue de producción. Esta página mínima incorpora el redirect bridge de MSAL para los flujos popup.
 
-MSAL gestiona su caché de autenticación persistente en `localStorage` para renovar la sesión entre aperturas del navegador. MiPanel no persiste access tokens ni refresh tokens manualmente. Al invalidarse la sesión se solicita al usuario conectar de nuevo. La acción **Desconectar** elimina la caché local de la aplicación.
+MSAL mantiene su caché para compartir sesión entre pestañas. Al cerrarse por completo el navegador, MiPanel conserva solo el identificador de la última cuenta e intenta restaurar la sesión de forma silenciosa con Microsoft. MiPanel no persiste access tokens ni refresh tokens manualmente. Si la sesión de Microsoft ha caducado o el navegador bloquea la comprobación silenciosa, se solicita conectar de nuevo. La acción **Desconectar** elimina la caché local de la aplicación y el identificador de cuenta.
 
 ### Google
 

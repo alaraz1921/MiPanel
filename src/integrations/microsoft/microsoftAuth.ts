@@ -11,6 +11,7 @@ export type MicrosoftTokenSession = {
 };
 
 let clientPromise: Promise<PublicClientApplication> | undefined;
+const ACCOUNT_HINT_KEY = 'mipanel.microsoft.accountHint';
 
 function getClientId() {
   return import.meta.env.VITE_MICROSOFT_CLIENT_ID?.trim() ?? '';
@@ -45,6 +46,31 @@ function graphScopes() {
   return MICROSOFT_SCOPES.map((scope) => `https://graph.microsoft.com/${scope}`);
 }
 
+function readAccountHint() {
+  try {
+    return window.localStorage.getItem(ACCOUNT_HINT_KEY)?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function rememberAccount(username: string) {
+  if (!username) return;
+  try {
+    window.localStorage.setItem(ACCOUNT_HINT_KEY, username);
+  } catch {
+    // La aplicación puede seguir funcionando aunque el navegador bloquee el almacenamiento local.
+  }
+}
+
+function clearAccountHint() {
+  try {
+    window.localStorage.removeItem(ACCOUNT_HINT_KEY);
+  } catch {
+    // No hay nada más que hacer si el navegador ya ha descartado el almacenamiento.
+  }
+}
+
 async function microsoftClient() {
   if (!clientPromise) {
     const client = new PublicClientApplication({
@@ -66,9 +92,15 @@ async function microsoftClient() {
 
 async function currentAccount(client: PublicClientApplication) {
   const active = client.getActiveAccount();
-  if (active) return active;
+  if (active) {
+    rememberAccount(active.username);
+    return active;
+  }
   const account = client.getAllAccounts()[0];
-  if (account) client.setActiveAccount(account);
+  if (account) {
+    client.setActiveAccount(account);
+    rememberAccount(account.username);
+  }
   return account;
 }
 
@@ -90,12 +122,18 @@ export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | un
   try {
     const client = await microsoftClient();
     const account = await currentAccount(client);
-    if (!account) return undefined;
-    const result = await client.acquireTokenSilent({
-      account,
-      scopes: graphScopes(),
-      redirectUri: getRedirectUri(),
-    });
+    const result = account
+      ? await client.acquireTokenSilent({
+        account,
+        scopes: graphScopes(),
+        redirectUri: getRedirectUri(),
+      })
+      : await restoreMicrosoftSession(client);
+    if (!result) return undefined;
+    if (result.account) {
+      client.setActiveAccount(result.account);
+      rememberAccount(result.account.username);
+    }
     return sessionFromToken(result.accessToken, result.expiresOn, result.scopes);
   } catch {
     return undefined;
@@ -107,6 +145,17 @@ export async function clearMicrosoftSession() {
   const client = await microsoftClient();
   client.setActiveAccount(null);
   await client.clearCache();
+  clearAccountHint();
+}
+
+async function restoreMicrosoftSession(client: PublicClientApplication) {
+  const loginHint = readAccountHint();
+  if (!loginHint) return undefined;
+  return client.ssoSilent({
+    loginHint,
+    scopes: graphScopes(),
+    redirectUri: getRedirectUri(),
+  });
 }
 
 export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
@@ -123,6 +172,7 @@ export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
   if (!account) throw new Error('Microsoft no devolvió una cuenta autenticada.');
 
   client.setActiveAccount(account);
+  rememberAccount(account.username);
   const token = await client.acquireTokenSilent({
     account,
     scopes: graphScopes(),

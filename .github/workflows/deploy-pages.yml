@@ -34,9 +34,8 @@ jobs:
         run: npm run typecheck
 
       - name: Compilar para GitHub Pages
-        run: npm run build
+        run: npm run build:pages
         env:
-          VITE_BASE_PATH: /MiPanel/
           # El Client ID es identificador público de una SPA; no es un secreto.
           VITE_MICROSOFT_CLIENT_ID: ${{ vars.MICROSOFT_CLIENT_ID }}
           VITE_MICROSOFT_TENANT: ${{ vars.MICROSOFT_TENANT || 'common' }}

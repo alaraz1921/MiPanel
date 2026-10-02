@@ -23,7 +23,7 @@ npm run build
 
 ## Publicación en GitHub Pages
 
-El workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) publica la rama `main` en `https://alaraz1921.github.io/MiPanel/`. En el repositorio, activa una sola vez **Settings → Pages → Build and deployment → Source: GitHub Actions**. Cada push posterior a `main` compila la aplicación con la ruta pública `/MiPanel/` y la despliega.
+El workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) publica la rama `main` en `https://alaraz1921.github.io/MiPanel/`. En el repositorio, activa una sola vez **Settings → Pages → Build and deployment → Source: GitHub Actions**. Cada push posterior a `main` ejecuta `npm run build:pages`, que fija la ruta pública `/MiPanel/`, y la despliega.
 
 Para incluir Microsoft To Do en el build publicado, crea en **Settings → Secrets and variables → Actions → Variables** la variable `MICROSOFT_CLIENT_ID` con el Client ID de Entra. Opcionalmente crea `MICROSOFT_TENANT` (`common` por defecto). Son valores públicos de una SPA, no secretos. Sin `MICROSOFT_CLIENT_ID`, la página se publica y funciona en modo demo.
 

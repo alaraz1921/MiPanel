@@ -1,13 +1,11 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', 'VITE_');
-
   return {
-    // El build local se sirve desde la raíz. GitHub Pages define /MiPanel/
-    // mediante VITE_BASE_PATH en su workflow de despliegue.
-    base: env.VITE_BASE_PATH || '/',
+    // El build local se sirve desde la raíz. El modo dedicado evita que la
+    // ruta de GitHub Pages dependa de variables disponibles durante el build.
+    base: mode === 'github-pages' ? '/MiPanel/' : '/',
     plugins: [react()],
     build: {
       rollupOptions: {

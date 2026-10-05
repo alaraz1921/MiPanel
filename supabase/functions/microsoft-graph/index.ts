@@ -1,5 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-microsoft-access-token',
@@ -27,16 +25,6 @@ Deno.serve(async (request) => {
   if (!authorization?.startsWith('Bearer ') || !microsoftToken) {
     return json({ error: 'Faltan las credenciales de MiPanel o Microsoft.' }, 401);
   }
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-  if (!supabaseUrl || !supabaseAnonKey) return json({ error: 'Backend sin configurar.' }, 500);
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authorization } },
-  });
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) return json({ error: 'Sesión de MiPanel no válida.' }, 401);
 
   const input = new URL(request.url);
   const path = input.searchParams.get('path') ?? '';

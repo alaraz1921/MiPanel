@@ -124,7 +124,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setError(undefined);
 
     try {
-      const snapshot = await fetchMicrosoftTodoSnapshot(session.accessToken);
+      const snapshot = await fetchMicrosoftTodoSnapshot(session);
       if (version !== requestVersion.current) return false;
       applySnapshot(snapshot.lists, snapshot.tasks);
       setStatus('connected');
@@ -237,7 +237,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setError(undefined);
 
     try {
-      await updateMicrosoftTodoTaskStatus(session.accessToken, task.listId, task.id, completed);
+      await updateMicrosoftTodoTaskStatus(session, task.listId, task.id, completed);
       return true;
     } catch (updateError) {
       replaceTask(task);
@@ -260,7 +260,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setCreatingTask(true);
     setError(undefined);
     try {
-      const created = await createMicrosoftTodoTask(session.accessToken, list, fields);
+      const created = await createMicrosoftTodoTask(session, list, fields);
       applySnapshot(listsRef.current, [created, ...tasksRef.current]);
       return true;
     } catch (createError) {
@@ -283,7 +283,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setUpdatingTaskIds((current) => [...current, taskKey]);
     setError(undefined);
     try {
-      const updated = await updateMicrosoftTodoTask(session.accessToken, task, fields);
+      const updated = await updateMicrosoftTodoTask(session, task, fields);
       replaceTask(updated);
       return true;
     } catch (updateError) {
@@ -306,7 +306,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setUpdatingTaskIds((current) => [...current, taskKey]);
     setError(undefined);
     try {
-      await deleteMicrosoftTodoTask(session.accessToken, task);
+      await deleteMicrosoftTodoTask(session, task);
       removeTask(task);
       return true;
     } catch (deleteError) {

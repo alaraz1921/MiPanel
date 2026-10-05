@@ -14,6 +14,7 @@ export type MicrosoftTokenSession = {
   accessToken: string;
   expiresAt: number;
   grantedScopes?: string[];
+  supabaseAccessToken?: string;
 };
 
 let clientPromise: Promise<PublicClientApplication> | undefined;

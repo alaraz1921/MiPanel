@@ -54,5 +54,11 @@ secretos de Supabase, nunca en `.env.local` del frontend ni en Git.
 6. Probar persistencia de sesión al cerrar y abrir el navegador.
 7. Reutilizar el mismo frontend en la extensión Chromium.
 
-La URL, la clave pública y los nombres finales de las funciones se fijarán al
-crear el proyecto Supabase; no se inventan identificadores en el repositorio.
+La función `microsoft-graph` ya está desplegada. Verifica la sesión Supabase,
+limita las rutas a Microsoft To Do y reenvía únicamente las operaciones
+permitidas. En esta primera transición recibe el access token de Microsoft en
+memoria desde el cliente; no lo persiste. La renovación y almacenamiento
+server-side del refresh token queda como siguiente endurecimiento de seguridad.
+
+La URL y la clave pública se configuran mediante variables de entorno; no se
+inventan secretos ni identificadores privados en el repositorio.

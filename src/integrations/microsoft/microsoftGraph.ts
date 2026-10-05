@@ -5,6 +5,11 @@ export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
 
+export type MicrosoftGraphSession = {
+  accessToken: string;
+  supabaseAccessToken?: string;
+};
+
 type GraphCollection<T> = {
   value: T[];
   '@odata.nextLink'?: string;
@@ -60,19 +65,34 @@ function retryDelay(response: Response, attempt: number) {
   return 1000 * (2 ** attempt);
 }
 
-async function graphRequest<T>(url: string, accessToken: string, init?: RequestInit): Promise<T> {
+async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init?: RequestInit): Promise<T> {
   if (!url.startsWith(`${GRAPH_ROOT}/`)) throw new Error('URL de Microsoft Graph no permitida.');
   const requestPath = new URL(url).pathname;
 
   for (let attempt = 0; attempt <= MAX_THROTTLE_RETRIES; attempt += 1) {
-    const response = await fetch(url, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json',
-        ...init?.headers,
-      },
-    });
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+    const backendPath = requestPath.replace('/v1.0', '');
+    const requestUrl = session.supabaseAccessToken && supabaseUrl
+      ? `${supabaseUrl}/functions/v1/microsoft-graph?path=${encodeURIComponent(backendPath)}`
+      : url;
+    const response = await fetch(requestUrl, session.supabaseAccessToken && supabaseUrl
+      ? {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${session.supabaseAccessToken}`,
+          'x-microsoft-access-token': session.accessToken,
+          Accept: 'application/json',
+          ...init?.headers,
+        },
+      }
+      : {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+          Accept: 'application/json',
+          ...init?.headers,
+        },
+      });
 
     if (response.ok) {
       if (response.status === 204) return undefined as T;
@@ -106,16 +126,16 @@ async function graphRequest<T>(url: string, accessToken: string, init?: RequestI
   throw new Error('No se pudo completar la petición a Microsoft Graph.');
 }
 
-function graphGet<T>(url: string, accessToken: string) {
-  return graphRequest<T>(url, accessToken);
+function graphGet<T>(url: string, session: MicrosoftGraphSession) {
+  return graphRequest<T>(url, session);
 }
 
-async function getCollection<T>(initialUrl: string, accessToken: string) {
+async function getCollection<T>(initialUrl: string, session: MicrosoftGraphSession) {
   const items: T[] = [];
   let nextUrl: string | undefined = initialUrl;
 
   while (nextUrl) {
-    const page: GraphCollection<T> = await graphGet(nextUrl, accessToken);
+    const page: GraphCollection<T> = await graphGet(nextUrl, session);
     items.push(...page.value);
     nextUrl = page['@odata.nextLink'];
   }
@@ -188,10 +208,10 @@ function taskBody(fields: TaskFields, clearMissingDates: boolean) {
   };
 }
 
-export async function fetchMicrosoftTodoSnapshot(accessToken: string): Promise<MicrosoftTodoSnapshot> {
+export async function fetchMicrosoftTodoSnapshot(session: MicrosoftGraphSession): Promise<MicrosoftTodoSnapshot> {
   const lists = await getCollection<GraphTodoList>(
     `${GRAPH_ROOT}/me/todo/lists`,
-    accessToken,
+    session,
   );
 
   const tasks: TaskItem[] = [];
@@ -199,7 +219,7 @@ export async function fetchMicrosoftTodoSnapshot(accessToken: string): Promise<M
     const listId = encodeURIComponent(list.id);
     const listTasks = await getCollection<GraphTodoTask>(
       `${GRAPH_ROOT}/me/todo/lists/${listId}/tasks`,
-      accessToken,
+      session,
     );
     tasks.push(...listTasks.map((task) => normalizeTask(task, list)));
   }
@@ -211,14 +231,14 @@ export async function fetchMicrosoftTodoSnapshot(accessToken: string): Promise<M
 }
 
 export async function updateMicrosoftTodoTaskStatus(
-  accessToken: string,
+  session: MicrosoftGraphSession,
   listId: string,
   taskId: string,
   completed: boolean,
 ) {
   await graphRequest<void>(
     taskUrl(listId, taskId),
-    accessToken,
+    session,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -228,11 +248,11 @@ export async function updateMicrosoftTodoTaskStatus(
 }
 
 export async function createMicrosoftTodoTask(
-  accessToken: string,
+  session: MicrosoftGraphSession,
   list: TaskList,
   fields: TaskFields,
 ) {
-  const task = await graphRequest<GraphTodoTask>(taskUrl(list.id), accessToken, {
+  const task = await graphRequest<GraphTodoTask>(taskUrl(list.id), session, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(taskBody(fields, false)),
@@ -241,12 +261,12 @@ export async function createMicrosoftTodoTask(
 }
 
 export async function updateMicrosoftTodoTask(
-  accessToken: string,
+  session: MicrosoftGraphSession,
   task: TaskItem,
   fields: TaskFields,
 ) {
   if (!task.listId) throw new Error('La tarea no indica a qué lista de Microsoft pertenece.');
-  const updated = await graphRequest<GraphTodoTask>(taskUrl(task.listId, task.id), accessToken, {
+  const updated = await graphRequest<GraphTodoTask>(taskUrl(task.listId, task.id), session, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(taskBody(fields, true)),
@@ -255,9 +275,9 @@ export async function updateMicrosoftTodoTask(
 }
 
 export async function deleteMicrosoftTodoTask(
-  accessToken: string,
+  session: MicrosoftGraphSession,
   task: TaskItem,
 ) {
   if (!task.listId) throw new Error('La tarea no indica a qué lista de Microsoft pertenece.');
-  await graphRequest<void>(taskUrl(task.listId, task.id), accessToken, { method: 'DELETE' });
+  await graphRequest<void>(taskUrl(task.listId, task.id), session, { method: 'DELETE' });
 }

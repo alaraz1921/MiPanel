@@ -84,7 +84,7 @@
 - [x] Crear proyecto Supabase y configurar Auth.
 - [ ] Registrar el callback web del backend en Microsoft Entra.
 - [ ] Implementar Edge Function de autorización Microsoft.
-- [ ] Implementar Edge Function protegida para Microsoft Graph.
+- [x] Implementar Edge Function protegida para Microsoft Graph.
 - [x] Añadir adaptador frontend con fallback MSAL durante la transición.
 - [x] Verificar persistencia de sesión al cerrar y abrir el navegador.
 - [ ] Reutilizar el backend desde el empaquetado Chromium.

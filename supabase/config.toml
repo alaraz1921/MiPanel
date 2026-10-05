@@ -2,3 +2,6 @@ project_id = "qfcwoinwtvufjlgrdsxf"
 
 [functions.health]
 verify_jwt = false
+
+[functions.microsoft-graph]
+verify_jwt = true

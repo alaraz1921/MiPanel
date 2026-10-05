@@ -46,6 +46,7 @@ export async function readSupabaseMicrosoftToken() {
   return {
     accessToken: providerToken,
     expiresAt: Date.now() + 50 * 60 * 1000,
+    supabaseAccessToken: data.session?.access_token,
   };
 }
 

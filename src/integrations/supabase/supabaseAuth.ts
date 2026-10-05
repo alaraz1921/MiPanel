@@ -1,5 +1,19 @@
 import { isSupabaseConfigured, supabase, supabaseRedirectUri } from './supabaseClient';
 
+let latestProviderToken: string | undefined;
+let authReady: Promise<void> = Promise.resolve();
+
+if (supabase) {
+  let resolveAuthReady: () => void = () => undefined;
+  authReady = new Promise<void>((resolve) => {
+    resolveAuthReady = resolve;
+  });
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.provider_token) latestProviderToken = session.provider_token;
+    resolveAuthReady();
+  });
+}
+
 export async function connectSupabaseMicrosoft() {
   if (!isSupabaseConfigured() || !supabase) {
     throw new Error('Supabase no está configurado en esta compilación.');
@@ -18,9 +32,13 @@ export async function connectSupabaseMicrosoft() {
 
 export async function readSupabaseMicrosoftToken() {
   if (!supabase) return undefined;
+  await Promise.race([
+    authReady,
+    new Promise<void>((resolve) => window.setTimeout(resolve, 2000)),
+  ]);
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
-  const providerToken = data.session?.provider_token;
+  const providerToken = data.session?.provider_token ?? latestProviderToken;
   if (!providerToken) return undefined;
   return {
     accessToken: providerToken,

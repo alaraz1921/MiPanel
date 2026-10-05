@@ -31,6 +31,10 @@ El workflow [deploy-pages.yml](.github/workflows/deploy-pages.yml) publica la ra
 
 Para incluir Microsoft To Do en el build publicado, crea en **Settings → Secrets and variables → Actions → Variables** la variable `MICROSOFT_CLIENT_ID` con el Client ID de Entra. Opcionalmente crea `MICROSOFT_TENANT` (`common` por defecto). Son valores públicos de una SPA, no secretos. Sin `MICROSOFT_CLIENT_ID`, la página se publica pero no puede cargar tareas remotas.
 
+Para activar Supabase Auth en GitHub Pages, crea también las variables públicas
+`SUPABASE_URL` y `SUPABASE_ANON_KEY` en esa misma sección. La clave publishable
+no es un secreto; nunca añadas aquí una clave `service_role` ni un client secret.
+
 ## Persistencia local
 
 Las preferencias propias se guardan en `localStorage` del navegador y quedan limitadas al origen donde se ejecute MiPanel: accesos directos, imagen de fondo y lista seleccionada. La caché temporal de listas y tareas de Microsoft usa `sessionStorage` durante dos minutos.

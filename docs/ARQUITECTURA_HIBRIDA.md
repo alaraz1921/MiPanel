@@ -11,9 +11,10 @@ depender de que el navegador conserve una caché MSAL entre reinicios.
 ## Primera etapa
 
 La primera etapa activa Supabase Auth cuando existe configuración pública y
-mantiene MSAL como fallback local mientras se valida el entorno real. Durante
-esta transición el adaptador usa temporalmente el token de proveedor entregado
-por la sesión para mantener operativas las tareas existentes.
+mantiene MSAL como fallback local. La autenticación Azure y la restauración de
+sesión entre reinicios ya están validadas en GitHub Pages. Durante esta
+transición el adaptador usa temporalmente el token de proveedor entregado por
+la sesión para mantener operativas las tareas existentes.
 
 El backend previsto será:
 

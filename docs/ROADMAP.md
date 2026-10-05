@@ -81,12 +81,12 @@
 
 - [x] Decidir arquitectura híbrida SPA/extensión + Supabase.
 - [x] Documentar separación entre configuración pública y secretos de servidor.
-- [ ] Crear proyecto Supabase y configurar Auth.
+- [x] Crear proyecto Supabase y configurar Auth.
 - [ ] Registrar el callback web del backend en Microsoft Entra.
 - [ ] Implementar Edge Function de autorización Microsoft.
 - [ ] Implementar Edge Function protegida para Microsoft Graph.
-- [ ] Añadir adaptador frontend con fallback MSAL durante la transición.
-- [ ] Verificar persistencia de sesión al cerrar y abrir el navegador.
+- [x] Añadir adaptador frontend con fallback MSAL durante la transición.
+- [x] Verificar persistencia de sesión al cerrar y abrir el navegador.
 - [ ] Reutilizar el backend desde el empaquetado Chromium.
 
 Electron, Tauri, PWA, Firefox y Safari no forman parte del roadmap actual.

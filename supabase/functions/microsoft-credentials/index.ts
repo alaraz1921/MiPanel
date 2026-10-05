@@ -39,7 +39,7 @@ Deno.serve(async (request) => {
       ? detail
       : detail.includes('microsoft_credentials')
         ? 'Falta aplicar la migración de credenciales de Microsoft en Supabase.'
-        : 'El vault de Microsoft no está disponible temporalmente.';
+        : `El vault de Microsoft no está disponible: ${detail}`;
     return json({ error: { code: 'MiPanelVault', message: safeMessage } }, 500);
   }
 });

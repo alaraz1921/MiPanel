@@ -2,7 +2,11 @@
 
 MiPanel es una aplicación web SPA de productividad desarrollada con React, TypeScript y Vite. Se despliega como un sitio estático y funciona en navegadores modernos, incluidos Chrome, Edge, Brave, Firefox y Safari.
 
-La versión actual mantiene buscador, reloj, accesos directos reordenables, fondo configurable y calendario mensual. Al conectar Microsoft To Do permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. Sin una cuenta conectada no muestra tareas ni eventos ficticios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior; no existe backend propio ni sincronización cloud entre navegadores.
+La versión actual mantiene buscador, reloj, accesos directos reordenables, fondo configurable y calendario mensual. Al conectar Microsoft To Do permite elegir una lista y crear, completar, reabrir, editar o eliminar sus tareas; completar y eliminar requieren confirmación mediante diálogos propios. Sin una cuenta conectada no muestra tareas ni eventos ficticios. El calendario conserva los vencimientos y recordatorios pendientes de todas las listas. Google Calendar se integrará en una fase posterior. El backend Supabase de la arquitectura híbrida está planificado, pero todavía no está implementado.
+
+La decisión y el orden de trabajo del backend están documentados en
+[`docs/ARQUITECTURA_HIBRIDA.md`](docs/ARQUITECTURA_HIBRIDA.md). Hasta completar esa
+fase, el frontend continúa utilizando MSAL Browser directamente como fallback.
 
 ## Requisitos de desarrollo
 
@@ -78,5 +82,9 @@ La URL de redirect debe estar registrada como tipo **SPA**, tanto para localhost
 - Las variables `VITE_*` son públicas porque terminan en el bundle. Nunca deben contener secretos.
 - MiPanel no escribe refresh tokens en `localStorage`, `sessionStorage` ni Git.
 - `.github/workflows/ci-extension.yml` ejecuta `npm ci`, typecheck y build y valida `dist/index.html` y `dist/assets/`.
+
+Cuando se implemente la arquitectura híbrida, los secretos de Microsoft se
+configurarán únicamente en Supabase Edge Functions. Nunca se incluirán en
+variables `VITE_*`, Git o el bundle.
 
 GitHub es la fuente principal: <https://github.com/alaraz1921/MiPanel>. Esta carpeta es únicamente la copia de trabajo local.

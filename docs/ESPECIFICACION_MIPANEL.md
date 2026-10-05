@@ -173,7 +173,15 @@ Cada integración deberá encargarse de:
 
 ### 5.4 Backend
 
-No existe backend propio. Las futuras integraciones tratarán la SPA como cliente público y usarán Authorization Code + PKCE y las APIs de identidad adecuadas. Añadir un backend requerirá una necesidad técnica demostrable y una decisión explícita.
+La implementación actual todavía no tiene backend y mantiene MSAL Browser como
+cliente público. Se ha decidido explícitamente evolucionar a una arquitectura
+híbrida con Supabase para resolver la persistencia de sesión y las llamadas a
+Microsoft Graph desde Edge Functions. La transición debe conservar el fallback
+MSAL hasta completar las pruebas reales.
+
+El backend no podrá exponer client secrets ni tokens de Microsoft al navegador.
+La especificación de fases y secretos está en
+`docs/ARQUITECTURA_HIBRIDA.md`.
 
 ## 6. Microsoft To Do — diseño técnico
 

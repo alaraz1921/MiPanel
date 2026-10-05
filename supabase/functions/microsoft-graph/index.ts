@@ -81,7 +81,18 @@ Deno.serve(async (request) => {
       headers: { ...corsHeaders, 'Content-Type': graphResponse.headers.get('Content-Type') ?? 'application/json' },
     });
   } catch (error) {
-    console.error('No se pudo completar la llamada a Microsoft Graph.', error instanceof Error ? error.message : 'Error desconocido');
-    return json({ error: error instanceof Error ? error.message : 'Microsoft Graph no está disponible.' }, 502);
+    const detail = error instanceof Error ? error.message : 'Error desconocido';
+    console.error('No se pudo completar la llamada a Microsoft Graph.', detail);
+    const safeMessage = [
+      'La integración Microsoft no está terminada de configurar.',
+      'Vuelve a conectar Microsoft para completar la configuración segura.',
+      'Microsoft no pudo renovar la autorización.',
+      'Falta la clave de cifrado de credenciales.',
+      'La clave de cifrado debe tener 32 bytes en Base64.',
+      'Credencial cifrada no válida.',
+    ].includes(detail)
+      ? detail
+      : 'El backend de Microsoft no está disponible temporalmente.';
+    return json({ error: { code: 'MiPanelBackend', message: safeMessage } }, 502);
   }
 });

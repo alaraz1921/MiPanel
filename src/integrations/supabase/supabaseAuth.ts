@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase, supabaseRedirectUri } from './supabaseC
 
 let latestProviderToken: string | undefined;
 let latestProviderRefreshToken: string | undefined;
+let latestVaultError: Error | undefined;
 let authReady: Promise<void> = Promise.resolve();
 const SESSION_TIMEOUT_MS = 8_000;
 
@@ -17,8 +18,13 @@ async function syncMicrosoftRefreshToken(session: { access_token: string; provid
     },
     body: JSON.stringify({ refreshToken }),
   });
-  if (!response.ok) throw new Error('No se pudo guardar de forma segura la conexión de Microsoft.');
+  if (!response.ok) {
+    const payload = await response.json().catch(() => undefined) as { error?: { message?: unknown } } | undefined;
+    const message = payload?.error?.message;
+    throw new Error(typeof message === 'string' ? message : 'No se pudo guardar de forma segura la conexión de Microsoft.');
+  }
   latestProviderRefreshToken = undefined;
+  latestVaultError = undefined;
 }
 
 function withTimeout<T>(promise: Promise<T>, message: string) {
@@ -37,7 +43,9 @@ if (supabase) {
     if (session?.provider_token) latestProviderToken = session.provider_token;
     if (session?.provider_refresh_token) {
       latestProviderRefreshToken = session.provider_refresh_token;
-      void syncMicrosoftRefreshToken(session).catch(() => undefined);
+      void syncMicrosoftRefreshToken(session).catch((error) => {
+        latestVaultError = error instanceof Error ? error : new Error('El vault de Microsoft no está disponible temporalmente.');
+      });
     }
     resolveAuthReady();
   });
@@ -87,10 +95,9 @@ export async function readSupabaseMicrosoftToken() {
   }
   if (!providerToken) return undefined;
   if (session?.provider_refresh_token || latestProviderRefreshToken) {
-    // El vault se despliega por separado. Su indisponibilidad no debe impedir
-    // el flujo directo estable de Microsoft Graph durante la transición.
-    void syncMicrosoftRefreshToken(session!).catch(() => undefined);
+    await syncMicrosoftRefreshToken(session!);
   }
+  if (latestVaultError) throw latestVaultError;
   return {
     accessToken: providerToken,
     expiresAt: Date.now() + 50 * 60 * 1000,

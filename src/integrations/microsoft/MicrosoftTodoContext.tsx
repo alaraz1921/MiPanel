@@ -53,6 +53,16 @@ function readableError(error: unknown) {
   return 'Se produjo un error inesperado al conectar con Microsoft.';
 }
 
+function withTaskLoadTimeout<T>(promise: Promise<T>) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => window.setTimeout(
+      () => reject(new Error('Microsoft Graph tardó demasiado en responder. Comprueba la sesión y vuelve a conectar.')),
+      10_000,
+    )),
+  ]);
+}
+
 export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   const configured = isMicrosoftConfigured();
   const [status, setStatus] = useState<MicrosoftConnectionStatus>(configured ? 'connecting' : 'unconfigured');
@@ -124,7 +134,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setError(undefined);
 
     try {
-      const snapshot = await fetchMicrosoftTodoSnapshot(session);
+      const snapshot = await withTaskLoadTimeout(fetchMicrosoftTodoSnapshot(session));
       if (version !== requestVersion.current) return false;
       applySnapshot(snapshot.lists, snapshot.tasks);
       setStatus('connected');

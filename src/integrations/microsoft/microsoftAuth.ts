@@ -19,6 +19,7 @@ export type MicrosoftTokenSession = {
 
 let clientPromise: Promise<PublicClientApplication> | undefined;
 const ACCOUNT_HINT_KEY = 'mipanel.microsoft.accountHint';
+const SESSION_TIMEOUT_MS = 10_000;
 
 function getClientId() {
   return import.meta.env.VITE_MICROSOFT_CLIENT_ID?.trim() ?? '';
@@ -123,7 +124,7 @@ export function isMicrosoftConfigured() {
   return Boolean(getClientId()) || isSupabaseConfigured();
 }
 
-export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | undefined> {
+async function readMicrosoftSessionInternal(): Promise<MicrosoftTokenSession | undefined> {
   if (!isMicrosoftConfigured()) return undefined;
 
   if (isSupabaseConfigured()) {
@@ -149,6 +150,16 @@ export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | un
   } catch {
     return undefined;
   }
+}
+
+export function readMicrosoftSession(): Promise<MicrosoftTokenSession | undefined> {
+  return Promise.race([
+    readMicrosoftSessionInternal(),
+    new Promise<MicrosoftTokenSession | undefined>((_, reject) => window.setTimeout(
+      () => reject(new Error('Microsoft tardó demasiado en restaurar la sesión.')),
+      SESSION_TIMEOUT_MS,
+    )),
+  ]);
 }
 
 export async function clearMicrosoftSession() {

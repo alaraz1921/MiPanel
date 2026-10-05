@@ -201,7 +201,9 @@ export function TaskPanel() {
         <span>
           {usingMicrosoft
             ? microsoft.error ?? `${visible.filter((task) => !task.completed).length} tareas pendientes en ${activeList?.name ?? 'la lista seleccionada'}. El calendario incluye todas las listas.`
-            : microsoft.error ?? 'Conecta Microsoft para cargar tus tareas.'}
+            : microsoft.error ?? (microsoft.status === 'connecting'
+              ? 'Conectando con Microsoft…'
+              : 'Conecta Microsoft para cargar tus tareas.')}
         </span>
         <div className="panel-actions">
           {microsoft.status === 'connected' && (

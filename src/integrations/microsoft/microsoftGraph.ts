@@ -4,8 +4,9 @@ export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
-const DIRECT_REQUEST_TIMEOUT_MS = 6_000;
+const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
 const BACKEND_REQUEST_TIMEOUT_MS = 3_000;
+const USE_GRAPH_BACKEND = false;
 
 export type MicrosoftGraphSession = {
   accessToken: string;
@@ -74,7 +75,9 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
   for (let attempt = 0; attempt <= MAX_THROTTLE_RETRIES; attempt += 1) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
     const backendPath = requestPath.replace('/v1.0', '');
-    const useBackend = Boolean(session.supabaseAccessToken && supabaseUrl);
+    // La ruta backend queda desactivada temporalmente hasta completar su
+    // diagnóstico. Supabase sigue gestionando la sesión del usuario.
+    const useBackend = USE_GRAPH_BACKEND && Boolean(session.supabaseAccessToken && supabaseUrl);
     const requestUrl = useBackend
       ? `${supabaseUrl}/functions/v1/microsoft-graph?path=${encodeURIComponent(backendPath)}`
       : url;

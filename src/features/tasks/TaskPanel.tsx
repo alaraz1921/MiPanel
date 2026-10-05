@@ -19,6 +19,10 @@ function isOverdue(task: TaskItem, today: string, now: number) {
   return dueDateOverdue || reminderOverdue;
 }
 
+function taskScheduleKey(task: TaskItem) {
+  return task.reminderDateTime ?? task.dueDate ?? '9999-12-31T23:59:59';
+}
+
 export function TaskPanel() {
   const [selectedListId, setSelectedListId] = useLocalStorage('mipanel.microsoft.selectedListId', '');
   const [showCompleted, setShowCompleted] = useState(true);
@@ -41,8 +45,8 @@ export function TaskPanel() {
     () => tasks
       .filter((task) => showCompleted || !task.completed)
       .filter((task) => !showOverdue || isOverdue(task, today, now))
-      .sort((a, b) => Number(a.completed) - Number(b.completed)
-        || (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999')),
+      .sort((a, b) => taskScheduleKey(a).localeCompare(taskScheduleKey(b))
+        || a.title.localeCompare(b.title)),
     [now, showCompleted, showOverdue, tasks, today],
   );
 

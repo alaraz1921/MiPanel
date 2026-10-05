@@ -69,8 +69,8 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .shortcut-link:hover, .shortcut-link:focus-visible { border-color: rgba(255,255,255,.42); background: rgba(255,255,255,.10); outline: none; }
 .shortcut-add-card { justify-self: center; width: 86px; }
 .shortcut-add-icon { font-size: 2rem; font-weight: 300; }
-.shortcut-icon { display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid rgba(255,255,255,.28); border-radius: 15px; background: rgba(255,255,255,.27); box-shadow: 0 5px 14px rgba(20,35,52,.12); font-size: 1.25rem; }
-.shortcut-icon-image { width: 31px; height: 31px; object-fit: contain; }
+.shortcut-icon { display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid rgba(255,255,255,.28); border-radius: 15px; background: rgba(255,255,255,.27); box-shadow: 0 5px 14px rgba(20,35,52,.12); font-size: 1.5rem; }
+.shortcut-icon-image { width: 38px; height: 38px; object-fit: contain; }
 .shortcut-icon-fallback { line-height: 1; }
 .shortcut-item.dragging { opacity: .5; }
 .shortcut-context-menu { position: fixed; z-index: 20; display: grid; min-width: 196px; padding: 5px; border: 1px solid rgba(48,65,88,.18); border-radius: 9px; background: rgba(255,255,255,.96); box-shadow: 0 12px 32px rgba(28,49,73,.25); color: #263245; }

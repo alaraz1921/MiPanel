@@ -63,8 +63,9 @@ La integración solicita `openid profile email offline_access` y
 `https://graph.microsoft.com/Tasks.ReadWrite`. El SDK de Supabase administra la
 sesión persistente del usuario; la siguiente etapa trasladará las llamadas de
 Graph a Edge Functions para que el frontend no tenga que utilizarlas
-directamente. La función `microsoft-graph` ya está desplegada, limita las rutas
-a Microsoft To Do y no persiste el access token de Microsoft.
+directamente. La función `microsoft-graph` está desplegada, limita las rutas a
+Microsoft To Do y no persiste el access token de Microsoft, pero permanece en
+diagnóstico; la versión actual consulta Graph directamente como fallback.
 
 La aplicación se registra y configura una sola vez por el desarrollador. Esa configuración técnica no se solicita a cada usuario.
 

@@ -85,6 +85,7 @@
 - [ ] Registrar el callback web del backend en Microsoft Entra.
 - [ ] Implementar Edge Function de autorización Microsoft.
 - [x] Implementar Edge Function protegida para Microsoft Graph.
+- [ ] Activar Graph mediante Edge Function tras resolver su respuesta pendiente en producción.
 - [x] Añadir adaptador frontend con fallback MSAL durante la transición.
 - [x] Verificar persistencia de sesión al cerrar y abrir el navegador.
 - [ ] Reutilizar el backend desde el empaquetado Chromium.

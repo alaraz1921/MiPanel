@@ -85,6 +85,8 @@
 - [ ] Registrar el callback web del backend en Microsoft Entra.
 - [ ] Implementar Edge Function de autorización Microsoft.
 - [x] Implementar Edge Function protegida para Microsoft Graph.
+- [x] Preparar almacén cifrado de credenciales de renovación para Microsoft.
+- [ ] Aplicar la migración, configurar secretos del vault y validar la renovación servidor a servidor.
 - [ ] Activar Graph mediante Edge Function tras resolver su respuesta pendiente en producción.
 - [x] Añadir adaptador frontend con fallback MSAL durante la transición.
 - [x] Verificar persistencia de sesión al cerrar y abrir el navegador.

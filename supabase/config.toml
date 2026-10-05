@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.microsoft-graph]
 verify_jwt = false
+
+[functions.microsoft-credentials]
+verify_jwt = false

@@ -20,6 +20,7 @@ import {
   readMicrosoftTodoCache,
   writeMicrosoftTodoCache,
 } from './microsoftCache';
+import { isSupabaseConfigured } from '../supabase/supabaseClient';
 
 export type MicrosoftConnectionStatus =
   | 'unconfigured'
@@ -131,10 +132,15 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     } catch (loadError) {
       if (version !== requestVersion.current) return false;
       if (loadError instanceof MicrosoftGraphError && loadError.status === 401) {
-        await clearMicrosoftSession();
-        await clearRemoteState();
-        setStatus('disconnected');
-        setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
+        if (isSupabaseConfigured()) {
+          setStatus('error');
+          setError('Azure autenticó la cuenta, pero el token no permite acceder a Microsoft Graph. Revisa Tasks.ReadWrite en Entra y vuelve a conectar.');
+        } else {
+          await clearMicrosoftSession();
+          await clearRemoteState();
+          setStatus('disconnected');
+          setError('La sesión de Microsoft ha caducado. Vuelve a conectar la cuenta.');
+        }
       } else {
         setStatus('error');
         setError(readableError(loadError));

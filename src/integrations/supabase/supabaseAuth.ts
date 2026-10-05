@@ -39,6 +39,9 @@ export async function readSupabaseMicrosoftToken() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   const providerToken = data.session?.provider_token ?? latestProviderToken;
+  if (data.session && !providerToken) {
+    throw new Error('Supabase ha autenticado la cuenta, pero Azure no ha devuelto un token de Microsoft Graph. Revisa el permiso Tasks.ReadWrite y el alcance offline_access del proveedor Azure.');
+  }
   if (!providerToken) return undefined;
   return {
     accessToken: providerToken,

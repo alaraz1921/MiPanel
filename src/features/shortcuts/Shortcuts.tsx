@@ -1,8 +1,11 @@
-import { FormEvent, useEffect, useRef, useState, type DragEvent } from 'react';
+import { FormEvent, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { defaultShortcuts } from '../../data/mock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { Shortcut } from '../../types';
+
+const MAX_CUSTOM_ICON_SIZE = 256 * 1024;
+const CUSTOM_ICON_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 function faviconUrl(pageUrl: string) {
   try {
@@ -15,9 +18,35 @@ function faviconUrl(pageUrl: string) {
   }
 }
 
+function isCustomIcon(value?: string) {
+  return Boolean(value?.startsWith('data:image/'));
+}
+
+function readCustomIcon(file: File) {
+  if (!CUSTOM_ICON_TYPES.has(file.type)) {
+    return Promise.reject(new Error('El icono debe ser PNG, JPEG, WebP o GIF.'));
+  }
+  if (file.size > MAX_CUSTOM_ICON_SIZE) {
+    return Promise.reject(new Error('El icono no puede superar 256 KB.'));
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === 'string'
+      ? resolve(reader.result)
+      : reject(new Error('No se pudo leer el icono.'));
+    reader.onerror = () => reject(new Error('No se pudo leer el icono.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function ShortcutIcon({ shortcut }: { shortcut: Shortcut }) {
   const [failed, setFailed] = useState(false);
   const iconUrl = faviconUrl(shortcut.url);
+
+  if (isCustomIcon(shortcut.customIcon)) {
+    return <img className="shortcut-icon-image" src={shortcut.customIcon} alt="" />;
+  }
 
   if (!iconUrl || failed) {
     return <span className="shortcut-icon-fallback" aria-hidden="true">{shortcut.icon ?? '🔗'}</span>;
@@ -44,8 +73,12 @@ type ShortcutContextMenu = {
 type ShortcutEditorDialogProps = {
   label: string;
   url: string;
+  customIcon?: string;
+  iconError?: string;
   onLabelChange: (value: string) => void;
   onUrlChange: (value: string) => void;
+  onIconChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemoveIcon: () => void;
   onCancel: () => void;
   onSave: (event: FormEvent) => void;
 };
@@ -53,8 +86,12 @@ type ShortcutEditorDialogProps = {
 function ShortcutEditorDialog({
   label,
   url,
+  customIcon,
+  iconError,
   onLabelChange,
   onUrlChange,
+  onIconChange,
+  onRemoveIcon,
   onCancel,
   onSave,
 }: ShortcutEditorDialogProps) {
@@ -88,6 +125,17 @@ function ShortcutEditorDialog({
           Enlace
           <input value={url} onChange={(event) => onUrlChange(event.target.value)} inputMode="url" required />
         </label>
+        <label className="shortcut-icon-picker">
+          Icono personalizado
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onIconChange} />
+        </label>
+        {isCustomIcon(customIcon) && (
+          <div className="shortcut-icon-preview">
+            <img src={customIcon} alt="Vista previa del icono personalizado" />
+            <button type="button" className="text-button" onClick={onRemoveIcon}>Quitar icono</button>
+          </div>
+        )}
+        {iconError && <p className="shortcut-icon-error" role="alert">{iconError}</p>}
         <div className="task-dialog-actions">
           <button type="button" className="ghost-button" onClick={onCancel}>Cancelar</button>
           <button type="submit" className="primary-button">Guardar cambios</button>
@@ -102,11 +150,15 @@ export function Shortcuts() {
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
+  const [newCustomIcon, setNewCustomIcon] = useState<string>();
+  const [newIconError, setNewIconError] = useState<string>();
   const [draggedId, setDraggedId] = useState<string>();
   const [contextMenu, setContextMenu] = useState<ShortcutContextMenu>();
   const [editingShortcut, setEditingShortcut] = useState<Shortcut>();
   const [editingLabel, setEditingLabel] = useState('');
   const [editingUrl, setEditingUrl] = useState('');
+  const [editingCustomIcon, setEditingCustomIcon] = useState<string>();
+  const [editingIconError, setEditingIconError] = useState<string>();
   const [shortcutToDelete, setShortcutToDelete] = useState<Shortcut>();
 
   useEffect(() => {
@@ -132,11 +184,38 @@ export function Shortcuts() {
 
     setShortcuts((current) => [
       ...current,
-      { id: crypto.randomUUID(), label: cleanLabel, url: cleanUrl, icon: '🔗' },
+      {
+        id: crypto.randomUUID(),
+        label: cleanLabel,
+        url: cleanUrl,
+        icon: '🔗',
+        customIcon: newCustomIcon,
+      },
     ]);
     setLabel('');
     setUrl('');
+    setNewCustomIcon(undefined);
+    setNewIconError(undefined);
     setAdding(false);
+  }
+
+  function selectIcon(
+    event: ChangeEvent<HTMLInputElement>,
+    setIcon: (value: string | undefined) => void,
+    setError: (value: string | undefined) => void,
+  ) {
+    const [file] = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (!file) return;
+
+    void readCustomIcon(file)
+      .then((icon) => {
+        setIcon(icon);
+        setError(undefined);
+      })
+      .catch((iconError: unknown) => {
+        setError(iconError instanceof Error ? iconError.message : 'No se pudo leer el icono.');
+      });
   }
 
   function removeShortcut(id: string) {
@@ -148,6 +227,8 @@ export function Shortcuts() {
     setEditingShortcut(shortcut);
     setEditingLabel(shortcut.label);
     setEditingUrl(shortcut.url);
+    setEditingCustomIcon(shortcut.customIcon);
+    setEditingIconError(undefined);
   }
 
   function saveShortcut(event: FormEvent) {
@@ -158,7 +239,7 @@ export function Shortcuts() {
     if (!nextLabel || !nextUrl) return;
     if (!/^https?:\/\//i.test(nextUrl)) nextUrl = `https://${nextUrl}`;
     setShortcuts((current) => current.map((shortcut) => shortcut.id === editingShortcut.id
-      ? { ...shortcut, label: nextLabel, url: nextUrl }
+      ? { ...shortcut, label: nextLabel, url: nextUrl, customIcon: editingCustomIcon }
       : shortcut));
     setEditingShortcut(undefined);
   }
@@ -199,8 +280,25 @@ export function Shortcuts() {
         <form className="shortcut-form" onSubmit={addShortcut}>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nombre" aria-label="Nombre del acceso" />
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" aria-label="URL del acceso" />
+          <label className="shortcut-icon-picker">
+            <span className="sr-only">Icono personalizado</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              aria-label="Icono personalizado"
+              onChange={(event) => selectIcon(event, setNewCustomIcon, setNewIconError)}
+            />
+          </label>
           <button className="primary-button" type="submit">Guardar</button>
         </form>
+      )}
+      {adding && (isCustomIcon(newCustomIcon) || newIconError) && (
+        <div className="shortcut-new-icon-status">
+          {isCustomIcon(newCustomIcon) && (
+            <><img src={newCustomIcon} alt="Vista previa del icono personalizado" /><button type="button" className="text-button" onClick={() => setNewCustomIcon(undefined)}>Quitar icono</button></>
+          )}
+          {newIconError && <span className="shortcut-icon-error" role="alert">{newIconError}</span>}
+        </div>
       )}
 
       <div className="shortcut-grid">
@@ -270,8 +368,12 @@ export function Shortcuts() {
         <ShortcutEditorDialog
           label={editingLabel}
           url={editingUrl}
+          customIcon={editingCustomIcon}
+          iconError={editingIconError}
           onLabelChange={setEditingLabel}
           onUrlChange={setEditingUrl}
+          onIconChange={(event) => selectIcon(event, setEditingCustomIcon, setEditingIconError)}
+          onRemoveIcon={() => setEditingCustomIcon(undefined)}
           onCancel={() => setEditingShortcut(undefined)}
           onSave={saveShortcut}
         />

@@ -3,6 +3,7 @@ export type Shortcut = {
   label: string;
   url: string;
   icon?: string;
+  customIcon?: string;
 };
 
 export type TaskSource = 'microsoft-todo';

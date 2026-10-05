@@ -51,6 +51,7 @@ Cada acceso tendrá inicialmente:
 - nombre;
 - URL;
 - favicon web convencional del dominio, con icono local alternativo;
+- icono personalizado local opcional, priorizado sobre el favicon;
 - reordenación por arrastre y menú contextual;
 - edición y eliminación desde un menú contextual, con confirmación previa al borrar.
 

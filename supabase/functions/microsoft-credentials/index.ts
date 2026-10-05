@@ -29,7 +29,17 @@ Deno.serve(async (request) => {
     if (error) throw error;
     return new Response(null, { status: 204, headers: corsHeaders });
   } catch (error) {
-    console.error('No se pudo actualizar la credencial de Microsoft.', error instanceof Error ? error.message : 'Error desconocido');
-    return json({ error: 'No se pudo guardar la conexión de Microsoft.' }, 500);
+    const detail = error instanceof Error ? error.message : 'Error desconocido';
+    console.error('No se pudo actualizar la credencial de Microsoft.', detail);
+    const safeMessage = [
+      'Backend sin configurar.',
+      'Falta la clave de cifrado de credenciales.',
+      'La clave de cifrado debe tener 32 bytes en Base64.',
+    ].includes(detail)
+      ? detail
+      : detail.includes('microsoft_credentials')
+        ? 'Falta aplicar la migración de credenciales de Microsoft en Supabase.'
+        : 'El vault de Microsoft no está disponible temporalmente.';
+    return json({ error: { code: 'MiPanelVault', message: safeMessage } }, 500);
   }
 });

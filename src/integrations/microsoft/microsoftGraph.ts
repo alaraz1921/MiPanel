@@ -6,8 +6,9 @@ const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
 const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
 const BACKEND_REQUEST_TIMEOUT_MS = 3_000;
-const USE_GRAPH_BACKEND = true;
-let graphBackendAvailable = true;
+// La Edge Function permanece desplegada, pero se mantiene fuera de la ruta
+// activa hasta resolver su bloqueo de producción sin afectar a Microsoft To Do.
+const USE_GRAPH_BACKEND = false;
 
 export type MicrosoftGraphSession = {
   accessToken: string;
@@ -76,9 +77,7 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
   for (let attempt = 0; attempt <= MAX_THROTTLE_RETRIES; attempt += 1) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
     const backendPath = requestPath.replace('/v1.0', '');
-    const useBackend = USE_GRAPH_BACKEND
-      && graphBackendAvailable
-      && Boolean(session.supabaseAccessToken && supabaseUrl);
+    const useBackend = USE_GRAPH_BACKEND && Boolean(session.supabaseAccessToken && supabaseUrl);
     const requestUrl = useBackend
       ? `${supabaseUrl}/functions/v1/microsoft-graph?path=${encodeURIComponent(backendPath)}`
       : url;
@@ -117,8 +116,7 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
       );
     } catch (requestError) {
       if (!useBackend) throw requestError;
-      // Si el backend no responde, no se vuelve a esperar por él en cada lista.
-      graphBackendAvailable = false;
+      // Fallback temporal mientras se diagnostica una Edge Function que no responda.
       response = await request(url, directInit, DIRECT_REQUEST_TIMEOUT_MS);
     }
 

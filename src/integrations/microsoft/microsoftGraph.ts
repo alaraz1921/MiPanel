@@ -4,6 +4,7 @@ export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 export type MicrosoftGraphSession = {
   accessToken: string;
@@ -75,9 +76,12 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
     const requestUrl = session.supabaseAccessToken && supabaseUrl
       ? `${supabaseUrl}/functions/v1/microsoft-graph?path=${encodeURIComponent(backendPath)}`
       : url;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     const response = await fetch(requestUrl, session.supabaseAccessToken && supabaseUrl
       ? {
         ...init,
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${session.supabaseAccessToken}`,
           'x-microsoft-access-token': session.accessToken,
@@ -87,12 +91,14 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
       }
       : {
         ...init,
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
           Accept: 'application/json',
           ...init?.headers,
         },
       });
+    window.clearTimeout(timeout);
 
     if (response.ok) {
       if (response.status === 204) return undefined as T;

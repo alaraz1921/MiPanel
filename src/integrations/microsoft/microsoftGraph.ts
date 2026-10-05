@@ -73,32 +73,44 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
   for (let attempt = 0; attempt <= MAX_THROTTLE_RETRIES; attempt += 1) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
     const backendPath = requestPath.replace('/v1.0', '');
-    const requestUrl = session.supabaseAccessToken && supabaseUrl
+    const useBackend = Boolean(session.supabaseAccessToken && supabaseUrl);
+    const requestUrl = useBackend
       ? `${supabaseUrl}/functions/v1/microsoft-graph?path=${encodeURIComponent(backendPath)}`
       : url;
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    const response = await fetch(requestUrl, session.supabaseAccessToken && supabaseUrl
-      ? {
-        ...init,
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${session.supabaseAccessToken}`,
-          'x-microsoft-access-token': session.accessToken,
-          Accept: 'application/json',
-          ...init?.headers,
-        },
+    const request = async (targetUrl: string, requestInit: RequestInit) => {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      try {
+        return await fetch(targetUrl, { ...requestInit, signal: controller.signal });
+      } finally {
+        window.clearTimeout(timeout);
       }
-      : {
-        ...init,
-        signal: controller.signal,
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-          Accept: 'application/json',
-          ...init?.headers,
-        },
-      });
-    window.clearTimeout(timeout);
+    };
+    const backendInit: RequestInit = {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${session.supabaseAccessToken ?? ''}`,
+        'x-microsoft-access-token': session.accessToken,
+        Accept: 'application/json',
+        ...init?.headers,
+      },
+    };
+    const directInit: RequestInit = {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+        Accept: 'application/json',
+        ...init?.headers,
+      },
+    };
+    let response: Response;
+    try {
+      response = await request(requestUrl, useBackend ? backendInit : directInit);
+    } catch (requestError) {
+      if (!useBackend) throw requestError;
+      // Fallback temporal mientras se diagnostica una Edge Function que no responda.
+      response = await request(url, directInit);
+    }
 
     if (response.ok) {
       if (response.status === 204) return undefined as T;

@@ -3,6 +3,7 @@ import { decryptCredential, encryptCredential } from '../_shared/credentialCiphe
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const TODO_PATH = /^\/me\/todo\/lists(?:\/[^/]+\/tasks(?:\/[^/]+)?)?$/;
+const SNAPSHOT_PATH = '/me/todo/snapshot';
 const accessTokenCache = new Map<string, { accessToken: string; expiresAt: number }>();
 
 async function graphAccessToken(userId: string) {
@@ -54,6 +55,37 @@ async function graphAccessToken(userId: string) {
   return payload.access_token;
 }
 
+type GraphCollection<T> = { value: T[]; '@odata.nextLink'?: string };
+type GraphTodoList = { id: string; displayName: string };
+
+async function graphCollection<T>(initialUrl: string, accessToken: string) {
+  const values: T[] = [];
+  let nextUrl: string | undefined = initialUrl;
+  while (nextUrl) {
+    const response = await fetch(nextUrl, {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error(`Microsoft Graph respondió con el estado ${response.status}.`);
+    const page = await response.json() as GraphCollection<T>;
+    values.push(...page.value);
+    nextUrl = page['@odata.nextLink'];
+  }
+  return values;
+}
+
+async function todoSnapshot(userId: string) {
+  const accessToken = await graphAccessToken(userId);
+  const lists = await graphCollection<GraphTodoList>(`${GRAPH_ROOT}/me/todo/lists`, accessToken);
+  const taskCollections = await Promise.all(lists.map(async (list) => [
+    list.id,
+    await graphCollection<unknown>(
+      `${GRAPH_ROOT}/me/todo/lists/${encodeURIComponent(list.id)}/tasks`,
+      accessToken,
+    ),
+  ] as const));
+  return { lists, tasksByList: Object.fromEntries(taskCollections) };
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(request.method)) {
@@ -72,6 +104,16 @@ Deno.serve(async (request) => {
 
   const input = new URL(request.url);
   const path = input.searchParams.get('path') ?? '';
+  if (path === SNAPSHOT_PATH) {
+    if (request.method !== 'GET') return json({ error: 'Método no permitido.' }, 405);
+    try {
+      return json(await todoSnapshot(user.id));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('No se pudo cargar el resumen de Microsoft To Do.', detail);
+      return json({ error: { code: 'MiPanelBackend', message: detail } }, 502);
+    }
+  }
   if (!TODO_PATH.test(path)) return json({ error: 'Ruta de Microsoft To Do no permitida.' }, 403);
 
   try {

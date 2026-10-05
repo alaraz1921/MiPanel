@@ -20,6 +20,11 @@ type GraphCollection<T> = {
   '@odata.nextLink'?: string;
 };
 
+type GraphTodoSnapshotResponse = {
+  lists: GraphTodoList[];
+  tasksByList: Record<string, GraphTodoTask[]>;
+};
+
 type GraphTodoList = {
   id: string;
   displayName: string;
@@ -232,6 +237,22 @@ function taskBody(fields: TaskFields, clearMissingDates: boolean) {
 }
 
 export async function fetchMicrosoftTodoSnapshot(session: MicrosoftGraphSession): Promise<MicrosoftTodoSnapshot> {
+  const useBackendSnapshot = USE_GRAPH_BACKEND && Boolean(
+    session.supabaseAccessToken && import.meta.env.VITE_SUPABASE_URL?.trim(),
+  );
+  if (useBackendSnapshot) {
+    const snapshot = await graphRequest<GraphTodoSnapshotResponse>(
+      `${GRAPH_ROOT}/me/todo/snapshot`,
+      session,
+    );
+    return {
+      lists: snapshot.lists.map((list) => ({ id: list.id, name: list.displayName })),
+      tasks: snapshot.lists.flatMap((list) => (
+        (snapshot.tasksByList[list.id] ?? []).map((task) => normalizeTask(task, list))
+      )),
+    };
+  }
+
   const lists = await getCollection<GraphTodoList>(
     `${GRAPH_ROOT}/me/todo/lists`,
     session,

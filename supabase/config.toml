@@ -4,4 +4,4 @@ project_id = "qfcwoinwtvufjlgrdsxf"
 verify_jwt = false
 
 [functions.microsoft-graph]
-verify_jwt = true
+verify_jwt = false

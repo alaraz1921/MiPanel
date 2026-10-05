@@ -5,10 +5,10 @@ export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
 const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
-const BACKEND_REQUEST_TIMEOUT_MS = 3_000;
-// La Edge Function permanece desplegada, pero se mantiene fuera de la ruta
-// activa hasta resolver su bloqueo de producción sin afectar a Microsoft To Do.
-const USE_GRAPH_BACKEND = false;
+const BACKEND_REQUEST_TIMEOUT_MS = 15_000;
+// La sesión de Supabase autoriza la Edge Function, que renueva el acceso a
+// Microsoft Graph en el servidor. El navegador no envía tokens de Microsoft.
+const USE_GRAPH_BACKEND = true;
 
 export type MicrosoftGraphSession = {
   accessToken: string;
@@ -94,7 +94,6 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
       ...init,
       headers: {
         Authorization: `Bearer ${session.supabaseAccessToken ?? ''}`,
-        'x-microsoft-access-token': session.accessToken,
         Accept: 'application/json',
         ...init?.headers,
       },
@@ -115,9 +114,7 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
         useBackend ? BACKEND_REQUEST_TIMEOUT_MS : DIRECT_REQUEST_TIMEOUT_MS,
       );
     } catch (requestError) {
-      if (!useBackend) throw requestError;
-      // Fallback temporal mientras se diagnostica una Edge Function que no responda.
-      response = await request(url, directInit, DIRECT_REQUEST_TIMEOUT_MS);
+      throw requestError;
     }
 
     if (response.ok) {

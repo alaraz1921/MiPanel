@@ -57,18 +57,37 @@ async function graphAccessToken(userId: string) {
 
 type GraphCollection<T> = { value: T[]; '@odata.nextLink'?: string };
 type GraphTodoList = { id: string; displayName: string };
+const MAX_GRAPH_RETRIES = 3;
+
+function retryDelay(response: Response, attempt: number) {
+  const retryAfter = response.headers.get('Retry-After');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+    const retryDate = Date.parse(retryAfter);
+    if (Number.isFinite(retryDate)) return Math.max(retryDate - Date.now(), 0);
+  }
+  return 1000 * (2 ** attempt);
+}
 
 async function graphCollection<T>(initialUrl: string, accessToken: string) {
   const values: T[] = [];
   let nextUrl: string | undefined = initialUrl;
   while (nextUrl) {
-    const response = await fetch(nextUrl, {
-      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`Microsoft Graph respondió con el estado ${response.status}.`);
-    const page = await response.json() as GraphCollection<T>;
-    values.push(...page.value);
-    nextUrl = page['@odata.nextLink'];
+    for (let attempt = 0; attempt <= MAX_GRAPH_RETRIES; attempt += 1) {
+      const response = await fetch(nextUrl, {
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+      });
+      if (response.status === 429 && attempt < MAX_GRAPH_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelay(response, attempt)));
+        continue;
+      }
+      if (!response.ok) throw new Error(`Microsoft Graph respondió con el estado ${response.status}.`);
+      const page = await response.json() as GraphCollection<T>;
+      values.push(...page.value);
+      nextUrl = page['@odata.nextLink'];
+      break;
+    }
   }
   return values;
 }
@@ -76,13 +95,16 @@ async function graphCollection<T>(initialUrl: string, accessToken: string) {
 async function todoSnapshot(userId: string) {
   const accessToken = await graphAccessToken(userId);
   const lists = await graphCollection<GraphTodoList>(`${GRAPH_ROOT}/me/todo/lists`, accessToken);
-  const taskCollections = await Promise.all(lists.map(async (list) => [
-    list.id,
-    await graphCollection<unknown>(
-      `${GRAPH_ROOT}/me/todo/lists/${encodeURIComponent(list.id)}/tasks`,
-      accessToken,
-    ),
-  ] as const));
+  const taskCollections: Array<readonly [string, unknown[]]> = [];
+  for (const list of lists) {
+    taskCollections.push([
+      list.id,
+      await graphCollection<unknown>(
+        `${GRAPH_ROOT}/me/todo/lists/${encodeURIComponent(list.id)}/tasks`,
+        accessToken,
+      ),
+    ]);
+  }
   return { lists, tasksByList: Object.fromEntries(taskCollections) };
 }
 

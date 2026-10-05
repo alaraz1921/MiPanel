@@ -4,7 +4,8 @@ export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
-const REQUEST_TIMEOUT_MS = 20_000;
+const DIRECT_REQUEST_TIMEOUT_MS = 6_000;
+const BACKEND_REQUEST_TIMEOUT_MS = 3_000;
 
 export type MicrosoftGraphSession = {
   accessToken: string;
@@ -77,9 +78,9 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
     const requestUrl = useBackend
       ? `${supabaseUrl}/functions/v1/microsoft-graph?path=${encodeURIComponent(backendPath)}`
       : url;
-    const request = async (targetUrl: string, requestInit: RequestInit) => {
+    const request = async (targetUrl: string, requestInit: RequestInit, timeoutMs: number) => {
       const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
         return await fetch(targetUrl, { ...requestInit, signal: controller.signal });
       } finally {
@@ -105,11 +106,15 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
     };
     let response: Response;
     try {
-      response = await request(requestUrl, useBackend ? backendInit : directInit);
+      response = await request(
+        requestUrl,
+        useBackend ? backendInit : directInit,
+        useBackend ? BACKEND_REQUEST_TIMEOUT_MS : DIRECT_REQUEST_TIMEOUT_MS,
+      );
     } catch (requestError) {
       if (!useBackend) throw requestError;
       // Fallback temporal mientras se diagnostica una Edge Function que no responda.
-      response = await request(url, directInit);
+      response = await request(url, directInit, DIRECT_REQUEST_TIMEOUT_MS);
     }
 
     if (response.ok) {

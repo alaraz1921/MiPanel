@@ -9,16 +9,6 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
   const entries: CalendarEntry[] = [];
   for (const task of tasks) {
     if (task.completed) continue;
-    if (task.dueDate) {
-      entries.push({
-        id: `${task.id}-due`,
-        title: task.title,
-        date: task.dueDate,
-        kind: 'due',
-        source: 'microsoft-todo',
-        calendarName: task.listName,
-      });
-    }
     if (task.reminderDateTime) {
       entries.push({
         id: `${task.id}-reminder`,
@@ -26,6 +16,17 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
         date: task.reminderDateTime.slice(0, 10),
         time: task.reminderDateTime.slice(11, 16),
         kind: 'reminder',
+        source: 'microsoft-todo',
+        calendarName: task.listName,
+      });
+      continue;
+    }
+    if (task.dueDate) {
+      entries.push({
+        id: `${task.id}-due`,
+        title: task.title,
+        date: task.dueDate,
+        kind: 'due',
         source: 'microsoft-todo',
         calendarName: task.listName,
       });

@@ -159,7 +159,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       setBusy(false);
       setStatus('error');
       setError('La conexión con Microsoft está tardando demasiado. Vuelve a conectar la cuenta.');
-    }, 15_000);
+    }, 8_000);
 
     void readMicrosoftSession()
       .then(async (session) => {

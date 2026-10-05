@@ -206,10 +206,8 @@ export function TaskPanel() {
               : 'Conecta Microsoft para cargar tus tareas.')}
         </span>
         <div className="panel-actions">
-          {microsoft.status === 'connected' && (
-            <>
-              <button type="button" className="text-button" onClick={() => void microsoft.disconnect()}>Desconectar</button>
-            </>
+          {microsoft.status !== 'unconfigured' && microsoft.status !== 'disconnected' && (
+            <button type="button" className="text-button" onClick={() => void microsoft.disconnect()}>Desconectar</button>
           )}
           {(microsoft.status === 'unconfigured' || microsoft.status === 'disconnected' || microsoft.status === 'error') && (
             <button type="button" className="text-button" disabled={microsoft.busy} onClick={() => void microsoft.connect()}>

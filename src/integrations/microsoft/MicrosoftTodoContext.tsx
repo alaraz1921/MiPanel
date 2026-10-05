@@ -185,6 +185,12 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
     setError(undefined);
     try {
       const session = await connectMicrosoft();
+      if (!session) {
+        // Supabase Auth continúa el inicio de sesión mediante redirección. La
+        // página se recargará y restaurará la sesión al volver del proveedor.
+        setBusy(false);
+        return false;
+      }
       return await loadTasks(session);
     } catch (connectError) {
       setStatus('error');

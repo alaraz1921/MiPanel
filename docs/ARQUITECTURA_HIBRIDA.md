@@ -10,9 +10,10 @@ depender de que el navegador conserve una caché MSAL entre reinicios.
 
 ## Primera etapa
 
-La primera etapa no sustituye todavía el flujo MSAL existente. Se prepara una
-interfaz de proveedor para poder activar el backend por configuración y mantener
-un fallback local mientras se valida el entorno real.
+La primera etapa activa Supabase Auth cuando existe configuración pública y
+mantiene MSAL como fallback local mientras se valida el entorno real. Durante
+esta transición el adaptador usa temporalmente el token de proveedor entregado
+por la sesión para mantener operativas las tareas existentes.
 
 El backend previsto será:
 
@@ -21,10 +22,11 @@ El backend previsto será:
 3. Una Edge Function para ejecutar las operaciones permitidas de Microsoft Graph.
 4. RLS para cualquier configuración propia que se almacene en Supabase.
 
-Los tokens de Microsoft y cualquier client secret permanecerán en el servidor.
-No se guardarán en `localStorage`, `sessionStorage`, `chrome.storage` ni en el
-bundle. Las variables `VITE_*` seguirán siendo exclusivamente configuración
-pública.
+Los client secrets permanecerán en Supabase y nunca llegarán al bundle. La
+sesión de Supabase es gestionada por su SDK para permitir la continuidad entre
+reinicios; MiPanel no escribe ni manipula manualmente refresh tokens. En la
+siguiente etapa las llamadas Graph dejarán de usar el token de proveedor en el
+frontend y pasarán por una Edge Function.
 
 ## Configuración prevista
 

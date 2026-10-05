@@ -41,7 +41,25 @@ Los accesos directos utilizan el favicon web convencional de cada dominio. El fa
 
 ## Microsoft To Do — configuración
 
-La integración usa MSAL Browser con Authorization Code + PKCE y el permiso delegado `Tasks.ReadWrite`, necesario para editar tareas. No utiliza client secret ni almacena refresh tokens manualmente.
+La integración usa Supabase Auth con Azure cuando `VITE_SUPABASE_URL` y
+`VITE_SUPABASE_ANON_KEY` están configuradas. MSAL Browser se conserva como
+fallback local. El permiso delegado `Tasks.ReadWrite` es necesario para editar
+tareas. MiPanel no escribe manualmente client secrets ni refresh tokens.
+
+En Supabase, en **Authentication → URL Configuration**, registra:
+
+```text
+Site URL: https://alaraz1921.github.io/MiPanel/
+Additional Redirect URLs:
+https://alaraz1921.github.io/MiPanel/
+http://localhost:5173/
+```
+
+La integración solicita `openid profile email offline_access` y
+`https://graph.microsoft.com/Tasks.ReadWrite`. El SDK de Supabase administra la
+sesión persistente del usuario; la siguiente etapa trasladará las llamadas de
+Graph a Edge Functions para que el frontend no tenga que utilizarlas
+directamente.
 
 La aplicación se registra y configura una sola vez por el desarrollador. Esa configuración técnica no se solicita a cada usuario.
 

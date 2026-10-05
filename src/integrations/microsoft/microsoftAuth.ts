@@ -3,6 +3,12 @@ import {
   PublicClientApplication,
 } from '@azure/msal-browser';
 import { MICROSOFT_SCOPES } from './microsoftGraph';
+import {
+  connectSupabaseMicrosoft,
+  disconnectSupabase,
+  readSupabaseMicrosoftToken,
+} from '../supabase/supabaseAuth';
+import { isSupabaseConfigured } from '../supabase/supabaseClient';
 
 export type MicrosoftTokenSession = {
   accessToken: string;
@@ -113,11 +119,15 @@ function sessionFromToken(accessToken: string, expiresOn: Date | null, scopes: s
 }
 
 export function isMicrosoftConfigured() {
-  return Boolean(getClientId());
+  return Boolean(getClientId()) || isSupabaseConfigured();
 }
 
 export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | undefined> {
   if (!isMicrosoftConfigured()) return undefined;
+
+  if (isSupabaseConfigured()) {
+    return readSupabaseMicrosoftToken();
+  }
 
   try {
     const client = await microsoftClient();
@@ -141,10 +151,12 @@ export async function readMicrosoftSession(): Promise<MicrosoftTokenSession | un
 }
 
 export async function clearMicrosoftSession() {
-  if (!isMicrosoftConfigured()) return;
-  const client = await microsoftClient();
-  client.setActiveAccount(null);
-  await client.clearCache();
+  if (isSupabaseConfigured()) await disconnectSupabase();
+  if (getClientId()) {
+    const client = await microsoftClient();
+    client.setActiveAccount(null);
+    await client.clearCache();
+  }
   clearAccountHint();
 }
 
@@ -158,7 +170,12 @@ async function restoreMicrosoftSession(client: PublicClientApplication) {
   });
 }
 
-export async function connectMicrosoft(): Promise<MicrosoftTokenSession> {
+export async function connectMicrosoft(): Promise<MicrosoftTokenSession | undefined> {
+  if (isSupabaseConfigured()) {
+    await connectSupabaseMicrosoft();
+    return undefined;
+  }
+
   const clientId = getClientId();
   if (!clientId) throw new Error('Microsoft no está configurado en esta compilación.');
 

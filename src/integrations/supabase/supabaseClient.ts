@@ -1,0 +1,22 @@
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
+
+export function isSupabaseConfigured() {
+  return Boolean(supabaseUrl && supabaseAnonKey);
+}
+
+export const supabase: SupabaseClient | undefined = isSupabaseConfigured()
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
+  : undefined;
+
+export function supabaseRedirectUri() {
+  return new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+}

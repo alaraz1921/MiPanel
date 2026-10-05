@@ -154,9 +154,16 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!configured) return;
     const version = ++requestVersion.current;
+    const startupTimeout = window.setTimeout(() => {
+      if (version !== requestVersion.current) return;
+      setBusy(false);
+      setStatus('error');
+      setError('La conexión con Microsoft está tardando demasiado. Vuelve a conectar la cuenta.');
+    }, 15_000);
 
     void readMicrosoftSession()
       .then(async (session) => {
+        window.clearTimeout(startupTimeout);
         if (version !== requestVersion.current) return;
         if (!session) {
           setStatus('disconnected');
@@ -174,6 +181,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
         await loadTasks(session);
       })
       .catch((sessionError) => {
+        window.clearTimeout(startupTimeout);
         if (version !== requestVersion.current) return;
         setStatus('error');
         setError(readableError(sessionError));
@@ -181,6 +189,7 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       });
 
     return () => {
+      window.clearTimeout(startupTimeout);
       requestVersion.current += 1;
     };
   }, [configured]);

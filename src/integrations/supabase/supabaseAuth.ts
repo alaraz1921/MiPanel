@@ -2,6 +2,14 @@ import { isSupabaseConfigured, supabase, supabaseRedirectUri } from './supabaseC
 
 let latestProviderToken: string | undefined;
 let authReady: Promise<void> = Promise.resolve();
+const SESSION_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, message: string) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error(message)), SESSION_TIMEOUT_MS)),
+  ]);
+}
 
 if (supabase) {
   let resolveAuthReady: () => void = () => undefined;
@@ -36,12 +44,18 @@ export async function readSupabaseMicrosoftToken() {
     authReady,
     new Promise<void>((resolve) => window.setTimeout(resolve, 2000)),
   ]);
-  let { data, error } = await supabase.auth.getSession();
+  let { data, error } = await withTimeout(
+    supabase.auth.getSession(),
+    'Supabase tardó demasiado en restaurar la sesión.',
+  );
   if (error) throw error;
   let session = data.session;
   let providerToken = session?.provider_token ?? latestProviderToken;
   if (session && !providerToken) {
-    const refreshed = await supabase.auth.refreshSession();
+    const refreshed = await withTimeout(
+      supabase.auth.refreshSession(),
+      'Supabase tardó demasiado en renovar la sesión.',
+    );
     if (refreshed.error) throw refreshed.error;
     session = refreshed.data.session;
     providerToken = session?.provider_token ?? latestProviderToken;

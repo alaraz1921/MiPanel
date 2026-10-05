@@ -58,7 +58,7 @@ function withTaskLoadTimeout<T>(promise: Promise<T>) {
     promise,
     new Promise<T>((_, reject) => window.setTimeout(
       () => reject(new Error('Microsoft Graph tardó demasiado en responder. Comprueba la sesión y vuelve a conectar.')),
-      20_000,
+      45_000,
     )),
   ]);
 }

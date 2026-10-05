@@ -5,7 +5,7 @@ export const MICROSOFT_SCOPES = ['Tasks.ReadWrite'];
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const MAX_THROTTLE_RETRIES = 3;
 const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
-const BACKEND_REQUEST_TIMEOUT_MS = 15_000;
+const BACKEND_REQUEST_TIMEOUT_MS = 25_000;
 // La sesión de Supabase autoriza la Edge Function, que renueva el acceso a
 // Microsoft Graph en el servidor. El navegador no envía tokens de Microsoft.
 const USE_GRAPH_BACKEND = true;

@@ -3,8 +3,12 @@ import { decryptCredential, encryptCredential } from '../_shared/credentialCiphe
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const TODO_PATH = /^\/me\/todo\/lists(?:\/[^/]+\/tasks(?:\/[^/]+)?)?$/;
+const accessTokenCache = new Map<string, { accessToken: string; expiresAt: number }>();
 
 async function graphAccessToken(userId: string) {
+  const cached = accessTokenCache.get(userId);
+  if (cached && cached.expiresAt > Date.now() + 60_000) return cached.accessToken;
+
   const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
   const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
   const tenant = Deno.env.get('MICROSOFT_TENANT') ?? 'common';
@@ -30,7 +34,7 @@ async function graphAccessToken(userId: string) {
       scope: 'offline_access https://graph.microsoft.com/Tasks.ReadWrite',
     }),
   });
-  const payload = await response.json() as { access_token?: unknown; refresh_token?: unknown };
+  const payload = await response.json() as { access_token?: unknown; expires_in?: unknown; refresh_token?: unknown };
   if (!response.ok || typeof payload.access_token !== 'string') throw new Error('Microsoft no pudo renovar la autorización.');
 
   if (typeof payload.refresh_token === 'string') {
@@ -40,6 +44,13 @@ async function graphAccessToken(userId: string) {
     });
     if (updateError) throw updateError;
   }
+  const expiresInSeconds = typeof payload.expires_in === 'number' && payload.expires_in > 0
+    ? payload.expires_in
+    : 300;
+  accessTokenCache.set(userId, {
+    accessToken: payload.access_token,
+    expiresAt: Date.now() + (expiresInSeconds * 1000),
+  });
   return payload.access_token;
 }
 

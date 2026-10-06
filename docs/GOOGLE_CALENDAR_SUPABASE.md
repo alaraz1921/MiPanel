@@ -18,6 +18,10 @@ La escritura usa la misma Edge Function `google-calendar`, con sesión Supabase,
 
 La restauración espera a procesar el callback OAuth y guardar la nueva credencial antes de cargar eventos. Si la renovación omite `scope`, el servidor comprueba los alcances reales mediante `tokeninfo` de Google y conserva el resultado en la caché del token; no interpreta un campo ausente como permiso revocado ni acepta marcas de autorización del navegador.
 
+Si el callback no incluye una nueva credencial de renovación, MiPanel conserva la del vault y comprueba su renovación en el servidor, sin sobrescribirla ni exigir un token nuevo solo por su ausencia. Después de autorizar se renueva el token al cargar el primer resumen para evitar permisos anteriores en caché. La verificación solo devuelve estado y permiso de escritura, nunca credenciales; si falla no se da la conexión por validada.
+
+Una cuenta Google nueva se añade con `linkIdentity`; para ampliar permisos de una identidad ya enlazada se usa `signInWithOAuth` con la cuenta vinculada como sugerencia (`login_hint`). El callback comprueba el ID del usuario Supabase esperado antes de guardar/verificar la conexión. Si se elige otra cuenta Google, no escribe credenciales y pide recuperar Microsoft y usar la identidad correcta. No se desvincula automáticamente Google ni se borra el vault para ampliar permisos.
+
 ## Configuración
 
 Además de activar el proveedor Google en Supabase y crear el cliente OAuth web

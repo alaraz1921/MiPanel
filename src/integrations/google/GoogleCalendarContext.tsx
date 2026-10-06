@@ -45,11 +45,15 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
   const [canWriteEvents, setCanWriteEvents] = useState(false);
   const revision = useRef(0);
   const mutating = useRef(false);
+  const recheckAuthorization = useRef(false);
 
   useEffect(() => {
     if (!configured) return;
     void waitForGoogleCredentialSync()
-      .then(() => hasGoogleIdentity())
+      .then((recheck) => {
+        recheckAuthorization.current = recheck;
+        return hasGoogleIdentity();
+      })
       .then((linked) => {
         setStatus(linked ? 'connected' : 'disconnected');
         setBusy(false);
@@ -74,8 +78,9 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
         setEvents([]);
         return;
       }
-      const snapshot = await fetchGoogleCalendarSnapshot(session.access_token, rangeStart, rangeEnd, visibleCalendarIds);
+      const snapshot = await fetchGoogleCalendarSnapshot(session.access_token, rangeStart, rangeEnd, visibleCalendarIds, recheckAuthorization.current);
       if (requestRevision !== revision.current) return;
+      recheckAuthorization.current = false;
       const nextVisible = visibleCalendarIds.length
         ? visibleCalendarIds.filter((id) => snapshot.calendars.some((calendar) => calendar.id === id))
         : snapshot.calendars.map((calendar) => calendar.id);

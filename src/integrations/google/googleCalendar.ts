@@ -90,11 +90,13 @@ export async function fetchGoogleCalendarSnapshot(
   rangeStart: Date,
   rangeEnd: Date,
   calendarIds: string[],
+  recheckAuthorization = false,
 ) {
   const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar`);
   url.searchParams.set('timeMin', rangeStart.toISOString());
   url.searchParams.set('timeMax', rangeEnd.toISOString());
   if (calendarIds.length) url.searchParams.set('calendarIds', calendarIds.join(','));
+  if (recheckAuthorization) url.searchParams.set('recheckAuthorization', '1');
   const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   const payload = await response.json().catch(() => undefined) as (GoogleSnapshotResponse & { error?: { message?: string } }) | undefined;
   if (!response.ok || !payload) {

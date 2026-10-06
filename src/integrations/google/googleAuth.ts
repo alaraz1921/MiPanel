@@ -2,12 +2,16 @@ import { GOOGLE_CALENDAR_READ_SCOPES, GOOGLE_CALENDAR_WRITE_SCOPES } from './goo
 import { isSupabaseConfigured, supabase, supabaseRedirectUri } from '../supabase/supabaseClient';
 
 const GOOGLE_CONNECTION_PENDING_KEY = 'mipanel.google.connectionPending';
-let googleCredentialSync: Promise<void> | undefined;
+const GOOGLE_EXPECTED_USER_KEY = 'mipanel.google.expectedUserId';
+let googleCredentialSync: Promise<boolean> | undefined;
 
 function setPending(value: boolean) {
   try {
     if (value) window.sessionStorage.setItem(GOOGLE_CONNECTION_PENDING_KEY, 'true');
-    else window.sessionStorage.removeItem(GOOGLE_CONNECTION_PENDING_KEY);
+    else {
+      window.sessionStorage.removeItem(GOOGLE_CONNECTION_PENDING_KEY);
+      window.sessionStorage.removeItem(GOOGLE_EXPECTED_USER_KEY);
+    }
   } catch {
     // La redirección OAuth seguirá funcionando aunque el navegador bloquee sessionStorage.
   }
@@ -21,7 +25,16 @@ function pending() {
   }
 }
 
-async function saveGoogleRefreshToken(session: { access_token: string; provider_refresh_token?: string | null }) {
+function assertExpectedUser(session: { user?: { id: string } }) {
+  let expected;
+  try { expected = window.sessionStorage.getItem(GOOGLE_EXPECTED_USER_KEY); } catch { return; }
+  if (expected && session.user?.id !== expected) {
+    throw new Error('La cuenta Google elegida no es la vinculada a MiPanel. Vuelve a conectar Microsoft y autoriza con la cuenta Google que ya tenías vinculada.');
+  }
+}
+
+async function saveGoogleRefreshToken(session: { access_token: string; provider_refresh_token?: string | null; user?: { id: string } }) {
+  assertExpectedUser(session);
   if (!session.provider_refresh_token || !supabase) return;
   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-credentials`, {
     method: 'POST',
@@ -38,10 +51,25 @@ async function saveGoogleRefreshToken(session: { access_token: string; provider_
   window.setTimeout(() => setPending(false), 0);
 }
 
+async function checkStoredGoogleConnection(accessToken: string) {
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar?checkConnection=1`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => undefined) as { error?: { message?: unknown } } | undefined;
+    throw new Error(typeof payload?.error?.message === 'string' ? payload.error.message : 'No se pudo comprobar la conexión guardada de Google.');
+  }
+  const result = await response.json() as { connected?: unknown };
+  if (result.connected !== true) throw new Error('No se pudo verificar la conexión guardada de Google.');
+  // No se borra ni sustituye la credencial existente por un callback sin token.
+  window.setTimeout(() => setPending(false), 0);
+}
+
 if (supabase) {
   supabase.auth.onAuthStateChange((_event, session) => {
     if (pending() && session?.provider_refresh_token && !googleCredentialSync) {
-      googleCredentialSync = saveGoogleRefreshToken(session);
+      googleCredentialSync = saveGoogleRefreshToken(session).then(() => true);
       void googleCredentialSync.catch(() => undefined);
     }
   });
@@ -50,16 +78,17 @@ if (supabase) {
 export async function waitForGoogleCredentialSync() {
   // getSession espera a procesar el callback OAuth. Antes de ese momento el
   // listener puede no haber creado aún googleCredentialSync.
-  if (!supabase) return;
+  if (!supabase) return false;
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
   if (pending() && !googleCredentialSync) {
-    if (!data.session?.provider_refresh_token) {
-      throw new Error('Google no devolvió la credencial de renovación. Vuelve a conectar Google para guardar la autorización.');
-    }
-    googleCredentialSync = saveGoogleRefreshToken(data.session);
+    if (!data.session) throw new Error('Conecta primero Microsoft para recuperar la sesión de MiPanel.');
+    assertExpectedUser(data.session);
+    googleCredentialSync = (data.session.provider_refresh_token
+      ? saveGoogleRefreshToken(data.session)
+      : checkStoredGoogleConnection(data.session.access_token)).then(() => true);
   }
-  if (googleCredentialSync) await googleCredentialSync;
+  return googleCredentialSync ? await googleCredentialSync : false;
 }
 
 export async function connectGoogleCalendar(withWrite = false) {
@@ -67,17 +96,29 @@ export async function connectGoogleCalendar(withWrite = false) {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (!sessionData.session) throw new Error('Conecta primero Microsoft para vincular tu calendario de Google.');
+  const { data: identityData, error: identityError } = await supabase.auth.getUserIdentities();
+  if (identityError) throw identityError;
+  const googleIdentity = identityData.identities?.find((identity) => identity.provider === 'google');
   window.sessionStorage.removeItem('mipanel.microsoft.connectionPending');
   googleCredentialSync = undefined;
   setPending(true);
-  const { error } = await supabase.auth.linkIdentity({
+  try { window.sessionStorage.setItem(GOOGLE_EXPECTED_USER_KEY, sessionData.session.user.id); } catch { /* Configuración opcional sin secretos. */ }
+  const credentials = {
     provider: 'google',
     options: {
       redirectTo: supabaseRedirectUri(),
       scopes: (withWrite ? GOOGLE_CALENDAR_WRITE_SCOPES : GOOGLE_CALENDAR_READ_SCOPES).join(' '),
-      queryParams: { access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true' },
+      queryParams: {
+        access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true',
+        ...(typeof googleIdentity?.identity_data?.email === 'string' ? { login_hint: googleIdentity.identity_data.email } : {}),
+      },
     },
-  });
+  } as const;
+  // linkIdentity sirve para añadir Google por primera vez, no para renovar
+  // permisos de una identidad ya enlazada. OAuth con ella conserva el mismo usuario.
+  const { error } = googleIdentity
+    ? await supabase.auth.signInWithOAuth(credentials)
+    : await supabase.auth.linkIdentity(credentials);
   if (error) {
     setPending(false);
     throw error;

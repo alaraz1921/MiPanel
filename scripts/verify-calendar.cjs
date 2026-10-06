@@ -141,11 +141,12 @@ test('Google solicita escritura únicamente al autorizar edición', async () => 
       isSupabaseConfigured: () => true, supabaseRedirectUri: () => 'https://example.test/',
       supabase: { auth: {
         onAuthStateChange: () => {},
-        getSession: async () => ({ data: { session: { access_token: 'fake-session' } } }),
+        getSession: async () => ({ data: { session: { access_token: 'fake-session', user: { id: 'fake-user' } } } }),
+        getUserIdentities: async () => ({ data: { identities: [] } }),
         linkIdentity: async (request) => { requests.push(request); return {}; },
       } },
     },
-  }, { window: { sessionStorage: { setItem: () => {}, removeItem: () => {} } } });
+  }, { window: { sessionStorage: { setItem: () => {}, removeItem: () => {}, getItem: () => null } } });
   await api.connectGoogleCalendar();
   await api.connectGoogleCalendar(true);
   assert.match(requests[0].options.scopes, /calendar.events.readonly/);
@@ -156,21 +157,22 @@ test('Google solicita escritura únicamente al autorizar edición', async () => 
 });
 
 function backend({ role = 'owner', scope = 'https://www.googleapis.com/auth/calendar.events', upstreamStatus = 200,
-  omitScope = false, infoScope = 'https://www.googleapis.com/auth/calendar.events', infoStatus = 200 } = {}) {
+  omitScope = false, infoScope = 'https://www.googleapis.com/auth/calendar.events', infoStatus = 200, credentialExists = true } = {}) {
   let handler;
   const writes = [];
   let infoRequests = 0;
+  let currentScope = scope;
   const api = load('supabase/functions/google-calendar/index.ts', {
     '../_shared/supabaseAuth.ts': {
       corsHeaders: {}, authenticatedUser: async () => ({ id: 'fake-user' }),
       json: (body, status = 200) => Response.json(body, { status }),
-      serviceClient: () => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { refresh_token_ciphertext: 'fake-cipher' }, error: null }) }) }) }) }),
+      serviceClient: () => ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: credentialExists ? { refresh_token_ciphertext: 'fake-cipher' } : null, error: null }) }) }) }) }),
     },
     '../_shared/credentialCipher.ts': { decryptCredential: async () => 'fake-refresh' },
   }, {
     Deno: { env: { get: () => 'fake-config' }, serve: (callback) => { handler = callback; } },
     fetch: async (url, options) => {
-      if (url === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'fake-google', ...(omitScope ? {} : { scope }) });
+      if (url === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'fake-google', ...(omitScope ? {} : { scope: currentScope }) });
       if (url === 'https://oauth2.googleapis.com/tokeninfo') {
         infoRequests += 1;
         assert.equal(options.headers.Authorization, 'Bearer fake-google');
@@ -183,7 +185,8 @@ function backend({ role = 'owner', scope = 'https://www.googleapis.com/auth/cale
     },
   });
   const request = (method, body, headers = { Authorization: 'Bearer fake-session' }) => handler(new Request('https://example.test?calendarId=calendar%40example.test&eventId=event', { method, headers, body: JSON.stringify(body) }));
-  return { api, request, writes, infoRequests: () => infoRequests };
+  const checkConnection = (headers = { Authorization: 'Bearer fake-session' }) => handler(new Request('https://example.test?checkConnection=1', { headers }));
+  return { api, request, writes, infoRequests: () => infoRequests, checkConnection, setScope: (nextScope) => { currentScope = nextScope; } };
 }
 
 const eventBody = { etag: '"version1"', patch: { summary: 'Título', start: { date: '2026-10-06' }, end: { date: '2026-10-07' } } };
@@ -273,4 +276,88 @@ test('restaurar Google espera al callback y guarda el permiso una sola vez antes
   await restore;
   assert.equal(ready, true);
   assert.equal(writes, 1);
+});
+
+test('callback sin refresh token comprueba el vault sin escribir ni bloquear una conexión válida', async () => {
+  for (const valid of [true, false]) {
+    const storage = new Map([['mipanel.google.connectionPending', 'true']]);
+    const requests = [];
+    const api = load('src/integrations/google/googleAuth.ts', {
+      './googleCalendar': googleClient,
+      '../supabase/supabaseClient': { supabase: { auth: {
+        onAuthStateChange: () => {}, getSession: async () => ({ data: { session: { access_token: 'fake-session' } } }),
+      } } },
+    }, {
+      testEnv: { VITE_SUPABASE_URL: 'https://example.test' },
+      window: { sessionStorage: { getItem: (key) => storage.get(key), removeItem: (key) => storage.delete(key) }, setTimeout: (callback) => callback() },
+      fetch: async (url, options) => {
+        requests.push({ url, ...options });
+        return valid ? Response.json({ connected: true, canWriteEvents: true }) : Response.json({ error: { message: 'Vault no disponible' } }, { status: 502 });
+      },
+    });
+    if (valid) {
+      assert.equal(await api.waitForGoogleCredentialSync(), true);
+      assert.equal(storage.has('mipanel.google.connectionPending'), false);
+    } else {
+      await assert.rejects(api.waitForGoogleCredentialSync(), /Vault no disponible/);
+      assert.equal(storage.has('mipanel.google.connectionPending'), true);
+    }
+    assert.equal(requests.length, 1);
+    assert.match(requests[0].url, /google-calendar\?checkConnection=1$/);
+    assert.equal(requests[0].method, undefined);
+    assert.equal(requests[0].body, undefined);
+    assert.equal(requests[0].headers.Authorization, 'Bearer fake-session');
+  }
+});
+
+test('verificar conexión exige sesión y credencial, renueva los permisos antiguos y no expone tokens', async () => {
+  const fake = backend({ scope: 'https://www.googleapis.com/auth/calendar.events.readonly' });
+  assert.equal((await fake.request('PATCH', eventBody)).status, 403);
+  fake.setScope('https://www.googleapis.com/auth/calendar.events');
+  const response = await fake.checkConnection();
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { connected: true, canWriteEvents: true });
+  assert.equal(fake.writes.length, 0);
+  assert.equal((await fake.checkConnection({})).status, 401);
+  assert.equal((await backend({ credentialExists: false }).checkConnection()).status, 502);
+});
+
+test('autorizar edición de una identidad existente usa OAuth, no vuelve a enlazarla', async () => {
+  const storage = new Map();
+  let request;
+  const api = load('src/integrations/google/googleAuth.ts', {
+    './googleCalendar': googleClient,
+    '../supabase/supabaseClient': {
+      isSupabaseConfigured: () => true, supabaseRedirectUri: () => 'https://example.test/',
+      supabase: { auth: {
+        onAuthStateChange: () => {},
+        getSession: async () => ({ data: { session: { access_token: 'fake-session', user: { id: 'fake-user' } } } }),
+        getUserIdentities: async () => ({ data: { identities: [{ provider: 'google', identity_data: { email: 'fake@example.test' } }] } }),
+        linkIdentity: () => { throw new Error('No debe volver a enlazar Google'); },
+        signInWithOAuth: async (options) => { request = options; return {}; },
+      } },
+    },
+  }, { window: { sessionStorage: {
+    getItem: (key) => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key),
+  } } });
+  await api.connectGoogleCalendar(true);
+  assert.match(request.options.scopes, /calendar.events /);
+  assert.equal(request.options.queryParams.login_hint, 'fake@example.test');
+  assert.equal(request.options.queryParams.access_type, 'offline');
+  assert.equal(storage.get('mipanel.google.expectedUserId'), 'fake-user');
+});
+
+test('un callback de otra cuenta no escribe ni comprueba el vault', async () => {
+  const storage = new Map([['mipanel.google.connectionPending', 'true'], ['mipanel.google.expectedUserId', 'expected-user']]);
+  const api = load('src/integrations/google/googleAuth.ts', {
+    './googleCalendar': googleClient,
+    '../supabase/supabaseClient': { supabase: { auth: {
+      onAuthStateChange: () => {},
+      getSession: async () => ({ data: { session: { access_token: 'fake-session', user: { id: 'other-user' }, provider_refresh_token: 'fake-refresh' } } }),
+    } } },
+  }, {
+    window: { sessionStorage: { getItem: (key) => storage.get(key) } },
+    fetch: () => { throw new Error('No debe acceder al vault'); },
+  });
+  await assert.rejects(api.waitForGoogleCredentialSync(), /no es la vinculada/);
 });

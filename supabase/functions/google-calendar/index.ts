@@ -4,7 +4,7 @@ import { decryptCredential, encryptCredential } from '../_shared/credentialCiphe
 const GOOGLE_ROOT = 'https://www.googleapis.com/calendar/v3';
 const accessTokenCache = new Map<string, { accessToken: string; expiresAt: number; ciphertext: string; canWriteEvents: boolean }>();
 
-async function googleAccessToken(userId: string) {
+async function googleAccessToken(userId: string, forceRenewal = false) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
   if (!clientId || !clientSecret) throw new Error('La integración Google no está terminada de configurar.');
@@ -18,7 +18,7 @@ async function googleAccessToken(userId: string) {
   if (error) throw error;
   if (!credential) throw new Error('Vuelve a conectar Google para completar la configuración segura.');
   const cached = accessTokenCache.get(userId);
-  if (cached && cached.ciphertext === credential.refresh_token_ciphertext && cached.expiresAt > Date.now() + 60_000) return cached;
+  if (!forceRenewal && cached && cached.ciphertext === credential.refresh_token_ciphertext && cached.expiresAt > Date.now() + 60_000) return cached;
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -84,8 +84,8 @@ async function googleCollection<T>(initialUrl: string, accessToken: string) {
   return items;
 }
 
-async function snapshot(userId: string, timeMin: string, timeMax: string, requestedIds: string[]) {
-  const { accessToken, canWriteEvents } = await googleAccessToken(userId);
+async function snapshot(userId: string, timeMin: string, timeMax: string, requestedIds: string[], forceRenewal = false) {
+  const { accessToken, canWriteEvents } = await googleAccessToken(userId, forceRenewal);
   const calendars = await googleCollection<GoogleCalendar>(
     `${GOOGLE_ROOT}/users/me/calendarList?minAccessRole=reader&maxResults=250`,
     accessToken,
@@ -204,6 +204,14 @@ Deno.serve(async (request) => {
   }
 
   const input = new URL(request.url);
+  if (request.method === 'GET' && input.searchParams.get('checkConnection') === '1') {
+    try {
+      const { canWriteEvents } = await googleAccessToken(user.id, true);
+      return json({ connected: true, canWriteEvents });
+    } catch {
+      return json({ error: { message: 'No se pudo renovar la conexión guardada de Google. Si persiste, desconecta solo Google y vuelve a conectarlo.' } }, 502);
+    }
+  }
   if (request.method !== 'GET') {
     try {
       return await mutateEvent(request, input, user.id);
@@ -218,7 +226,7 @@ Deno.serve(async (request) => {
   }
   const calendarIds = (input.searchParams.get('calendarIds') ?? '').split(',').filter(Boolean);
   try {
-    return json(await snapshot(user.id, timeMin, timeMax, calendarIds));
+    return json(await snapshot(user.id, timeMin, timeMax, calendarIds, input.searchParams.get('recheckAuthorization') === '1'));
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Error desconocido';
     console.error('No se pudo cargar Google Calendar.', detail);

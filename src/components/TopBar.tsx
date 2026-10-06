@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import configurationIcon from '../assets/configuration.png';
+import backgroundIcon from '../assets/background.png';
 import { BackgroundSettings } from '../features/background/BackgroundSettings';
 import { ConfigurationSettings } from '../features/settings/ConfigurationSettings';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -39,7 +41,7 @@ export function TopBar() {
           title="Importar o exportar configuración"
           onClick={() => setEditingConfiguration(true)}
         >
-          <span aria-hidden="true">⚙️</span>
+          <img className="topbar-action-icon" src={configurationIcon} alt="" />
         </button>
         <button
           type="button"
@@ -48,7 +50,7 @@ export function TopBar() {
           title="Cambiar fondo"
           onClick={() => setEditingBackground(true)}
         >
-          <span aria-hidden="true">🖼️</span>
+          <img className="topbar-action-icon" src={backgroundIcon} alt="" />
         </button>
       </div>
       {editingConfiguration && <ConfigurationSettings onClose={() => setEditingConfiguration(false)} />}

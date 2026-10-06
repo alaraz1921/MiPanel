@@ -123,7 +123,7 @@ async function graphRequest<T>(url: string, session: MicrosoftGraphSession, init
     }
 
     if (response.ok) {
-      if (response.status === 204) return undefined as T;
+      if (response.status === 204 || response.status === 205 || init?.method === 'DELETE') return undefined as T;
       return response.json() as Promise<T>;
     }
 

@@ -46,9 +46,10 @@ body::before {
 .brand-chip, .status-pill { border: 1px solid var(--line); background: rgba(12, 15, 21, 0.48); backdrop-filter: blur(14px); border-radius: 999px; padding: 8px 12px; color: #cbd4e0; font-size: 0.82rem; }
 .background-button { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(255,255,255,.40); border-radius: 50%; background: rgba(255,255,255,.20); color: #f7f9fc; box-shadow: 0 4px 12px rgba(20,35,52,.12); cursor: pointer; font-size: 1.05rem; }
 .background-button:hover, .background-button:focus-visible { background: rgba(255,255,255,.34); outline: none; }
+.topbar-action-icon { width: 22px; height: 22px; object-fit: contain; }
 .status-connected { color: #caefd9; border-color: rgba(121,197,154,.34); }
 .status-error { color: #ffd2cc; border-color: rgba(229,123,112,.38); }
-.search-center { grid-column: 2; grid-row: 2; width: min(620px, 100%); margin: 110px auto 0; }
+.search-center { grid-column: 2; grid-row: 2; width: min(620px, 100%); margin: 140px auto 0; }
 .hero-kicker, .eyebrow { margin: 0; color: #aab8ca; text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; font-weight: 700; }
 h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.02; letter-spacing: -.045em; }
 .search { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 8px 9px 8px 17px; background: rgba(245,247,250,.96); border-radius: 22px; color: #18202b; box-shadow: 0 16px 50px rgba(0,0,0,.22); }
@@ -214,7 +215,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
   .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
   .topbar > div:first-child, .topbar-actions, .shortcuts-section, .search-center { grid-column: auto; grid-row: auto; }
   .shortcuts-section { width: 100%; }
-  .search-center { margin-top: 56px; }
+  .search-center { margin-top: 76px; }
   .search { grid-template-columns: auto 1fr; }
   .search button { display: none; }
   .shortcut-form { grid-template-columns: 1fr; }

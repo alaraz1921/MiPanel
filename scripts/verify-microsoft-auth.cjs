@@ -208,3 +208,54 @@ test('peticiones concurrentes comparten renovación y no sobrescriben un login p
   assert.equal(renewals, 1);
   assert.deepEqual(filters, [['user_id', 'fake-user'], ['refresh_token_ciphertext', 'old-encrypted-token']]);
 });
+
+test('borrar una tarea conserva el 204 de Graph sin convertirlo en error del backend', async () => {
+  let handler;
+  let method;
+  const token = tokenApi(async () => Response.json({ access_token: 'fake-graph-token' }));
+  load('supabase/functions/microsoft-graph/index.ts', {
+    Deno: { serve: (callback) => { handler = callback; } },
+    fetch: async (_url, options) => {
+      method = options.method;
+      return new Response(null, { status: 204 });
+    },
+  }, {
+    '../_shared/supabaseAuth.ts': {
+      authenticatedUser: async () => ({ id: 'fake-user' }), corsHeaders: {},
+      json: (body, status = 200) => Response.json(body, { status }),
+      serviceClient: () => ({ from: () => ({
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({
+          data: { refresh_token_ciphertext: 'fake-encrypted-token' }, error: null,
+        }) }) }),
+        update: () => ({ eq: () => ({ eq: async () => ({ error: null }) }) }),
+      }) }),
+    },
+    '../_shared/credentialCipher.ts': {
+      decryptCredential: async () => 'fake-refresh', encryptCredential: async () => 'fake-encrypted-token',
+    },
+    '../_shared/microsoftToken.ts': token,
+  });
+  const response = await handler(new Request('https://example.test?path=/me/todo/lists/list/tasks/task', {
+    method: 'DELETE', headers: { Authorization: 'Bearer fake-session' },
+  }));
+  assert.equal(method, 'DELETE');
+  assert.equal(response.status, 204);
+  assert.equal(await response.text(), '');
+});
+
+test('el cliente acepta borrados correctos sin contenido sin intentar leer JSON', async () => {
+  for (const status of [200, 204, 205]) {
+    const graph = load('src/integrations/microsoft/microsoftGraph.ts', {
+      testEnv: { VITE_SUPABASE_URL: 'https://example.test' },
+      AbortController,
+      window: { setTimeout, clearTimeout },
+      fetch: async (_url, options) => {
+        assert.equal(options.method, 'DELETE');
+        return new Response(null, { status });
+      },
+    });
+    await graph.deleteMicrosoftTodoTask({ accessToken: '', supabaseAccessToken: 'fake-session' }, {
+      id: 'task', listId: 'list',
+    });
+  }
+});

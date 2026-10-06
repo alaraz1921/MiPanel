@@ -143,7 +143,7 @@ Deno.serve(async (request) => {
       body,
     });
     const responseText = await graphResponse.text();
-    return new Response(responseText, {
+    return new Response(graphResponse.status === 204 || graphResponse.status === 205 ? null : responseText, {
       status: graphResponse.status,
       headers: { ...corsHeaders, 'Content-Type': graphResponse.headers.get('Content-Type') ?? 'application/json' },
     });

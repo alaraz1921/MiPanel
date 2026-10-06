@@ -6,11 +6,16 @@ type CalendarDayDialogProps = {
   date: string;
   entries: CalendarEntry[];
   onClose: () => void;
+  onEdit?: (entry: CalendarEntry) => void;
+  onDelete?: (entry: CalendarEntry) => void;
+  busy?: boolean;
+  error?: string;
+  onAuthorizeGoogle?: () => void;
 };
 
 const kindLabels = { event: 'Evento', due: 'Vencimiento', reminder: 'Recordatorio' };
 
-export function CalendarDayDialog({ date, entries, onClose }: CalendarDayDialogProps) {
+export function CalendarDayDialog({ date, entries, onClose, onEdit, onDelete, busy, error, onAuthorizeGoogle }: CalendarDayDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -31,6 +36,8 @@ export function CalendarDayDialog({ date, entries, onClose }: CalendarDayDialogP
           <h3 id="calendar-day-dialog-title">{dayLabel(date)}</h3>
           <button type="button" className="ghost-button" onClick={onClose} autoFocus>Cerrar</button>
         </div>
+        {onAuthorizeGoogle && <p className="calendar-agenda-notice">Google está conectado en modo lectura. <button type="button" className="entry-action-button" disabled={busy} onClick={onAuthorizeGoogle}>Autorizar edición</button></p>}
+        {error && <p className="calendar-google-error" role="alert">{error}</p>}
         {entries.length === 0 ? <p>No hay elementos para este día.</p> : (
           <ol className="calendar-day-agenda">
             {entries.map((entry) => (
@@ -45,6 +52,10 @@ export function CalendarDayDialog({ date, entries, onClose }: CalendarDayDialogP
                 <div className="calendar-agenda-details">
                   <span className="calendar-agenda-title">{entry.title}</span>
                   <span className="calendar-agenda-source">{kindLabels[entry.kind]}{entry.calendarName ? ` · ${entry.calendarName}` : ''}</span>
+                  {entry.canEdit && onEdit && onDelete ? <div className="calendar-agenda-actions">
+                    <button type="button" className="entry-action-button" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onEdit(entry)}>Editar</button>
+                    <button type="button" className="entry-action-button danger-button" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onDelete(entry)}>Eliminar</button>
+                  </div> : entry.source === 'google-calendar' && <span className="calendar-agenda-source">Solo lectura</span>}
                 </div>
               </li>
             ))}

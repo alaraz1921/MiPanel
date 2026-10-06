@@ -59,11 +59,13 @@
 - [ ] Empezar con permisos de lectura.
 - [ ] Leer calendarios y eventos por intervalo.
 - [ ] Integrar eventos en el calendario unificado.
+- [x] Añadir edición de título, fechas y horas y eliminación de eventos desde la agenda diaria, con autorización de escritura explícita y protección de calendarios de solo lectura.
+- [ ] Validar la edición y eliminación de eventos Google con una cuenta real tras autorizar `calendar.events`.
 
 ## Fase 4 — Productividad
 
 - [x] Permitir una imagen de fondo local configurable.
-- [x] Usar confirmaciones propias para completar y eliminar tareas.
+- [x] Usar confirmaciones propias para eliminar tareas; completar/reabrir directamente desde el título o checkbox.
 - [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.
 - [x] Reordenar accesos directos mediante arrastre y controles accesibles.
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
@@ -72,7 +74,7 @@
 - [x] Abrir las acciones de un acceso con pulsación prolongada en móvil y mediante teclado.
 - [x] Colocar las tareas completadas al final, conservando el orden por aviso o vencimiento dentro de cada grupo.
 - [x] Mostrar los filtros debajo del calendario, eventos con el color de su calendario y recordatorios sin relleno.
-- [x] Abrir desde la cabecera de los días con elementos ocultos una agenda modal completa, ordenada por hora.
+- [x] Abrir desde la cabecera de cualquier día una agenda modal completa, ordenada por hora, con edición y eliminación de tareas y eventos.
 - [x] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [x] Importación/exportación de accesos, iconos, fondo y selecciones mediante JSON versionado, con vista previa, confirmación y recuperación ante errores de almacenamiento.

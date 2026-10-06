@@ -1,4 +1,4 @@
-import { GOOGLE_CALENDAR_READ_SCOPES } from './googleCalendar';
+import { GOOGLE_CALENDAR_READ_SCOPES, GOOGLE_CALENDAR_WRITE_SCOPES } from './googleCalendar';
 import { isSupabaseConfigured, supabase, supabaseRedirectUri } from '../supabase/supabaseClient';
 
 const GOOGLE_CONNECTION_PENDING_KEY = 'mipanel.google.connectionPending';
@@ -50,7 +50,7 @@ export async function waitForGoogleCredentialSync() {
   if (googleCredentialSync) await googleCredentialSync;
 }
 
-export async function connectGoogleCalendar() {
+export async function connectGoogleCalendar(withWrite = false) {
   if (!isSupabaseConfigured() || !supabase) throw new Error('Supabase no está configurado en esta compilación.');
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
@@ -61,7 +61,7 @@ export async function connectGoogleCalendar() {
     provider: 'google',
     options: {
       redirectTo: supabaseRedirectUri(),
-      scopes: GOOGLE_CALENDAR_READ_SCOPES.join(' '),
+      scopes: (withWrite ? GOOGLE_CALENDAR_WRITE_SCOPES : GOOGLE_CALENDAR_READ_SCOPES).join(' '),
       queryParams: { access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true' },
     },
   });

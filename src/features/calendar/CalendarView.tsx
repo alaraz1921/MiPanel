@@ -5,6 +5,9 @@ import { dayLabel, monthLabel, startOfMonthGrid, toDateKey } from '../../lib/dat
 import type { CalendarEntry, TaskItem } from '../../types';
 import { CalendarDayDialog } from './CalendarDayDialog';
 import { entriesForDay, VISIBLE_DAY_ENTRIES } from './dayEntries';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { TaskEditorDialog } from '../tasks/TaskEditorDialog';
+import { EventEditorDialog } from './EventEditorDialog';
 
 const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -21,6 +24,9 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
         kind: 'reminder',
         source: 'microsoft-todo',
         calendarName: task.listName,
+        sourceId: task.id,
+        sourceContainerId: task.listId,
+        canEdit: true,
       });
       continue;
     }
@@ -32,6 +38,9 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
         kind: 'due',
         source: 'microsoft-todo',
         calendarName: task.listName,
+        sourceId: task.id,
+        sourceContainerId: task.listId,
+        canEdit: true,
       });
     }
   }
@@ -41,10 +50,27 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
 export function CalendarView() {
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState<CalendarEntry | null>(null);
   const microsoft = useMicrosoftTodo();
   const google = useGoogleCalendar();
   const tasks = microsoft.status === 'connected' ? microsoft.tasks : [];
   const today = toDateKey(new Date());
+  const actionBusy = google.busy || microsoft.busy || microsoft.updatingTaskIds.length > 0;
+  const editingTask = editingEntry?.source === 'microsoft-todo'
+    ? microsoft.tasks.find((task) => task.id === editingEntry.sourceId && task.listId === editingEntry.sourceContainerId)
+    : undefined;
+  const deletionError = deletingEntry?.source === 'google-calendar' ? google.error : microsoft.error;
+
+  async function deleteEntry() {
+    if (!deletingEntry) return;
+    if (deletingEntry.source === 'google-calendar') {
+      if (await google.deleteEvent(deletingEntry)) setDeletingEntry(null);
+    } else {
+      const task = microsoft.tasks.find((item) => item.id === deletingEntry.sourceId && item.listId === deletingEntry.sourceContainerId);
+      if (task && await microsoft.deleteTask(task)) setDeletingEntry(null);
+    }
+  }
 
   const { start, rangeEnd } = useMemo(() => {
     const rangeStart = startOfMonthGrid(cursor);
@@ -115,18 +141,16 @@ export function CalendarView() {
           const outside = day.getMonth() !== cursor.getMonth();
           return (
             <div className={`calendar-day${outside ? ' outside' : ''}${key === today ? ' today' : ''}`} key={key}>
-              {hiddenCount > 0 ? (
-                <button
-                  type="button"
-                  className="calendar-day-open"
-                  aria-label={`Ver los ${allDayEntries.length} elementos del ${dayLabel(key)}`}
-                  aria-haspopup="dialog"
-                  onClick={() => setSelectedDate(key)}
-                >
-                  <span className="day-number">{day.getDate()}</span>
-                  <span className="calendar-day-more" aria-hidden="true">+{hiddenCount}</span>
-                </button>
-              ) : <span className="day-number">{day.getDate()}</span>}
+              <button
+                type="button"
+                className="calendar-day-open"
+                aria-label={`Ver los ${allDayEntries.length} elementos del ${dayLabel(key)}`}
+                aria-haspopup="dialog"
+                onClick={() => setSelectedDate(key)}
+              >
+                <span className="day-number">{day.getDate()}</span>
+                {hiddenCount > 0 && <span className="calendar-day-more" aria-hidden="true">+{hiddenCount}</span>}
+              </button>
               <div className="day-events">
                 {dayEntries.map((entry) => (
                   <div
@@ -147,7 +171,32 @@ export function CalendarView() {
         })}
       </div>
       {selectedDate && (
-        <CalendarDayDialog date={selectedDate} entries={entriesForDay(entries, selectedDate)} onClose={() => setSelectedDate(null)} />
+        <CalendarDayDialog
+          date={selectedDate}
+          entries={entriesForDay(entries, selectedDate)}
+          onClose={() => setSelectedDate(null)}
+          onEdit={setEditingEntry}
+          onDelete={setDeletingEntry}
+          busy={actionBusy}
+          error={google.error ?? microsoft.error}
+          onAuthorizeGoogle={google.status === 'connected' && !google.canWriteEvents && entriesForDay(entries, selectedDate).some((entry) => entry.source === 'google-calendar' && entry.canEdit)
+            ? () => void google.connect(true) : undefined}
+        />
+      )}
+      {editingEntry?.source === 'google-calendar' && (
+        <EventEditorDialog entry={editingEntry} busy={google.busy} error={google.error} onClose={() => setEditingEntry(null)} onSave={(fields) => google.updateEvent(editingEntry, fields)} />
+      )}
+      {editingTask && (
+        <TaskEditorDialog task={editingTask} listName={editingTask.listName}
+          busy={microsoft.updatingTaskIds.includes(`${editingTask.listId}:${editingTask.id}`)} error={microsoft.error}
+          onCancel={() => setEditingEntry(null)} onSave={(fields) => microsoft.updateTask(editingTask, fields)} />
+      )}
+      {deletingEntry && (
+        <ConfirmDialog
+          title={deletingEntry.source === 'google-calendar' ? 'Eliminar evento' : 'Eliminar tarea'}
+          message={`¿Quieres eliminar “${deletingEntry.title}”? Esta acción no se puede deshacer.${deletingEntry.recurring ? ' Solo se eliminará esta ocurrencia, no toda la serie.' : ''}${deletingEntry.source === 'google-calendar' ? ' Google notificará a los invitados, si los hay.' : ''}${deletionError ? ` ${deletionError}` : ''}`}
+          confirmLabel="Eliminar" danger busy={actionBusy} onCancel={() => setDeletingEntry(null)} onConfirm={() => void deleteEntry()}
+        />
       )}
       {google.status === 'connected' && google.calendars.length > 0 && (
         <fieldset className="calendar-list-filter">

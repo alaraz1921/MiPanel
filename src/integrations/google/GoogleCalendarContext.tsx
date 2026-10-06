@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import type { CalendarEntry } from '../../types';
+import type { CalendarEntry, CalendarEventFields } from '../../types';
 import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
@@ -8,7 +8,7 @@ import {
   hasGoogleIdentity,
   waitForGoogleCredentialSync,
 } from './googleAuth';
-import { fetchGoogleCalendarSnapshot, isGoogleConfigured, type GoogleCalendarItem } from './googleCalendar';
+import { fetchGoogleCalendarSnapshot, isGoogleConfigured, mutateGoogleEvent, type GoogleCalendarItem } from './googleCalendar';
 
 type GoogleConnectionStatus = 'unconfigured' | 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -19,10 +19,13 @@ type GoogleCalendarContextValue = {
   visibleCalendarIds: string[];
   busy: boolean;
   error?: string;
-  connect: () => Promise<void>;
+  canWriteEvents: boolean;
+  connect: (withWrite?: boolean) => Promise<void>;
   disconnect: () => Promise<void>;
   refresh: (rangeStart: Date, rangeEnd: Date) => Promise<void>;
   setCalendarVisible: (calendarId: string, visible: boolean) => void;
+  updateEvent: (event: CalendarEntry, fields: CalendarEventFields) => Promise<boolean>;
+  deleteEvent: (event: CalendarEntry) => Promise<boolean>;
 };
 
 const GoogleCalendarContext = createContext<GoogleCalendarContextValue | undefined>(undefined);
@@ -39,6 +42,9 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
   const [visibleCalendarIds, setVisibleCalendarIds] = useLocalStorage<string[]>('mipanel.google.visibleCalendarIds', []);
   const [busy, setBusy] = useState(configured);
   const [error, setError] = useState<string>();
+  const [canWriteEvents, setCanWriteEvents] = useState(false);
+  const revision = useRef(0);
+  const mutating = useRef(false);
 
   useEffect(() => {
     if (!configured) return;
@@ -56,7 +62,8 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
   }, [configured]);
 
   async function refresh(rangeStart: Date, rangeEnd: Date) {
-    if (!configured || status === 'disconnected' || status === 'unconfigured') return;
+    if (!configured || mutating.current || status === 'disconnected' || status === 'unconfigured') return;
+    const requestRevision = ++revision.current;
     setBusy(true);
     setError(undefined);
     try {
@@ -68,6 +75,7 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
         return;
       }
       const snapshot = await fetchGoogleCalendarSnapshot(session.access_token, rangeStart, rangeEnd, visibleCalendarIds);
+      if (requestRevision !== revision.current) return;
       const nextVisible = visibleCalendarIds.length
         ? visibleCalendarIds.filter((id) => snapshot.calendars.some((calendar) => calendar.id === id))
         : snapshot.calendars.map((calendar) => calendar.id);
@@ -76,20 +84,22 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       }
       setCalendars(snapshot.calendars);
       setEvents(snapshot.events);
+      setCanWriteEvents(snapshot.canWriteEvents);
       setStatus('connected');
     } catch (refreshError) {
+      if (requestRevision !== revision.current) return;
       setStatus('error');
       setError(readableError(refreshError));
     } finally {
-      setBusy(false);
+      if (requestRevision === revision.current) setBusy(false);
     }
   }
 
-  async function connect() {
+  async function connect(withWrite = false) {
     setError(undefined);
     setStatus('connecting');
     try {
-      await connectGoogleCalendar();
+      await connectGoogleCalendar(withWrite);
     } catch (connectError) {
       setStatus('error');
       setError(readableError(connectError));
@@ -97,12 +107,14 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
   }
 
   async function disconnect() {
+    revision.current += 1;
     setBusy(true);
     try {
       await disconnectGoogleCalendar();
       setStatus('disconnected');
       setCalendars([]);
       setEvents([]);
+      setCanWriteEvents(false);
       setVisibleCalendarIds([]);
       setError(undefined);
     } catch (disconnectError) {
@@ -119,6 +131,30 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       : current.filter((id) => id !== calendarId));
   }
 
+  async function writeEvent(event: CalendarEntry, fields?: CalendarEventFields) {
+    if (mutating.current) return false;
+    mutating.current = true;
+    revision.current += 1;
+    setBusy(true);
+    setError(undefined);
+    try {
+      if (!canWriteEvents) throw new Error('Autoriza la edición de Google para modificar eventos.');
+      const session = await googleSupabaseSession();
+      if (!session) throw new Error('Vuelve a conectar Google.');
+      const updated = await mutateGoogleEvent(session.access_token, event, fields);
+      setEvents((current) => updated
+        ? current.map((item) => item.id === event.id ? updated : item)
+        : current.filter((item) => item.id !== event.id));
+      return true;
+    } catch (mutationError) {
+      setError(readableError(mutationError));
+      return false;
+    } finally {
+      mutating.current = false;
+      setBusy(false);
+    }
+  }
+
   return (
     <GoogleCalendarContext.Provider value={{
       status,
@@ -127,10 +163,13 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       visibleCalendarIds,
       busy,
       error,
+      canWriteEvents,
       connect,
       disconnect,
       refresh,
       setCalendarVisible,
+      updateEvent: (event, fields) => writeEvent(event, fields),
+      deleteEvent: (event) => writeEvent(event),
     }}>
       {children}
     </GoogleCalendarContext.Provider>

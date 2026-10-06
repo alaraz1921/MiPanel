@@ -170,7 +170,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .event-dot { background: var(--accent); }
 .due-dot { background: var(--success); }
-.reminder-dot { background: var(--violet); }
+.reminder-dot { background: #4b5563; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .calendar-weekdays { color: #718096; font-size: .72rem; font-weight: 750; text-align: center; border-bottom: 1px solid rgba(67,88,115,.16); padding-bottom: 7px; }
 .calendar-days { border-left: 1px solid rgba(67,88,115,.16); border-top: 1px solid rgba(67,88,115,.16); }
@@ -192,13 +192,23 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .calendar-day-agenda .calendar-event { align-items: flex-start; gap: 12px; padding: 12px; font-size: .9rem; line-height: 1.4; }
 .calendar-agenda-time { flex: 0 0 72px; font-size: .8rem; }
 .calendar-agenda-details { display: grid; gap: 4px; min-width: 0; }
+.calendar-agenda-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.calendar-agenda-notice { color: #43536a; font-size: .85rem; line-height: 1.6; }
+.event-editor-note { margin: 0; color: #9aa5b5; font-size: .8rem; line-height: 1.5; }
 .calendar-agenda-title, .calendar-agenda-source { overflow-wrap: anywhere; }
 .calendar-agenda-source { font-size: .75rem; }
 .day-events { margin-top: 5px; display: flex; flex-direction: column; gap: 4px; }
 .calendar-event { display: flex; gap: 4px; align-items: center; border-radius: 7px; padding: 4px 5px; font-size: .68rem; line-height: 1.15; min-width: 0; }
 .calendar-event.event { border: 1px solid transparent; background: rgba(79,123,203,.16); color: #274f8c; }
 .calendar-event.due { background: rgba(64,150,101,.16); color: #286040; }
-.calendar-event.reminder { border: 1px solid rgba(130,94,204,.72); background: transparent; color: #6541a1; }
+.calendar-event.reminder { border: 1px solid #6b7280; background: transparent; color: #374151; }
+.task-title-toggle { border: 0; padding: 0; background: transparent; color: inherit; text-align: left; overflow-wrap: anywhere; }
+.task-title-toggle:focus-visible { outline: 2px solid #274f8c; outline-offset: 3px; border-radius: 4px; }
+.entry-action-button { border: 1px solid rgba(67,88,115,.25); border-radius: 999px; background: rgba(255,255,255,.45); color: #3f6093; padding: 5px 10px; font-size: .75rem; }
+.entry-action-button:hover { background: #fff; }
+.entry-action-button:focus-visible { outline: 2px solid #274f8c; outline-offset: 2px; }
+.entry-action-button:disabled { opacity: .55; cursor: wait; }
+.entry-action-button.danger-button { color: #a63f36; border-color: rgba(166,63,54,.3); }
 .event-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .footer-note { color: #798696; font-size: .76rem; text-align: center; padding: 18px 6px 0; }
 .configuration-dialog { width: min(580px, calc(100% - 28px)); max-height: calc(100dvh - 32px); overflow-y: auto; }

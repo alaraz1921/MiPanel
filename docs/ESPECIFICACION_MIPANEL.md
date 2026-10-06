@@ -40,7 +40,7 @@ GitHub es la fuente del proyecto; `V:\Proyectos\Git\MiPanel` es la copia de trab
 
 Debe recordar visualmente a una nueva pestaña moderna: reloj y fecha, accesos directos antes del buscador, fondo configurable mediante una imagen local, tareas próximas y calendario.
 
-Completar una tarea pendiente y eliminar una tarea requieren confirmación mediante diálogos propios de MiPanel, no mediante mensajes nativos del navegador.
+Eliminar una tarea o evento requiere confirmación mediante diálogos propios de MiPanel. Completar/reabrir una tarea no pide confirmación y solo se activa desde su nombre o checkbox, no desde los metadatos ni el resto de la tarjeta.
 
 El diseño de referencia aportado por el usuario sirve como inspiración de composición, no como copia literal.
 
@@ -97,7 +97,9 @@ Debe permitir conectar una cuenta Google y:
 - mostrar eventos junto con To Do;
 - conservar la procedencia del evento;
 - empezar con permisos de solo lectura;
-- valorar la edición de eventos solo cuando la lectura esté estable.
+- autorizar explícitamente `calendar.events` para editar título, fechas y horas o eliminar eventos desde la agenda diaria, solo en calendarios escribibles;
+- modificar/eliminar únicamente la ocurrencia elegida de eventos recurrentes, con aviso previo; Google notifica los cambios a los invitados;
+- conservar los demás campos del evento mediante PATCH y detectar conflictos con ETag.
 
 ### 4.5 Calendario unificado
 
@@ -122,6 +124,8 @@ Vistas previstas:
 - mensual — prioritaria;
 - semanal — posterior;
 - agenda — posterior.
+
+La cabecera de cualquier día abre una agenda modal con títulos completos y todos sus elementos ordenados por hora (sin hora primero). Incluye edición y eliminación de tareas Microsoft y eventos Google, con confirmación solo para borrar. El indicador `+N` aparece únicamente si hay más de tres elementos.
 
 ### 4.6 Estados de conexión
 

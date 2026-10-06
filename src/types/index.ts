@@ -43,4 +43,20 @@ export type CalendarEntry = {
   source: CalendarSource;
   calendarName?: string;
   color?: string;
+  sourceId?: string;
+  sourceContainerId?: string;
+  endDate?: string;
+  endTime?: string;
+  timeZone?: string;
+  etag?: string;
+  canEdit?: boolean;
+  recurring?: boolean;
+};
+
+export type CalendarEventFields = {
+  title: string;
+  date: string;
+  time?: string;
+  endDate: string;
+  endTime?: string;
 };

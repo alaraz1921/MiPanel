@@ -7,7 +7,6 @@ import type { TaskItem } from '../../types';
 import { TaskEditorDialog } from './TaskEditorDialog';
 
 type PendingConfirmation = {
-  action: 'complete' | 'delete';
   task: TaskItem;
 };
 
@@ -51,16 +50,8 @@ export function TaskPanel() {
     [now, showCompleted, showOverdue, tasks, today],
   );
 
-  async function toggleNow(task: TaskItem) {
-    return microsoft.toggleTask(task);
-  }
-
   function requestToggle(task: TaskItem) {
-    if (task.completed) {
-      void toggleNow(task);
-      return;
-    }
-    setConfirmation({ action: 'complete', task });
+    void microsoft.toggleTask(task);
   }
 
   async function saveEditor(fields: Parameters<typeof microsoft.createTask>[1]) {
@@ -71,12 +62,7 @@ export function TaskPanel() {
 
   async function confirmPendingAction() {
     if (!confirmation) return;
-    if (confirmation.action === 'complete') {
-      await toggleNow(confirmation.task);
-    } else {
-      await microsoft.deleteTask(confirmation.task);
-    }
-    setConfirmation(null);
+    if (await microsoft.deleteTask(confirmation.task)) setConfirmation(null);
   }
 
   const statusLabel = {
@@ -161,7 +147,7 @@ export function TaskPanel() {
         )}
         {visible.map((task) => (
           <div className={`task-row${task.completed ? ' completed' : ''}`} key={`${task.listId}:${task.id}`}>
-            <label className="task-check">
+            <div className="task-check">
               <input
                 type="checkbox"
                 checked={task.completed}
@@ -170,19 +156,25 @@ export function TaskPanel() {
                 onChange={() => requestToggle(task)}
               />
               <span className="task-body">
-                <span className="task-title">{task.important ? '★ ' : ''}{task.title}</span>
+                <button
+                  type="button"
+                  className="task-title task-title-toggle"
+                  disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
+                  aria-label={task.completed ? `Reabrir ${task.title}` : `Completar ${task.title}`}
+                  onClick={() => requestToggle(task)}
+                >{task.important ? '★ ' : ''}{task.title}</button>
                 <span className="task-meta">
                   {task.listName}
                   {task.dueDate && <> · 📅 {task.dueDate === today ? 'hoy' : dayLabel(task.dueDate)}</>}
                   {task.reminderDateTime && <> · 🔔 {task.reminderDateTime.slice(11, 16)}</>}
                 </span>
               </span>
-            </label>
+            </div>
             {usingMicrosoft && (
               <div className="task-actions">
                 <button
                   type="button"
-                  className="text-button"
+                  className="entry-action-button"
                   disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
                   onClick={() => setEditor(task)}
                 >
@@ -190,9 +182,9 @@ export function TaskPanel() {
                 </button>
                 <button
                   type="button"
-                  className="text-button danger-button"
+                  className="entry-action-button danger-button"
                   disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
-                  onClick={() => setConfirmation({ action: 'delete', task })}
+                  onClick={() => setConfirmation({ task })}
                 >
                   Eliminar
                 </button>
@@ -238,13 +230,11 @@ export function TaskPanel() {
 
       {confirmation && (
         <ConfirmDialog
-          key={`${confirmation.action}:${confirmation.task.listId}:${confirmation.task.id}`}
-          title={confirmation.action === 'complete' ? 'Completar tarea' : 'Eliminar tarea'}
-          message={confirmation.action === 'complete'
-            ? `¿Quieres marcar “${confirmation.task.title}” como completada?`
-            : `¿Quieres eliminar “${confirmation.task.title}” de Microsoft To Do? Esta acción no se puede deshacer.`}
-          confirmLabel={confirmation.action === 'complete' ? 'Marcar como completada' : 'Eliminar tarea'}
-          danger={confirmation.action === 'delete'}
+          key={`${confirmation.task.listId}:${confirmation.task.id}`}
+          title="Eliminar tarea"
+          message={`¿Quieres eliminar “${confirmation.task.title}” de Microsoft To Do? Esta acción no se puede deshacer.${microsoft.error ? ` ${microsoft.error}` : ''}`}
+          confirmLabel="Eliminar tarea"
+          danger
           busy={usingMicrosoft && microsoft.updatingTaskIds.includes(`${confirmation.task.listId}:${confirmation.task.id}`)}
           onCancel={() => setConfirmation(null)}
           onConfirm={() => void confirmPendingAction()}

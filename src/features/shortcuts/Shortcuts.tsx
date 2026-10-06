@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { FormEvent, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type PointerEvent } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { defaultShortcuts } from '../../data/mock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -160,6 +160,9 @@ export function Shortcuts() {
   const [editingCustomIcon, setEditingCustomIcon] = useState<string>();
   const [editingIconError, setEditingIconError] = useState<string>();
   const [shortcutToDelete, setShortcutToDelete] = useState<Shortcut>();
+  const longPressTimer = useRef<number | undefined>(undefined);
+  const longPressTriggered = useRef(false);
+  const touchStart = useRef<{ x: number; y: number } | undefined>(undefined);
 
   useEffect(() => {
     if (!contextMenu) return undefined;
@@ -174,6 +177,10 @@ export function Shortcuts() {
       window.removeEventListener('keydown', closeWithEscape);
     };
   }, [contextMenu]);
+
+  useEffect(() => () => {
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+  }, []);
 
   function addShortcut(event: FormEvent) {
     event.preventDefault();
@@ -270,6 +277,38 @@ export function Shortcuts() {
     setDraggedId(undefined);
   }
 
+  function openContextMenu(id: string, x: number, y: number) {
+    const menuX = Math.min(x, window.innerWidth - 210);
+    const menuY = Math.min(y, window.innerHeight - 210);
+    setContextMenu({ id, x: Math.max(8, menuX), y: Math.max(8, menuY) });
+  }
+
+  function cancelLongPress() {
+    if (!longPressTimer.current) return;
+    window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = undefined;
+  }
+
+  function startLongPress(event: PointerEvent<HTMLDivElement>, id: string) {
+    cancelLongPress();
+    longPressTriggered.current = false;
+    if (event.pointerType !== 'touch') return;
+    const { clientX, clientY } = event;
+    touchStart.current = { x: clientX, y: clientY };
+    longPressTimer.current = window.setTimeout(() => {
+      longPressTimer.current = undefined;
+      longPressTriggered.current = true;
+      openContextMenu(id, clientX, clientY);
+    }, 550);
+  }
+
+  function moveLongPress(event: PointerEvent<HTMLDivElement>) {
+    const start = touchStart.current;
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) {
+      cancelLongPress();
+    }
+  }
+
   const contextShortcut = contextMenu
     ? shortcuts.find((shortcut) => shortcut.id === contextMenu.id)
     : undefined;
@@ -314,14 +353,31 @@ export function Shortcuts() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => dropShortcut(event, shortcut.id)}
             onDragEnd={() => setDraggedId(undefined)}
+            onPointerDown={(event) => startLongPress(event, shortcut.id)}
+            onPointerUp={cancelLongPress}
+            onPointerCancel={cancelLongPress}
+            onPointerMove={moveLongPress}
             onContextMenu={(event) => {
               event.preventDefault();
-              const x = Math.min(event.clientX, window.innerWidth - 210);
-              const y = Math.min(event.clientY, window.innerHeight - 210);
-              setContextMenu({ id: shortcut.id, x: Math.max(8, x), y: Math.max(8, y) });
+              openContextMenu(shortcut.id, event.clientX, event.clientY);
             }}
           >
-            <a href={shortcut.url} className="shortcut-link" title={`${shortcut.url} · Clic derecho para acciones`}>
+            <a
+              href={shortcut.url}
+              className="shortcut-link"
+              title={`${shortcut.url} · Clic derecho o mantén pulsado para acciones`}
+              onKeyDown={(event) => {
+                if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
+                event.preventDefault();
+                const bounds = event.currentTarget.getBoundingClientRect();
+                openContextMenu(shortcut.id, bounds.left, bounds.bottom);
+              }}
+              onClick={(event) => {
+                if (!longPressTriggered.current) return;
+                event.preventDefault();
+                longPressTriggered.current = false;
+              }}
+            >
               <span className="shortcut-icon" aria-hidden="true"><ShortcutIcon shortcut={shortcut} /></span>
               <span>{shortcut.label}</span>
             </a>

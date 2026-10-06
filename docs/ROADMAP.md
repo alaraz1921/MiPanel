@@ -69,6 +69,9 @@
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
 - [x] Filtrar las tareas para mostrar únicamente las vencidas por fecha o recordatorio.
 - [x] Editar y eliminar accesos desde un menú contextual con confirmación.
+- [x] Abrir las acciones de un acceso con pulsación prolongada en móvil y mediante teclado.
+- [x] Colocar las tareas completadas al final, conservando el orden por aviso o vencimiento dentro de cada grupo.
+- [x] Mostrar los filtros debajo del calendario, eventos con el color de su calendario y recordatorios sin relleno.
 - [x] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [ ] Importación/exportación explícita de configuración.

@@ -44,6 +44,7 @@ function normalizeEvent(event: GoogleEvent, calendar: GoogleCalendarItem): Calen
       kind: 'event',
       source: 'google-calendar',
       calendarName: calendar.name,
+      color: calendar.color,
     };
   }
   const value = new Date(start.dateTime!);
@@ -56,6 +57,7 @@ function normalizeEvent(event: GoogleEvent, calendar: GoogleCalendarItem): Calen
     kind: 'event',
     source: 'google-calendar',
     calendarName: calendar.name,
+    color: calendar.color,
   };
 }
 

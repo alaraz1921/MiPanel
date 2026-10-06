@@ -93,22 +93,6 @@ export function CalendarView() {
         )}
       </div>
       {google.error && <p className="calendar-google-error" role="alert">{google.error}</p>}
-      {google.status === 'connected' && google.calendars.length > 0 && (
-        <fieldset className="calendar-list-filter">
-          <legend>Calendarios Google</legend>
-          {google.calendars.map((calendar) => (
-            <label key={calendar.id}>
-              <input
-                type="checkbox"
-                checked={google.visibleCalendarIds.includes(calendar.id)}
-                onChange={(event) => google.setCalendarVisible(calendar.id, event.target.checked)}
-              />
-              <span className="calendar-color" style={{ background: calendar.color }} />
-              {calendar.name}{calendar.primary ? ' (principal)' : ''}
-            </label>
-          ))}
-        </fieldset>
-      )}
 
       <div className="calendar-legend" aria-label="Leyenda">
         <span><i className="legend-dot event-dot" /> Evento</span>
@@ -129,7 +113,14 @@ export function CalendarView() {
               <span className="day-number">{day.getDate()}</span>
               <div className="day-events">
                 {dayEntries.map((entry) => (
-                  <div className={`calendar-event ${entry.kind}`} key={entry.id} title={`${entry.calendarName ?? ''} ${entry.title}`}>
+                  <div
+                    className={`calendar-event ${entry.kind}`}
+                    key={entry.id}
+                    title={`${entry.calendarName ?? ''} ${entry.title}`}
+                    style={entry.kind === 'event' && entry.color
+                      ? { borderColor: entry.color, backgroundColor: `${entry.color}2b` }
+                      : undefined}
+                  >
                     <span>{entry.kind === 'reminder' ? '🔔' : entry.kind === 'due' ? '✓' : '•'}</span>
                     <span className="event-text">{entry.time ? `${entry.time} ` : ''}{entry.title}</span>
                   </div>
@@ -139,6 +130,22 @@ export function CalendarView() {
           );
         })}
       </div>
+      {google.status === 'connected' && google.calendars.length > 0 && (
+        <fieldset className="calendar-list-filter">
+          <legend>Calendarios Google</legend>
+          {google.calendars.map((calendar) => (
+            <label key={calendar.id}>
+              <input
+                type="checkbox"
+                checked={google.visibleCalendarIds.includes(calendar.id)}
+                onChange={(event) => google.setCalendarVisible(calendar.id, event.target.checked)}
+              />
+              <span className="calendar-color" style={{ background: calendar.color }} />
+              {calendar.name}{calendar.primary ? ' (principal)' : ''}
+            </label>
+          ))}
+        </fieldset>
+      )}
     </section>
   );
 }

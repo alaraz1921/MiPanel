@@ -42,4 +42,5 @@ export type CalendarEntry = {
   kind: 'event' | 'due' | 'reminder';
   source: CalendarSource;
   calendarName?: string;
+  color?: string;
 };

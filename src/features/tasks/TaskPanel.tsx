@@ -45,7 +45,8 @@ export function TaskPanel() {
     () => tasks
       .filter((task) => showCompleted || !task.completed)
       .filter((task) => !showOverdue || isOverdue(task, today, now))
-      .sort((a, b) => taskScheduleKey(a).localeCompare(taskScheduleKey(b))
+      .sort((a, b) => Number(a.completed) - Number(b.completed)
+        || taskScheduleKey(a).localeCompare(taskScheduleKey(b))
         || a.title.localeCompare(b.title)),
     [now, showCompleted, showOverdue, tasks, today],
   );

@@ -64,11 +64,12 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .shortcuts-actions { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .shortcut-form input { border: 1px solid var(--line); background: rgba(12,15,21,.72); color: #eef2f7; border-radius: 12px; padding: 10px 12px; outline: none; }
 .shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 86px)); justify-content: center; gap: 12px; min-height: 126px; align-content: start; }
-.shortcut-item { position: relative; min-width: 0; }
+.shortcut-item { position: relative; min-width: 0; touch-action: manipulation; }
 .shortcut-link { text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 2px; border: 1px solid transparent; border-radius: 13px; background: transparent; color: #f7f9fc; font-size: .82rem; line-height: 1.2; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
 .shortcut-link:hover, .shortcut-link:focus-visible { border-color: rgba(255,255,255,.42); background: rgba(255,255,255,.10); outline: none; }
+.shortcut-item .shortcut-link { -webkit-touch-callout: none; user-select: none; }
 .shortcut-add-card { justify-self: center; width: 86px; }
-.shortcut-add-icon { font-size: 2rem; font-weight: 300; }
+.shortcut-add-icon { color: #10131a; font-size: 2rem; font-weight: 300; text-shadow: none; }
 .shortcut-icon { display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid rgba(255,255,255,.28); border-radius: 15px; background: rgba(255,255,255,.27); box-shadow: 0 5px 14px rgba(20,35,52,.12); font-size: 1.5rem; }
 .shortcut-icon-image { width: 38px; height: 38px; object-fit: contain; }
 .shortcut-icon-fallback { line-height: 1; }
@@ -158,7 +159,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .calendar-actions { display: flex; gap: 7px; }
 .calendar-google-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -3px 0 12px; }
 .calendar-google-error { margin: -4px 0 12px; color: #ad423a; font-size: .8rem; line-height: 1.35; }
-.calendar-list-filter { display: flex; flex-wrap: wrap; gap: 8px 13px; margin: -2px 0 13px; padding: 8px 0 0; border: 0; color: #607086; font-size: .76rem; }
+.calendar-list-filter { display: flex; flex-wrap: wrap; gap: 8px 13px; margin: 16px 0 0; padding: 8px 0 0; border: 0; color: #607086; font-size: .76rem; }
 .calendar-list-filter legend { padding: 0 7px 0 0; color: #607086; }
 .calendar-list-filter label { display: inline-flex; align-items: center; gap: 5px; }
 .calendar-list-filter input { accent-color: #6f96ee; }
@@ -179,9 +180,9 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .today .day-number { background: #dce7ff; color: #182438; font-weight: 800; }
 .day-events { margin-top: 5px; display: flex; flex-direction: column; gap: 4px; }
 .calendar-event { display: flex; gap: 4px; align-items: center; border-radius: 7px; padding: 4px 5px; font-size: .68rem; line-height: 1.15; min-width: 0; }
-.calendar-event.event { background: rgba(79,123,203,.16); color: #274f8c; }
+.calendar-event.event { border: 1px solid transparent; background: rgba(79,123,203,.16); color: #274f8c; }
 .calendar-event.due { background: rgba(64,150,101,.16); color: #286040; }
-.calendar-event.reminder { background: rgba(130,94,204,.16); color: #6541a1; }
+.calendar-event.reminder { border: 1px solid rgba(130,94,204,.72); background: transparent; color: #6541a1; }
 .event-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .footer-note { color: #798696; font-size: .76rem; text-align: center; padding: 18px 6px 0; }
 

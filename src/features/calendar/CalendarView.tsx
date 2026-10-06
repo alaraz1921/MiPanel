@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useGoogleCalendar } from '../../integrations/google/GoogleCalendarContext';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
 import { monthLabel, startOfMonthGrid, toDateKey } from '../../lib/date';
 import type { CalendarEntry, TaskItem } from '../../types';
@@ -38,11 +39,17 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
 export function CalendarView() {
   const [cursor, setCursor] = useState(() => new Date());
   const microsoft = useMicrosoftTodo();
+  const google = useGoogleCalendar();
   const tasks = microsoft.status === 'connected' ? microsoft.tasks : [];
   const today = toDateKey(new Date());
 
-  const entries = useMemo(() => taskEntries(tasks), [tasks]);
-  const start = startOfMonthGrid(cursor);
+  const { start, rangeEnd } = useMemo(() => {
+    const rangeStart = startOfMonthGrid(cursor);
+    const end = new Date(rangeStart);
+    end.setDate(end.getDate() + 42);
+    return { start: rangeStart, rangeEnd: end };
+  }, [cursor]);
+  const entries = useMemo(() => [...taskEntries(tasks), ...google.events], [google.events, tasks]);
   const days = Array.from({ length: 42 }, (_, index) => {
     const day = new Date(start);
     day.setDate(start.getDate() + index);
@@ -52,6 +59,10 @@ export function CalendarView() {
   function moveMonth(delta: number) {
     setCursor((current) => new Date(current.getFullYear(), current.getMonth() + delta, 1));
   }
+
+  useEffect(() => {
+    if (google.status === 'connected') void google.refresh(start, rangeEnd);
+  }, [cursor, google.status, google.visibleCalendarIds]);
 
   return (
     <section className="panel calendar-panel" aria-labelledby="calendar-title">
@@ -66,6 +77,38 @@ export function CalendarView() {
           <button type="button" className="ghost-button" onClick={() => moveMonth(1)} aria-label="Mes siguiente">→</button>
         </div>
       </div>
+
+      <div className="calendar-google-controls">
+        {google.status === 'connected' ? (
+          <>
+            <button type="button" className="status-pill status-connected status-action" onClick={() => google.refresh(start, rangeEnd)} disabled={google.busy}>
+              {google.busy ? 'Google…' : 'Google conectado'}
+            </button>
+            <button type="button" className="text-button" onClick={() => void google.disconnect()} disabled={google.busy}>Desconectar Google</button>
+          </>
+        ) : (
+          <button type="button" className="status-pill status-action" onClick={() => void google.connect()} disabled={google.status === 'connecting'}>
+            {google.status === 'connecting' ? 'Conectando Google…' : 'Conectar Google'}
+          </button>
+        )}
+      </div>
+      {google.error && <p className="calendar-google-error" role="alert">{google.error}</p>}
+      {google.status === 'connected' && google.calendars.length > 0 && (
+        <fieldset className="calendar-list-filter">
+          <legend>Calendarios Google</legend>
+          {google.calendars.map((calendar) => (
+            <label key={calendar.id}>
+              <input
+                type="checkbox"
+                checked={google.visibleCalendarIds.includes(calendar.id)}
+                onChange={(event) => google.setCalendarVisible(calendar.id, event.target.checked)}
+              />
+              <span className="calendar-color" style={{ background: calendar.color }} />
+              {calendar.name}{calendar.primary ? ' (principal)' : ''}
+            </label>
+          ))}
+        </fieldset>
+      )}
 
       <div className="calendar-legend" aria-label="Leyenda">
         <span><i className="legend-dot event-dot" /> Evento</span>

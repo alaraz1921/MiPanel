@@ -156,6 +156,13 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; flex: 0 0 auto; }
 .text-button:disabled { cursor: wait; opacity: .55; }
 .calendar-actions { display: flex; gap: 7px; }
+.calendar-google-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -3px 0 12px; }
+.calendar-google-error { margin: -4px 0 12px; color: #ad423a; font-size: .8rem; line-height: 1.35; }
+.calendar-list-filter { display: flex; flex-wrap: wrap; gap: 8px 13px; margin: -2px 0 13px; padding: 8px 0 0; border: 0; color: #607086; font-size: .76rem; }
+.calendar-list-filter legend { padding: 0 7px 0 0; color: #607086; }
+.calendar-list-filter label { display: inline-flex; align-items: center; gap: 5px; }
+.calendar-list-filter input { accent-color: #6f96ee; }
+.calendar-color { width: 8px; height: 8px; border-radius: 50%; background: #7fa7ff; }
 .calendar-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: -4px 0 14px; color: #607086; font-size: .8rem; }
 .calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }

@@ -5,6 +5,15 @@ let latestProviderRefreshToken: string | undefined;
 let latestVaultError: Error | undefined;
 let authReady: Promise<void> = Promise.resolve();
 const SESSION_TIMEOUT_MS = 8_000;
+const GOOGLE_CONNECTION_PENDING_KEY = 'mipanel.google.connectionPending';
+
+function isGoogleConnectionPending() {
+  try {
+    return window.sessionStorage.getItem(GOOGLE_CONNECTION_PENDING_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 async function syncMicrosoftRefreshToken(session: { access_token: string; provider_refresh_token?: string | null }) {
   const refreshToken = session.provider_refresh_token ?? latestProviderRefreshToken;
@@ -41,7 +50,7 @@ if (supabase) {
   });
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.provider_token) latestProviderToken = session.provider_token;
-    if (session?.provider_refresh_token) {
+    if (session?.provider_refresh_token && !isGoogleConnectionPending()) {
       latestProviderRefreshToken = session.provider_refresh_token;
       void syncMicrosoftRefreshToken(session).catch((error) => {
         latestVaultError = error instanceof Error ? error : new Error('El vault de Microsoft no está disponible temporalmente.');

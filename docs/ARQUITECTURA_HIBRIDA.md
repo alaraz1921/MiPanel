@@ -10,11 +10,11 @@ depender de que el navegador conserve una caché MSAL entre reinicios.
 
 ## Primera etapa
 
-La primera etapa activa Supabase Auth cuando existe configuración pública y
-mantiene MSAL como fallback local. La autenticación Azure y la restauración de
-sesión entre reinicios ya están validadas en GitHub Pages. Durante esta
-transición el adaptador usa temporalmente el token de proveedor entregado por
-la sesión para mantener operativas las tareas existentes.
+Supabase Auth se activa cuando existe configuración pública; MSAL queda como
+alternativa cuando no se configura Supabase. El navegador usa la sesión de
+MiPanel para autorizar las Edge Functions y no necesita un `provider_token`
+Azure al restaurar la sesión. Supabase renueva su propia sesión, no los tokens
+del proveedor Microsoft.
 
 El backend previsto será:
 
@@ -25,9 +25,10 @@ El backend previsto será:
 
 Los client secrets permanecerán en Supabase y nunca llegarán al bundle. La
 sesión de Supabase es gestionada por su SDK para permitir la continuidad entre
-reinicios; MiPanel no escribe ni manipula manualmente refresh tokens. En la
-siguiente etapa las llamadas Graph dejarán de usar el token de proveedor en el
-frontend y pasarán por una Edge Function.
+reinicios. El callback de una conexión Microsoft iniciada explícitamente envía
+la credencial de renovación a `microsoft-credentials`, que la valida con
+Microsoft y la cifra. Una sesión antigua o una conexión Google no deben
+sobrescribir el vault Microsoft. Los tokens de Graph se renuevan en el servidor.
 
 ## Configuración prevista
 
@@ -54,13 +55,18 @@ secretos de Supabase, nunca en `.env.local` del frontend ni en Git.
 6. Probar persistencia de sesión al cerrar y abrir el navegador.
 7. Reutilizar el mismo frontend en la extensión Chromium.
 
-La función `microsoft-graph` está desplegada. Verifica la sesión Supabase,
-limita las rutas a Microsoft To Do y reenvía únicamente las operaciones
-permitidas. Su activación desde el frontend queda pendiente de resolver una
-respuesta bloqueada observada en producción; mientras tanto, MiPanel usa Graph
-directamente con el token de proveedor gestionado por Supabase. La renovación y
-almacenamiento server-side del refresh token queda como siguiente endurecimiento
-de seguridad.
+La función `microsoft-graph` verifica la sesión Supabase, limita las rutas a
+Microsoft To Do y renueva la autorización desde el vault cifrado. Comparte la
+renovación entre peticiones concurrentes de una instancia y actualiza el vault
+solo si la credencial leída sigue siendo la actual. Distingue autorización
+revocada (`MicrosoftReconnectRequired`, 401), configuración rechazada
+(`MicrosoftConfiguration`, 503) y fallos temporales (`MicrosoftUnavailable`, 503).
+Solo reintenta fallos temporales; los códigos AADSTS permiten diagnosticar el
+rechazo sin exponer tokens ni el cuerpo completo de la respuesta OAuth.
+
+Regresiones reproducibles, sin credenciales reales:
+`node scripts/verify-microsoft-auth.cjs`. La prueba usa respuestas simuladas;
+la continuidad real durante horas y entre reinicios se valida en el navegador.
 
 La URL y la clave pública se configuran mediante variables de entorno; no se
 inventan secretos ni identificadores privados en el repositorio.

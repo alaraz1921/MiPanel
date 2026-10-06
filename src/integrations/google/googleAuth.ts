@@ -55,6 +55,7 @@ export async function connectGoogleCalendar() {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (!sessionData.session) throw new Error('Conecta primero Microsoft para vincular tu calendario de Google.');
+  window.sessionStorage.removeItem('mipanel.microsoft.connectionPending');
   setPending(true);
   const { error } = await supabase.auth.linkIdentity({
     provider: 'google',

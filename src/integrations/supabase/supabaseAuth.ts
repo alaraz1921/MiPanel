@@ -1,11 +1,18 @@
 import { isSupabaseConfigured, supabase, supabaseRedirectUri } from './supabaseClient';
 
-let latestProviderToken: string | undefined;
-let latestProviderRefreshToken: string | undefined;
-let latestVaultError: Error | undefined;
+let credentialSync: Promise<void> | undefined;
 let authReady: Promise<void> = Promise.resolve();
 const SESSION_TIMEOUT_MS = 8_000;
 const GOOGLE_CONNECTION_PENDING_KEY = 'mipanel.google.connectionPending';
+const MICROSOFT_CONNECTION_PENDING_KEY = 'mipanel.microsoft.connectionPending';
+
+function isMicrosoftConnectionPending() {
+  try {
+    return window.sessionStorage.getItem(MICROSOFT_CONNECTION_PENDING_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 function isGoogleConnectionPending() {
   try {
@@ -16,24 +23,36 @@ function isGoogleConnectionPending() {
 }
 
 async function syncMicrosoftRefreshToken(session: { access_token: string; provider_refresh_token?: string | null }) {
-  const refreshToken = session.provider_refresh_token ?? latestProviderRefreshToken;
-  if (!refreshToken || !supabase) return;
+  const refreshToken = session.provider_refresh_token;
+  // Solo una conexión Azure iniciada en esta pestaña puede sustituir el vault.
+  // Una sesión restaurada puede conservar tokens antiguos o del Google vinculado.
+  if (!refreshToken || !supabase || !isMicrosoftConnectionPending() || isGoogleConnectionPending()) return;
+  if (credentialSync) return credentialSync;
 
+  credentialSync = saveMicrosoftCredential(session.access_token, refreshToken);
+  try {
+    await credentialSync;
+  } finally {
+    credentialSync = undefined;
+  }
+}
+
+async function saveMicrosoftCredential(accessToken: string, refreshToken: string) {
   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/microsoft-credentials`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ refreshToken }),
+    signal: AbortSignal.timeout(SESSION_TIMEOUT_MS),
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => undefined) as { error?: { message?: unknown } } | undefined;
     const message = payload?.error?.message;
     throw new Error(typeof message === 'string' ? message : 'No se pudo guardar de forma segura la conexión de Microsoft.');
   }
-  latestProviderRefreshToken = undefined;
-  latestVaultError = undefined;
+  window.sessionStorage.removeItem(MICROSOFT_CONNECTION_PENDING_KEY);
 }
 
 function withTimeout<T>(promise: Promise<T>, message: string) {
@@ -49,13 +68,7 @@ if (supabase) {
     resolveAuthReady = resolve;
   });
   supabase.auth.onAuthStateChange((_event, session) => {
-    if (session?.provider_token) latestProviderToken = session.provider_token;
-    if (session?.provider_refresh_token && !isGoogleConnectionPending()) {
-      latestProviderRefreshToken = session.provider_refresh_token;
-      void syncMicrosoftRefreshToken(session).catch((error) => {
-        latestVaultError = error instanceof Error ? error : new Error('El vault de Microsoft no está disponible temporalmente.');
-      });
-    }
+    if (session?.provider_refresh_token) void syncMicrosoftRefreshToken(session).catch(() => undefined);
     resolveAuthReady();
   });
 }
@@ -65,6 +78,8 @@ export async function connectSupabaseMicrosoft() {
     throw new Error('Supabase no está configurado en esta compilación.');
   }
 
+  window.sessionStorage.removeItem(GOOGLE_CONNECTION_PENDING_KEY);
+  window.sessionStorage.setItem(MICROSOFT_CONNECTION_PENDING_KEY, 'true');
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'azure',
     options: {
@@ -73,7 +88,10 @@ export async function connectSupabaseMicrosoft() {
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    window.sessionStorage.removeItem(MICROSOFT_CONNECTION_PENDING_KEY);
+    throw error;
+  }
 }
 
 export async function readSupabaseMicrosoftToken() {
@@ -82,35 +100,26 @@ export async function readSupabaseMicrosoftToken() {
     authReady,
     new Promise<void>((resolve) => window.setTimeout(resolve, 2000)),
   ]);
-  let { data, error } = await withTimeout(
+  const { data, error } = await withTimeout(
     supabase.auth.getSession(),
     'Supabase tardó demasiado en restaurar la sesión.',
   );
   if (error) throw error;
-  let session = data.session;
-  let providerToken = session?.provider_token ?? latestProviderToken;
-  if (session && !providerToken) {
-    const refreshed = await withTimeout(
-      supabase.auth.refreshSession(),
-      'Supabase tardó demasiado en renovar la sesión.',
-    );
-    if (refreshed.error) throw refreshed.error;
-    session = refreshed.data.session;
-    providerToken = session?.provider_token ?? latestProviderToken;
-    data = { session };
+  const session = data.session;
+  if (!session) return undefined;
+  if (credentialSync) await credentialSync;
+  if (isMicrosoftConnectionPending() && !isGoogleConnectionPending()) {
+    if (!session.provider_refresh_token) {
+      throw new Error('Microsoft no devolvió autorización para renovar la conexión. Vuelve a conectar y acepta el permiso solicitado.');
+    }
+    await syncMicrosoftRefreshToken(session);
   }
-  if (session && !providerToken) {
-    throw new Error('Supabase ha autenticado la cuenta, pero Azure no ha devuelto un token de Microsoft Graph. Revisa el permiso Tasks.ReadWrite y el alcance offline_access del proveedor Azure.');
-  }
-  if (!providerToken) return undefined;
-  if (session?.provider_refresh_token || latestProviderRefreshToken) {
-    await syncMicrosoftRefreshToken(session!);
-  }
-  if (latestVaultError) throw latestVaultError;
+  // Supabase renueva su propia sesión, no los tokens del proveedor. Graph se
+  // autoriza exclusivamente en el servidor usando las credenciales del vault.
   return {
-    accessToken: providerToken,
-    expiresAt: Date.now() + 50 * 60 * 1000,
-    supabaseAccessToken: session?.access_token,
+    accessToken: '',
+    expiresAt: session.expires_at ? session.expires_at * 1000 : Date.now() + 50 * 60 * 1000,
+    supabaseAccessToken: session.access_token,
   };
 }
 
@@ -125,4 +134,5 @@ export async function disconnectSupabase() {
   }
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  window.sessionStorage.removeItem(MICROSOFT_CONNECTION_PENDING_KEY);
 }

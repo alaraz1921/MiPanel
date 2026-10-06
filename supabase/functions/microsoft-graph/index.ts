@@ -1,20 +1,28 @@
 import { authenticatedUser, corsHeaders, json, serviceClient } from '../_shared/supabaseAuth.ts';
 import { decryptCredential, encryptCredential } from '../_shared/credentialCipher.ts';
+import { MicrosoftAuthorizationError, renewMicrosoftToken } from '../_shared/microsoftToken.ts';
 
 const GRAPH_ROOT = 'https://graph.microsoft.com/v1.0';
 const TODO_PATH = /^\/me\/todo\/lists(?:\/[^/]+\/tasks(?:\/[^/]+)?)?$/;
 const SNAPSHOT_PATH = '/me/todo/snapshot';
 const accessTokenCache = new Map<string, { accessToken: string; expiresAt: number }>();
+const tokenRenewals = new Map<string, Promise<string>>();
 
 async function graphAccessToken(userId: string) {
   const cached = accessTokenCache.get(userId);
   if (cached && cached.expiresAt > Date.now() + 60_000) return cached.accessToken;
+  const pending = tokenRenewals.get(userId);
+  if (pending) return pending;
+  const renewal = renewGraphAccessToken(userId);
+  tokenRenewals.set(userId, renewal);
+  try {
+    return await renewal;
+  } finally {
+    tokenRenewals.delete(userId);
+  }
+}
 
-  const clientId = Deno.env.get('MICROSOFT_CLIENT_ID');
-  const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
-  const tenant = Deno.env.get('MICROSOFT_TENANT') ?? 'common';
-  if (!clientId || !clientSecret) throw new Error('La integración Microsoft no está terminada de configurar.');
-
+async function renewGraphAccessToken(userId: string) {
   const supabase = serviceClient();
   const { data: credential, error } = await supabase
     .from('microsoft_credentials')
@@ -22,37 +30,18 @@ async function graphAccessToken(userId: string) {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
-  if (!credential) throw new Error('Vuelve a conectar Microsoft para completar la configuración segura.');
-
-  const response = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: 'refresh_token',
-      refresh_token: await decryptCredential(credential.refresh_token_ciphertext),
-      scope: 'offline_access https://graph.microsoft.com/Tasks.ReadWrite',
-    }),
-  });
-  const payload = await response.json() as { access_token?: unknown; expires_in?: unknown; refresh_token?: unknown };
-  if (!response.ok || typeof payload.access_token !== 'string') throw new Error('Microsoft no pudo renovar la autorización.');
-
-  if (typeof payload.refresh_token === 'string') {
-    const { error: updateError } = await supabase.from('microsoft_credentials').upsert({
-      user_id: userId,
-      refresh_token_ciphertext: await encryptCredential(payload.refresh_token),
-    });
-    if (updateError) throw updateError;
-  }
-  const expiresInSeconds = typeof payload.expires_in === 'number' && payload.expires_in > 0
-    ? payload.expires_in
-    : 300;
+  if (!credential) throw new MicrosoftAuthorizationError('Vuelve a conectar Microsoft para completar la configuración segura.', 401, 'MicrosoftReconnectRequired');
+  const token = await renewMicrosoftToken(await decryptCredential(credential.refresh_token_ciphertext));
+  // No sobrescribir credenciales más nuevas guardadas por otro login o instancia.
+  const { error: updateError } = await supabase.from('microsoft_credentials').update({
+    refresh_token_ciphertext: await encryptCredential(token.refreshToken),
+  }).eq('user_id', userId).eq('refresh_token_ciphertext', credential.refresh_token_ciphertext);
+  if (updateError) throw updateError;
   accessTokenCache.set(userId, {
-    accessToken: payload.access_token,
-    expiresAt: Date.now() + (expiresInSeconds * 1000),
+    accessToken: token.accessToken,
+    expiresAt: Date.now() + (token.expiresIn * 1000),
   });
-  return payload.access_token;
+  return token.accessToken;
 }
 
 type GraphCollection<T> = { value: T[]; '@odata.nextLink'?: string };
@@ -131,6 +120,9 @@ Deno.serve(async (request) => {
     try {
       return json(await todoSnapshot(user.id));
     } catch (error) {
+      if (error instanceof MicrosoftAuthorizationError) {
+        return json({ error: { code: error.code, message: error.message } }, error.status);
+      }
       const detail = error instanceof Error ? error.message : 'Error desconocido';
       console.error('No se pudo cargar el resumen de Microsoft To Do.', detail);
       return json({ error: { code: 'MiPanelBackend', message: detail } }, 502);
@@ -156,6 +148,9 @@ Deno.serve(async (request) => {
       headers: { ...corsHeaders, 'Content-Type': graphResponse.headers.get('Content-Type') ?? 'application/json' },
     });
   } catch (error) {
+    if (error instanceof MicrosoftAuthorizationError) {
+      return json({ error: { code: error.code, message: error.message } }, error.status);
+    }
     const detail = error instanceof Error ? error.message : 'Error desconocido';
     console.error('No se pudo completar la llamada a Microsoft Graph.', detail);
     const safeMessage = [

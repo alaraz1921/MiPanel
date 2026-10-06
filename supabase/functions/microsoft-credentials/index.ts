@@ -1,5 +1,6 @@
 import { authenticatedUser, corsHeaders, json, serviceClient } from '../_shared/supabaseAuth.ts';
 import { encryptCredential } from '../_shared/credentialCipher.ts';
+import { MicrosoftAuthorizationError, renewMicrosoftToken } from '../_shared/microsoftToken.ts';
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -22,13 +23,19 @@ Deno.serve(async (request) => {
     if (typeof body.refreshToken !== 'string' || body.refreshToken.length < 20) {
       return json({ error: 'La credencial de Microsoft no es válida.' }, 400);
     }
+    // Validar el proveedor antes de sustituir el vault; un token Google o
+    // rechazado por Microsoft nunca debe destruir una conexión válida.
+    const token = await renewMicrosoftToken(body.refreshToken);
     const { error } = await supabase.from('microsoft_credentials').upsert({
       user_id: user.id,
-      refresh_token_ciphertext: await encryptCredential(body.refreshToken),
+      refresh_token_ciphertext: await encryptCredential(token.refreshToken),
     });
     if (error) throw error;
     return new Response(null, { status: 204, headers: corsHeaders });
   } catch (error) {
+    if (error instanceof MicrosoftAuthorizationError) {
+      return json({ error: { code: error.code, message: error.message } }, error.status);
+    }
     const detail = error instanceof Error ? error.message : 'Error desconocido';
     console.error('No se pudo actualizar la credencial de Microsoft.', detail);
     const safeMessage = [

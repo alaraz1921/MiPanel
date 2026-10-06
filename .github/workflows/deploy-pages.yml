@@ -33,6 +33,9 @@ jobs:
       - name: Comprobar TypeScript
         run: npm run typecheck
 
+      - name: Comprobar regresiones de autenticación
+        run: node scripts/verify-microsoft-auth.cjs
+
       - name: Compilar para GitHub Pages
         run: npm run build:pages
         env:

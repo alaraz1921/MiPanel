@@ -107,6 +107,13 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
 
   async function handleMutationError(mutationError: unknown) {
     if (mutationError instanceof MicrosoftGraphError && mutationError.status === 401) {
+      if (isSupabaseConfigured()) {
+        setStatus('error');
+        setError(mutationError.code === 'MicrosoftReconnectRequired'
+          ? mutationError.message
+          : 'La sesión de MiPanel no permite acceder al backend. Actualiza la página y vuelve a conectar si el aviso persiste.');
+        return;
+      }
       await clearMicrosoftSession();
       await clearRemoteState();
       setStatus('disconnected');
@@ -144,7 +151,9 @@ export function MicrosoftTodoProvider({ children }: PropsWithChildren) {
       if (loadError instanceof MicrosoftGraphError && loadError.status === 401) {
         if (isSupabaseConfigured()) {
           setStatus('error');
-          setError('Azure autenticó la cuenta, pero el token no permite acceder a Microsoft Graph. Revisa Tasks.ReadWrite en Entra y vuelve a conectar.');
+          setError(loadError.code === 'MicrosoftReconnectRequired'
+            ? loadError.message
+            : 'La sesión de MiPanel no permite acceder al backend. Actualiza la página y vuelve a conectar si el aviso persiste.');
         } else {
           await clearMicrosoftSession();
           await clearRemoteState();

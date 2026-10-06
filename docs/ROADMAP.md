@@ -93,6 +93,7 @@
 - [ ] Activar Graph mediante Edge Function tras resolver su respuesta pendiente en producción.
 - [x] Añadir adaptador frontend con fallback MSAL durante la transición.
 - [x] Verificar persistencia de sesión al cerrar y abrir el navegador.
+- [x] Restaurar Microsoft sin exigir tokens Azure en el navegador, proteger el vault frente a sesiones antiguas/Google y diferenciar errores de renovación.
 - [ ] Reutilizar el backend desde el empaquetado Chromium.
 
 Electron, Tauri, PWA, Firefox y Safari no forman parte del roadmap actual.

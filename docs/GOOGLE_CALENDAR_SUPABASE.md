@@ -16,6 +16,8 @@ Las tarjetas de calendarios escribibles permiten editar título, fechas y horas 
 
 La escritura usa la misma Edge Function `google-calendar`, con sesión Supabase, comprobación del permiso OAuth y del rol del calendario, validación de campos y rutas codificadas. Nunca se envían tokens Google al navegador. El fin de un evento de día completo se muestra incluido en el editor y se convierte al fin exclusivo exigido por Google.
 
+La restauración espera a procesar el callback OAuth y guardar la nueva credencial antes de cargar eventos. Si la renovación omite `scope`, el servidor comprueba los alcances reales mediante `tokeninfo` de Google y conserva el resultado en la caché del token; no interpreta un campo ausente como permiso revocado ni acepta marcas de autorización del navegador.
+
 ## Configuración
 
 Además de activar el proveedor Google en Supabase y crear el cliente OAuth web

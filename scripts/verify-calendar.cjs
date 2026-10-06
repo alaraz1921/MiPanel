@@ -155,9 +155,11 @@ test('Google solicita escritura únicamente al autorizar edición', async () => 
   assert.doesNotMatch(requests[1].options.scopes, /tasks/);
 });
 
-function backend({ role = 'owner', scope = 'https://www.googleapis.com/auth/calendar.events', upstreamStatus = 200 } = {}) {
+function backend({ role = 'owner', scope = 'https://www.googleapis.com/auth/calendar.events', upstreamStatus = 200,
+  omitScope = false, infoScope = 'https://www.googleapis.com/auth/calendar.events', infoStatus = 200 } = {}) {
   let handler;
   const writes = [];
+  let infoRequests = 0;
   const api = load('supabase/functions/google-calendar/index.ts', {
     '../_shared/supabaseAuth.ts': {
       corsHeaders: {}, authenticatedUser: async () => ({ id: 'fake-user' }),
@@ -168,14 +170,20 @@ function backend({ role = 'owner', scope = 'https://www.googleapis.com/auth/cale
   }, {
     Deno: { env: { get: () => 'fake-config' }, serve: (callback) => { handler = callback; } },
     fetch: async (url, options) => {
-      if (url === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'fake-google', scope });
+      if (url === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'fake-google', ...(omitScope ? {} : { scope }) });
+      if (url === 'https://oauth2.googleapis.com/tokeninfo') {
+        infoRequests += 1;
+        assert.equal(options.headers.Authorization, 'Bearer fake-google');
+        assert.equal(options.method, 'POST');
+        return Response.json({ scope: infoScope }, { status: infoStatus });
+      }
       if (url.includes('/users/me/calendarList/')) return Response.json({ accessRole: role });
       writes.push({ url, ...options });
       return upstreamStatus === 204 ? new Response(null, { status: 204 }) : Response.json({ id: 'event' }, { status: upstreamStatus });
     },
   });
   const request = (method, body, headers = { Authorization: 'Bearer fake-session' }) => handler(new Request('https://example.test?calendarId=calendar%40example.test&eventId=event', { method, headers, body: JSON.stringify(body) }));
-  return { api, request, writes };
+  return { api, request, writes, infoRequests: () => infoRequests };
 }
 
 const eventBody = { etag: '"version1"', patch: { summary: 'Título', start: { date: '2026-10-06' }, end: { date: '2026-10-07' } } };
@@ -209,4 +217,60 @@ test('DELETE devuelve 204 sin contenido y los conflictos conservan el error 412'
   assert.equal(fake.writes[0].body, undefined);
   const conflict = backend({ upstreamStatus: 412 });
   assert.equal((await conflict.request('DELETE', { etag: '"version1"' })).status, 412);
+});
+
+test('renovar sin scope comprueba el permiso real y reutiliza la comprobación en caché', async () => {
+  const fake = backend({ omitScope: true });
+  assert.equal((await fake.request('PATCH', eventBody)).status, 200);
+  assert.equal((await fake.request('PATCH', eventBody)).status, 200);
+  assert.equal(fake.infoRequests(), 1);
+});
+
+test('la comprobación no convierte tokens de lectura ni fallos de tokeninfo en escritura', async () => {
+  const reader = backend({ omitScope: true, infoScope: 'https://www.googleapis.com/auth/calendar.events.readonly' });
+  assert.equal((await reader.request('PATCH', eventBody)).status, 403);
+  assert.equal(reader.writes.length, 0);
+  const failure = backend({ omitScope: true, infoStatus: 503 });
+  assert.equal((await failure.request('PATCH', eventBody)).status, 502);
+  assert.equal(failure.writes.length, 0);
+});
+
+test('restaurar Google espera al callback y guarda el permiso una sola vez antes de cargar', async () => {
+  const storage = new Map([['mipanel.google.connectionPending', 'true']]);
+  let listener;
+  let writes = 0;
+  let releaseSave;
+  let releaseSession;
+  const saving = new Promise((resolveSave) => { releaseSave = resolveSave; });
+  const initializing = new Promise((resolveSession) => { releaseSession = resolveSession; });
+  const session = { access_token: 'fake-session', provider_refresh_token: 'fake-google-refresh' };
+  const api = load('src/integrations/google/googleAuth.ts', {
+    './googleCalendar': googleClient,
+    '../supabase/supabaseClient': {
+      supabase: { auth: {
+        onAuthStateChange: (callback) => { listener = callback; },
+        getSession: async () => { await initializing; return { data: { session } }; },
+      } },
+    },
+  }, {
+    testEnv: { VITE_SUPABASE_URL: 'https://example.test' },
+    window: { sessionStorage: {
+      getItem: (key) => storage.get(key), removeItem: (key) => storage.delete(key),
+    }, setTimeout: () => {} },
+    fetch: async () => { writes += 1; await saving; return new Response(null, { status: 204 }); },
+  });
+  let ready = false;
+  const restore = api.waitForGoogleCredentialSync().then(() => { ready = true; });
+  await Promise.resolve();
+  assert.equal(writes, 0);
+  listener('SIGNED_IN', session);
+  listener('INITIAL_SESSION', session);
+  releaseSession();
+  await Promise.resolve();
+  assert.equal(ready, false);
+  assert.equal(writes, 1);
+  releaseSave();
+  await restore;
+  assert.equal(ready, true);
+  assert.equal(writes, 1);
 });

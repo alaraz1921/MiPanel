@@ -31,7 +31,7 @@ async function googleAccessToken(userId: string) {
       refresh_token: await decryptCredential(credential.refresh_token_ciphertext),
     }),
   });
-  const payload = await response.json() as { access_token?: unknown; expires_in?: unknown; refresh_token?: unknown; scope?: string };
+  const payload = await response.json() as { access_token?: unknown; expires_in?: unknown; refresh_token?: unknown; scope?: unknown };
   if (!response.ok || typeof payload.access_token !== 'string') throw new Error('Google no pudo renovar la autorización.');
 
   let ciphertext = credential.refresh_token_ciphertext;
@@ -44,7 +44,22 @@ async function googleAccessToken(userId: string) {
     if (updateError) throw updateError;
   }
   const expiresIn = typeof payload.expires_in === 'number' && payload.expires_in > 0 ? payload.expires_in : 300;
-  const scopes = (payload.scope ?? '').split(' ');
+  let scope = payload.scope;
+  // OAuth permite omitir scope. Consultarlo a Google, no asumir que se perdió
+  // el permiso ni confiar en una marca enviada por el navegador.
+  if (typeof scope !== 'string' || !scope.trim()) {
+    const infoResponse = await fetch('https://oauth2.googleapis.com/tokeninfo', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${payload.access_token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const info = await infoResponse.json().catch(() => undefined) as { scope?: unknown } | undefined;
+    if (!infoResponse.ok || typeof info?.scope !== 'string' || !info.scope.trim()) {
+      throw new Error('No se pudieron comprobar los permisos de Google. Actualiza el calendario para volver a intentarlo.');
+    }
+    scope = info.scope;
+  }
+  const scopes = (scope as string).split(/\s+/);
   const token = {
     accessToken: payload.access_token, expiresAt: Date.now() + (expiresIn * 1000), ciphertext,
     canWriteEvents: scopes.includes('https://www.googleapis.com/auth/calendar.events') || scopes.includes('https://www.googleapis.com/auth/calendar'),

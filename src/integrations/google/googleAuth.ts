@@ -27,6 +27,7 @@ async function saveGoogleRefreshToken(session: { access_token: string; provider_
     method: 'POST',
     headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: session.provider_refresh_token }),
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => undefined) as { error?: { message?: unknown } } | undefined;
@@ -39,7 +40,7 @@ async function saveGoogleRefreshToken(session: { access_token: string; provider_
 
 if (supabase) {
   supabase.auth.onAuthStateChange((_event, session) => {
-    if (pending() && session?.provider_refresh_token) {
+    if (pending() && session?.provider_refresh_token && !googleCredentialSync) {
       googleCredentialSync = saveGoogleRefreshToken(session);
       void googleCredentialSync.catch(() => undefined);
     }
@@ -47,6 +48,17 @@ if (supabase) {
 }
 
 export async function waitForGoogleCredentialSync() {
+  // getSession espera a procesar el callback OAuth. Antes de ese momento el
+  // listener puede no haber creado aún googleCredentialSync.
+  if (!supabase) return;
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (pending() && !googleCredentialSync) {
+    if (!data.session?.provider_refresh_token) {
+      throw new Error('Google no devolvió la credencial de renovación. Vuelve a conectar Google para guardar la autorización.');
+    }
+    googleCredentialSync = saveGoogleRefreshToken(data.session);
+  }
   if (googleCredentialSync) await googleCredentialSync;
 }
 
@@ -56,6 +68,7 @@ export async function connectGoogleCalendar(withWrite = false) {
   if (sessionError) throw sessionError;
   if (!sessionData.session) throw new Error('Conecta primero Microsoft para vincular tu calendario de Google.');
   window.sessionStorage.removeItem('mipanel.microsoft.connectionPending');
+  googleCredentialSync = undefined;
   setPending(true);
   const { error } = await supabase.auth.linkIdentity({
     provider: 'google',

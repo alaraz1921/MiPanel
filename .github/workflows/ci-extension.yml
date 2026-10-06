@@ -35,6 +35,9 @@ jobs:
       - name: Comprobar copias de configuración
         run: node scripts/verify-configuration.cjs
 
+      - name: Comprobar agenda del calendario
+        run: node scripts/verify-calendar.cjs
+
       - name: Compilar la web
         run: npm run build
 

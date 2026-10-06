@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGoogleCalendar } from '../../integrations/google/GoogleCalendarContext';
 import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoContext';
-import { monthLabel, startOfMonthGrid, toDateKey } from '../../lib/date';
+import { dayLabel, monthLabel, startOfMonthGrid, toDateKey } from '../../lib/date';
 import type { CalendarEntry, TaskItem } from '../../types';
+import { CalendarDayDialog } from './CalendarDayDialog';
+import { entriesForDay, VISIBLE_DAY_ENTRIES } from './dayEntries';
 
 const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -38,6 +40,7 @@ function taskEntries(tasks: TaskItem[]): CalendarEntry[] {
 
 export function CalendarView() {
   const [cursor, setCursor] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const microsoft = useMicrosoftTodo();
   const google = useGoogleCalendar();
   const tasks = microsoft.status === 'connected' ? microsoft.tasks : [];
@@ -106,11 +109,24 @@ export function CalendarView() {
       <div className="calendar-grid calendar-days">
         {days.map((day) => {
           const key = toDateKey(day);
-          const dayEntries = entries.filter((entry) => entry.date === key).slice(0, 3);
+          const allDayEntries = entriesForDay(entries, key);
+          const dayEntries = allDayEntries.slice(0, VISIBLE_DAY_ENTRIES);
+          const hiddenCount = allDayEntries.length - dayEntries.length;
           const outside = day.getMonth() !== cursor.getMonth();
           return (
             <div className={`calendar-day${outside ? ' outside' : ''}${key === today ? ' today' : ''}`} key={key}>
-              <span className="day-number">{day.getDate()}</span>
+              {hiddenCount > 0 ? (
+                <button
+                  type="button"
+                  className="calendar-day-open"
+                  aria-label={`Ver los ${allDayEntries.length} elementos del ${dayLabel(key)}`}
+                  aria-haspopup="dialog"
+                  onClick={() => setSelectedDate(key)}
+                >
+                  <span className="day-number">{day.getDate()}</span>
+                  <span className="calendar-day-more" aria-hidden="true">+{hiddenCount}</span>
+                </button>
+              ) : <span className="day-number">{day.getDate()}</span>}
               <div className="day-events">
                 {dayEntries.map((entry) => (
                   <div
@@ -130,6 +146,9 @@ export function CalendarView() {
           );
         })}
       </div>
+      {selectedDate && (
+        <CalendarDayDialog date={selectedDate} entries={entriesForDay(entries, selectedDate)} onClose={() => setSelectedDate(null)} />
+      )}
       {google.status === 'connected' && google.calendars.length > 0 && (
         <fieldset className="calendar-list-filter">
           <legend>Calendarios Google</legend>

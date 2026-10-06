@@ -72,6 +72,7 @@
 - [x] Abrir las acciones de un acceso con pulsación prolongada en móvil y mediante teclado.
 - [x] Colocar las tareas completadas al final, conservando el orden por aviso o vencimiento dentro de cada grupo.
 - [x] Mostrar los filtros debajo del calendario, eventos con el color de su calendario y recordatorios sin relleno.
+- [x] Abrir desde la cabecera de los días con elementos ocultos una agenda modal completa, ordenada por hora.
 - [x] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [x] Importación/exportación de accesos, iconos, fondo y selecciones mediante JSON versionado, con vista previa, confirmación y recuperación ante errores de almacenamiento.

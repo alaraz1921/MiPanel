@@ -5,6 +5,8 @@ import { useMicrosoftTodo } from '../../integrations/microsoft/MicrosoftTodoCont
 import { dayLabel, toDateKey } from '../../lib/date';
 import type { TaskItem } from '../../types';
 import { TaskEditorDialog } from './TaskEditorDialog';
+import editTaskIcon from '../../assets/edit-task.png';
+import deleteTaskIcon from '../../assets/delete-task.png';
 
 type PendingConfirmation = {
   task: TaskItem;
@@ -174,19 +176,23 @@ export function TaskPanel() {
               <div className="task-actions">
                 <button
                   type="button"
-                  className="entry-action-button"
+                  className="entry-action-button task-icon-button"
+                  aria-label={`Editar ${task.title}`}
+                  title="Editar tarea"
                   disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
                   onClick={() => setEditor(task)}
                 >
-                  Editar
+                  <img src={editTaskIcon} alt="" />
                 </button>
                 <button
                   type="button"
-                  className="entry-action-button danger-button"
+                  className="entry-action-button task-icon-button danger-button"
+                  aria-label={`Eliminar ${task.title}`}
+                  title="Eliminar tarea"
                   disabled={microsoft.updatingTaskIds.includes(`${task.listId}:${task.id}`)}
                   onClick={() => setConfirmation({ task })}
                 >
-                  Eliminar
+                  <img src={deleteTaskIcon} alt="" />
                 </button>
               </div>
             )}

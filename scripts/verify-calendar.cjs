@@ -90,6 +90,8 @@ test('la agenda ofrece editar y eliminar solo en elementos editables', () => {
 
 test('completar tareas no usa un label envolvente ni confirmación y solo el título y check son activadores', () => {
   const { TaskPanel } = load('src/features/tasks/TaskPanel.tsx', {
+    '../../assets/edit-task.png': { default: 'edit-task.png' },
+    '../../assets/delete-task.png': { default: 'delete-task.png' },
     '../../components/ConfirmDialog': { ConfirmDialog: () => null },
     '../../hooks/useLocalStorage': { useLocalStorage: () => ['list', () => {}] },
     '../../integrations/microsoft/MicrosoftTodoContext': { useMicrosoftTodo: () => ({
@@ -102,6 +104,11 @@ test('completar tareas no usa un label envolvente ni confirmación y solo el tí
   assert.match(html, /<div class="task-check"><input type="checkbox"/);
   assert.match(html, /<button[^>]*task-title-toggle[^>]*>Tarea<\/button>/);
   assert.doesNotMatch(html, /<label class="task-check"|<dialog/);
+  assert.match(html, /aria-label="Editar Tarea"/);
+  assert.match(html, /aria-label="Eliminar Tarea"/);
+  assert.match(html, /src="edit-task.png" alt=""/);
+  assert.match(html, /src="delete-task.png" alt=""/);
+  assert.equal((html.match(/task-icon-button/g) ?? []).length, 2);
 });
 
 const googleClient = load('src/integrations/google/googleCalendar.ts', {}, { testEnv: {} });

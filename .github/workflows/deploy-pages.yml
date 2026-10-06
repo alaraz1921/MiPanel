@@ -36,6 +36,9 @@ jobs:
       - name: Comprobar regresiones de autenticación
         run: node scripts/verify-microsoft-auth.cjs
 
+      - name: Comprobar copias de configuración
+        run: node scripts/verify-configuration.cjs
+
       - name: Compilar para GitHub Pages
         run: npm run build:pages
         env:

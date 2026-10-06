@@ -303,6 +303,23 @@ Preferencias que MiPanel puede guardar localmente:
 
 Los datos maestros de tareas/eventos siguen perteneciendo a Microsoft/Google.
 
+### 11.1 Copias portátiles de configuración
+
+Desde el botón de configuración se exporta un JSON con formato
+`mipanel-configuration`, versión 1 y fecha de exportación. Solo contiene accesos,
+orden, iconos personalizados, fondo, lista Microsoft seleccionada y calendarios
+Google visibles. Los recursos locales se incluyen como imágenes en Base64.
+
+Importar requiere validar formato, versión, tipos, tamaños y enlaces HTTP/HTTPS,
+mostrar una vista previa y confirmar la sustitución. No se aceptan claves
+arbitrarias de almacenamiento ni se trasladan sesiones, tokens, contraseñas,
+tareas o eventos. Ante un error de escritura se restauran las preferencias
+anteriores. Los cambios se notifican a los componentes sin recargar la página.
+
+El máximo por archivo es 16 MB; se mantienen los límites actuales de 4 MB por
+fondo y 256 KB por icono personalizado. La cuota efectiva depende del navegador.
+La sincronización con Supabase se implementará en una fase separada.
+
 ## 12. Modelo interno sugerido
 
 ```ts

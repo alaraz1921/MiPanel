@@ -39,7 +39,28 @@ no es un secreto; nunca añadas aquí una clave `service_role` ni un client secr
 
 Las preferencias propias se guardan en `localStorage` del navegador y quedan limitadas al origen donde se ejecute MiPanel: accesos directos, imagen de fondo y lista seleccionada. La caché temporal de listas y tareas de Microsoft usa `sessionStorage` durante dos minutos.
 
-No existe migración automática desde los datos de la antigua extensión: `chrome.storage.local` y el origen de la web están aislados. Una importación/exportación explícita podrá resolverlo en una fase posterior.
+No existe migración automática desde los datos de la antigua extensión: `chrome.storage.local` y el origen de la web están aislados.
+
+### Copias de configuración
+
+Pulsa el icono **⚙️** junto a **Cambiar fondo** para exportar o importar una
+copia `MiPanel-configuracion-AAAA-MM-DD.json`. Incluye accesos y su orden,
+iconos personalizados, fondo, lista Microsoft seleccionada y calendarios Google
+visibles. Las imágenes se incluyen en el archivo; no depende de rutas del equipo.
+
+La importación valida el formato y muestra el contenido antes de pedir
+confirmación para sustituir las preferencias. Puedes exportar primero la
+configuración actual. Los cambios se aplican inmediatamente; si falta espacio,
+se restaura la configuración anterior. El máximo por archivo es 16 MB, pero la
+capacidad del almacenamiento del navegador puede ser menor.
+
+La copia no contiene sesiones, contraseñas, tokens, tareas ni eventos. En otro
+equipo debes conectar las mismas cuentas para recuperar sus datos y selecciones.
+Solo admite el formato de copia versionado de MiPanel, no volcados arbitrarios
+de almacenamiento de la antigua extensión. La sincronización cloud sigue
+pendiente; esta función funciona sin cuenta conectada.
+
+Pruebas reproducibles: `node scripts/verify-configuration.cjs`.
 
 Los accesos directos utilizan el favicon web convencional de cada dominio. El favicon dinámico que proporcionaba Chromium a la antigua extensión no forma parte de las APIs web estándar.
 

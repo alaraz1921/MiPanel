@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { BackgroundSettings } from '../features/background/BackgroundSettings';
+import { ConfigurationSettings } from '../features/settings/ConfigurationSettings';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export function TopBar() {
   const [now, setNow] = useState(new Date());
   const [backgroundImage, setBackgroundImage] = useLocalStorage('mipanel.backgroundImage', '');
   const [editingBackground, setEditingBackground] = useState(false);
+  const [editingConfiguration, setEditingConfiguration] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -33,6 +35,15 @@ export function TopBar() {
         <button
           type="button"
           className="background-button"
+          aria-label="Configuración: importar o exportar"
+          title="Importar o exportar configuración"
+          onClick={() => setEditingConfiguration(true)}
+        >
+          <span aria-hidden="true">⚙️</span>
+        </button>
+        <button
+          type="button"
+          className="background-button"
           aria-label="Cambiar fondo"
           title="Cambiar fondo"
           onClick={() => setEditingBackground(true)}
@@ -40,6 +51,7 @@ export function TopBar() {
           <span aria-hidden="true">🖼️</span>
         </button>
       </div>
+      {editingConfiguration && <ConfigurationSettings onClose={() => setEditingConfiguration(false)} />}
       {editingBackground && (
         <BackgroundSettings
           value={backgroundImage}

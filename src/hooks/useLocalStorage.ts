@@ -1,5 +1,5 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
-import { localStorageAdapter } from '../storage/localStorageAdapter';
+import { localStorageAdapter, PREFERENCES_REPLACED_EVENT } from '../storage/localStorageAdapter';
 
 type StoredValue = unknown;
 type Subscriber = (value: StoredValue) => void;
@@ -31,6 +31,16 @@ function registerStorageListener() {
       notify(entry);
     } catch {
       // Un valor no válido de otra pestaña no debe romper la interfaz actual.
+    }
+  });
+  window.addEventListener(PREFERENCES_REPLACED_EVENT, (event) => {
+    for (const key of (event as CustomEvent<string[]>).detail) {
+      const entry = entries.get(key);
+      if (!entry) continue;
+      const raw = window.localStorage.getItem(key);
+      entry.value = raw === null ? undefined : JSON.parse(raw) as StoredValue;
+      entry.loaded = true;
+      notify(entry);
     }
   });
   storageListenerRegistered = true;

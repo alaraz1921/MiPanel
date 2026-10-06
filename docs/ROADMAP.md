@@ -74,7 +74,7 @@
 - [x] Mostrar los filtros debajo del calendario, eventos con el color de su calendario y recordatorios sin relleno.
 - [x] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
-- [ ] Importación/exportación explícita de configuración.
+- [x] Importación/exportación de accesos, iconos, fondo y selecciones mediante JSON versionado, con vista previa, confirmación y recuperación ante errores de almacenamiento.
 
 ## Fase 5 — Sincronización propia opcional
 

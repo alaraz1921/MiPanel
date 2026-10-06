@@ -39,7 +39,8 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<GoogleConnectionStatus>(configured ? 'connecting' : 'unconfigured');
   const [calendars, setCalendars] = useState<GoogleCalendarItem[]>([]);
   const [events, setEvents] = useState<CalendarEntry[]>([]);
-  const [visibleCalendarIds, setVisibleCalendarIds] = useLocalStorage<string[]>('mipanel.google.visibleCalendarIds', []);
+  // null: aún sin selección; []: el usuario ha ocultado todos los calendarios.
+  const [visibleCalendarIds, setVisibleCalendarIds] = useLocalStorage<string[] | null>('mipanel.google.visibleCalendarIds', null);
   const [busy, setBusy] = useState(configured);
   const [error, setError] = useState<string>();
   const [canWriteEvents, setCanWriteEvents] = useState(false);
@@ -78,17 +79,17 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
         setEvents([]);
         return;
       }
-      const snapshot = await fetchGoogleCalendarSnapshot(session.access_token, rangeStart, rangeEnd, visibleCalendarIds, recheckAuthorization.current);
+      const snapshot = await fetchGoogleCalendarSnapshot(session.access_token, rangeStart, rangeEnd, visibleCalendarIds ?? [], recheckAuthorization.current);
       if (requestRevision !== revision.current) return;
       recheckAuthorization.current = false;
-      const nextVisible = visibleCalendarIds.length
+      const nextVisible = visibleCalendarIds !== null
         ? visibleCalendarIds.filter((id) => snapshot.calendars.some((calendar) => calendar.id === id))
         : snapshot.calendars.map((calendar) => calendar.id);
-      if (nextVisible.length !== visibleCalendarIds.length || nextVisible.some((id, index) => id !== visibleCalendarIds[index])) {
+      if (visibleCalendarIds === null || nextVisible.length !== visibleCalendarIds.length || nextVisible.some((id, index) => id !== visibleCalendarIds[index])) {
         setVisibleCalendarIds(nextVisible);
       }
       setCalendars(snapshot.calendars);
-      setEvents(snapshot.events);
+      setEvents(snapshot.events.filter((event) => nextVisible.includes(event.sourceContainerId ?? '')));
       setCanWriteEvents(snapshot.canWriteEvents);
       setStatus('connected');
     } catch (refreshError) {
@@ -120,7 +121,7 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       setCalendars([]);
       setEvents([]);
       setCanWriteEvents(false);
-      setVisibleCalendarIds([]);
+      setVisibleCalendarIds(null);
       setError(undefined);
     } catch (disconnectError) {
       setStatus('error');
@@ -132,8 +133,8 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
 
   function setCalendarVisible(calendarId: string, visible: boolean) {
     setVisibleCalendarIds((current) => visible
-      ? [...new Set([...current, calendarId])]
-      : current.filter((id) => id !== calendarId));
+      ? [...new Set([...(current ?? []), calendarId])]
+      : (current ?? []).filter((id) => id !== calendarId));
   }
 
   async function writeEvent(event: CalendarEntry, fields?: CalendarEventFields) {
@@ -165,7 +166,7 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       status,
       calendars,
       events,
-      visibleCalendarIds,
+      visibleCalendarIds: visibleCalendarIds ?? [],
       busy,
       error,
       canWriteEvents,

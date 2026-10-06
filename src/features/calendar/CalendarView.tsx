@@ -198,22 +198,6 @@ export function CalendarView() {
           confirmLabel="Eliminar" danger busy={actionBusy} onCancel={() => setDeletingEntry(null)} onConfirm={() => void deleteEntry()}
         />
       )}
-      {google.status === 'connected' && google.calendars.length > 0 && (
-        <fieldset className="calendar-list-filter">
-          <legend>Calendarios Google</legend>
-          {google.calendars.map((calendar) => (
-            <label key={calendar.id}>
-              <input
-                type="checkbox"
-                checked={google.visibleCalendarIds.includes(calendar.id)}
-                onChange={(event) => google.setCalendarVisible(calendar.id, event.target.checked)}
-              />
-              <span className="calendar-color" style={{ background: calendar.color }} />
-              {calendar.name}{calendar.primary ? ' (principal)' : ''}
-            </label>
-          ))}
-        </fieldset>
-      )}
     </section>
   );
 }

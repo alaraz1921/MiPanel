@@ -122,7 +122,7 @@ export function exportConfiguration(storage: Pick<Storage, 'getItem'> = window.l
       shortcuts: read(KEYS.shortcuts, defaultShortcuts),
       backgroundImage: read(KEYS.backgroundImage, ''),
       microsoftSelectedListId: read(KEYS.microsoftSelectedListId, ''),
-      googleVisibleCalendarIds: read(KEYS.googleVisibleCalendarIds, []),
+      googleVisibleCalendarIds: read(KEYS.googleVisibleCalendarIds, []) ?? [],
     },
   });
   const content = JSON.stringify(configuration, null, 2);

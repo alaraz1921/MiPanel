@@ -54,6 +54,10 @@ function environment(initial = {}) {
 }
 
 const picture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZxkAAAAASUVORK5CYII=';
+test('exporta correctamente cuando Google aún no tiene una selección inicial', () => {
+  const { api } = environment({ 'mipanel.google.visibleCalendarIds': 'null' });
+  assert.deepEqual(JSON.parse(api.exportConfiguration()).settings.googleVisibleCalendarIds, []);
+});
 function backup() {
   return {
     format: 'mipanel-configuration', version: 1, exportedAt: '2026-10-06T09:00:00.000Z',

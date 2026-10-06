@@ -137,6 +137,21 @@ El usuario debe poder ver claramente:
 
 La aplicación debe seguir siendo utilizable como dashboard cuando no haya ninguna cuenta conectada.
 
+### 4.7 Página de configuración
+
+El icono de configuración del inicio abre una página de la misma SPA (`?view=settings`),
+no un modal. Incluye cuatro apartados: exportación/importación de preferencias,
+imagen de fondo, cuenta Microsoft y cuenta Google con selección de calendarios.
+Muestra el estado de cada conexión y el nombre/correo disponible en los metadatos
+de la sesión, sin pedir permisos adicionales. Las acciones rápidas de conexión del
+panel siguen disponibles. La selección de calendarios se realiza en configuración;
+se pueden desmarcar todos para ocultar todos los eventos Google.
+
+Volver al panel o usar la navegación del navegador conserva los proveedores,
+sesiones y mes visible, sin recargar la SPA. El inicio ya no muestra el icono de
+cambio de fondo. El fondo sigue guardándose localmente y la importación mantiene
+la vista previa y confirmación antes de reemplazar preferencias.
+
 ## 5. Arquitectura inicial
 
 ### 5.1 Frontend

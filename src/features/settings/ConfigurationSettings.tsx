@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { exportConfiguration, importConfiguration, MAX_CONFIGURATION_BYTES, parseConfiguration, type PanelConfiguration } from './configuration';
 
-export function ConfigurationSettings({ onClose }: { onClose: () => void }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+export function ConfigurationSettings() {
   const readVersion = useRef(0);
   const [preview, setPreview] = useState<PanelConfiguration>();
   const [fileName, setFileName] = useState('');
@@ -13,8 +12,7 @@ export function ConfigurationSettings({ onClose }: { onClose: () => void }) {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    dialogRef.current?.showModal();
-    return () => { readVersion.current += 1; dialogRef.current?.close(); };
+    return () => { readVersion.current += 1; };
   }, []);
 
   function download() {
@@ -73,16 +71,11 @@ export function ConfigurationSettings({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="settings-dialog configuration-dialog"
-      aria-labelledby="configuration-title"
-      onCancel={(event) => { event.preventDefault(); onClose(); }}
-    >
+    <section className="panel settings-section" id="copias" aria-labelledby="configuration-title">
       <div className="configuration-settings">
         <div>
           <span className="eyebrow">Configuración</span>
-          <h3 id="configuration-title">Copias de MiPanel</h3>
+          <h2 id="configuration-title">Exportar / importar configuración</h2>
         </div>
         <p>Guarda tus accesos y su orden, iconos personalizados, fondo, lista de tareas seleccionada y calendarios visibles.</p>
         <p className="settings-help">La copia no incluye sesiones, contraseñas, tokens, tareas ni eventos. Para usar tus datos en otro equipo tendrás que conectar tus cuentas.</p>
@@ -102,7 +95,7 @@ export function ConfigurationSettings({ onClose }: { onClose: () => void }) {
               <dt>Iconos personalizados</dt><dd>{preview.settings.shortcuts.filter((shortcut) => shortcut.customIcon).length}</dd>
               <dt>Fondo</dt><dd>{preview.settings.backgroundImage ? 'Incluido' : 'Sin fondo'}</dd>
               <dt>Lista de tareas</dt><dd>{preview.settings.microsoftSelectedListId ? 'Selección incluida' : 'Predeterminada'}</dd>
-              <dt>Calendarios</dt><dd>{preview.settings.googleVisibleCalendarIds.length || 'Selección predeterminada'}</dd>
+              <dt>Calendarios</dt><dd>{preview.settings.googleVisibleCalendarIds.length || 'Ninguno seleccionado'}</dd>
             </dl>
             {preview.settings.backgroundImage && <img className="configuration-background" src={preview.settings.backgroundImage} alt="Fondo de la copia" />}
             {preview.settings.shortcuts.length > 0 && (
@@ -116,7 +109,6 @@ export function ConfigurationSettings({ onClose }: { onClose: () => void }) {
         )}
         {error && <p className="task-editor-error" role="alert">{error}</p>}
         {message && <p className="configuration-success" role="status">{message}</p>}
-        <div className="task-dialog-actions"><button type="button" className="ghost-button" onClick={onClose}>Cerrar</button></div>
       </div>
       {confirming && (
         <ConfirmDialog
@@ -127,6 +119,6 @@ export function ConfigurationSettings({ onClose }: { onClose: () => void }) {
           onConfirm={applyImport}
         />
       )}
-    </dialog>
+    </section>
   );
 }

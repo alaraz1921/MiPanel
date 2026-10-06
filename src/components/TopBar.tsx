@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react';
 import configurationIcon from '../assets/configuration.png';
-import backgroundIcon from '../assets/background.png';
-import { BackgroundSettings } from '../features/background/BackgroundSettings';
-import { ConfigurationSettings } from '../features/settings/ConfigurationSettings';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 
-export function TopBar() {
+export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const [now, setNow] = useState(new Date());
-  const [backgroundImage, setBackgroundImage] = useLocalStorage('mipanel.backgroundImage', '');
-  const [editingBackground, setEditingBackground] = useState(false);
-  const [editingConfiguration, setEditingConfiguration] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -37,33 +30,13 @@ export function TopBar() {
         <button
           type="button"
           className="background-button"
-          aria-label="Configuración: importar o exportar"
-          title="Importar o exportar configuración"
-          onClick={() => setEditingConfiguration(true)}
+          aria-label="Abrir configuración"
+          title="Configuración"
+          onClick={onOpenSettings}
         >
           <img className="topbar-action-icon" src={configurationIcon} alt="" />
         </button>
-        <button
-          type="button"
-          className="background-button"
-          aria-label="Cambiar fondo"
-          title="Cambiar fondo"
-          onClick={() => setEditingBackground(true)}
-        >
-          <img className="topbar-action-icon" src={backgroundIcon} alt="" />
-        </button>
       </div>
-      {editingConfiguration && <ConfigurationSettings onClose={() => setEditingConfiguration(false)} />}
-      {editingBackground && (
-        <BackgroundSettings
-          value={backgroundImage}
-          onCancel={() => setEditingBackground(false)}
-          onSave={(value) => {
-            setBackgroundImage(value);
-            setEditingBackground(false);
-          }}
-        />
-      )}
     </header>
   );
 }

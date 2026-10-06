@@ -43,7 +43,14 @@ No existe migración automática desde los datos de la antigua extensión: `chro
 
 ### Copias de configuración
 
-Pulsa el icono **⚙️** junto a **Cambiar fondo** para exportar o importar una
+Pulsa el icono de **Configuración** en la esquina superior derecha para abrir
+la página de ajustes. Sus apartados permiten exportar/importar preferencias,
+cambiar o quitar el fondo, ver y conectar/desconectar las cuentas de Microsoft
+y Google y elegir los calendarios visibles. El botón **Volver al panel** conserva
+las sesiones y el mes mostrado; también funciona la navegación del navegador.
+No hay un botón de fondo separado en la página principal.
+
+Desde el apartado **Exportar / importar configuración** puedes crear o restaurar una
 copia `MiPanel-configuracion-AAAA-MM-DD.json`. Incluye accesos y su orden,
 iconos personalizados, fondo, lista Microsoft seleccionada y calendarios Google
 visibles. Las imágenes se incluyen en el archivo; no depende de rutas del equipo.

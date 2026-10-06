@@ -253,3 +253,33 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
   .panel-footer { flex-direction: column; }
   .task-editor-dates { grid-template-columns: 1fr; }
 }
+[hidden] { display: none !important; }
+
+.settings-page {
+  position: relative;
+  z-index: 1;
+  width: min(960px, calc(100% - 32px));
+  margin: 28px auto 64px;
+  display: grid;
+  gap: 20px;
+}
+.settings-page-heading, .settings-navigation, .settings-account-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.settings-page h1 { margin: 8px 0 0; font-size: 28px; }
+.settings-navigation a { color: var(--text, #263348); text-underline-offset: 4px; }
+.settings-section { scroll-margin-top: 20px; }
+.settings-section h2 { margin: 0 0 16px; }
+.settings-section p { line-height: 1.6; }
+.settings-account-actions { justify-content: flex-start; }
+.settings-account { overflow-wrap: anywhere; }
+.settings-section .background-preview { max-height: 240px; }
+.settings-section .configuration-settings, .settings-section .background-settings { padding: 0; }
+.settings-section .settings-help { color: #607086; }
+.settings-section .configuration-preview { border-color: rgba(67,88,115,.20); background: rgba(255,255,255,.6); }
+.settings-section .configuration-success { color: #27714c; }
+.settings-section .task-editor-error { color: #ad423a; }

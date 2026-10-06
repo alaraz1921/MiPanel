@@ -3,20 +3,10 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { defaultShortcuts } from '../../data/mock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { Shortcut } from '../../types';
+import { ShortcutIcon } from './ShortcutIcon';
 
 const MAX_CUSTOM_ICON_SIZE = 256 * 1024;
 const CUSTOM_ICON_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
-
-function faviconUrl(pageUrl: string) {
-  try {
-    const parsed = new URL(pageUrl);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return undefined;
-
-    return `${parsed.origin}/favicon.ico`;
-  } catch {
-    return undefined;
-  }
-}
 
 function isCustomIcon(value?: string) {
   return Boolean(value?.startsWith('data:image/'));
@@ -38,30 +28,6 @@ function readCustomIcon(file: File) {
     reader.onerror = () => reject(new Error('No se pudo leer el icono.'));
     reader.readAsDataURL(file);
   });
-}
-
-function ShortcutIcon({ shortcut }: { shortcut: Shortcut }) {
-  const [failed, setFailed] = useState(false);
-  const iconUrl = faviconUrl(shortcut.url);
-
-  if (isCustomIcon(shortcut.customIcon)) {
-    return <img className="shortcut-icon-image" src={shortcut.customIcon} alt="" />;
-  }
-
-  if (!iconUrl || failed) {
-    return <span className="shortcut-icon-fallback" aria-hidden="true">{shortcut.icon ?? '🔗'}</span>;
-  }
-
-  return (
-    <img
-      className="shortcut-icon-image"
-      src={iconUrl}
-      alt=""
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-    />
-  );
 }
 
 type ShortcutContextMenu = {

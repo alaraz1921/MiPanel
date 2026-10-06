@@ -50,7 +50,7 @@ Cada acceso tendrá inicialmente:
 
 - nombre;
 - URL;
-- favicon web convencional del dominio, con icono local alternativo;
+- favicon web convencional del dominio, con dibujo SVG local negro y transparente alternativo, elegido por nombre/enlace (mundo si no se reconoce);
 - icono personalizado local opcional, priorizado sobre el favicon;
 - reordenación por arrastre y menú contextual;
 - edición y eliminación desde un menú contextual, con confirmación previa al borrar.

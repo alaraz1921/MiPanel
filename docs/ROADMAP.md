@@ -76,6 +76,7 @@
 - [x] Mostrar los filtros debajo del calendario, eventos con el color de su calendario y recordatorios sin relleno.
 - [x] Abrir desde la cabecera de cualquier día una agenda modal completa, ordenada por hora, con edición y eliminación de tareas y eventos.
 - [x] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
+- [x] Mantener el favicon como opción automática y usar un dibujo local negro y transparente relacionado con el acceso cuando no se puede cargar, sin sustituir iconos personalizados.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.
 - [x] Importación/exportación de accesos, iconos, fondo y selecciones mediante JSON versionado, con vista previa, confirmación y recuperación ante errores de almacenamiento.
 - [x] Página de configuración con copias, fondo, cuentas Microsoft/Google y selección de calendarios; sin modal de ajustes ni botón de fondo en el inicio.

@@ -91,3 +91,41 @@ test('ocultar el último calendario no restaura todos al actualizar', async () =
   await context().refresh(new Date(), new Date());
   assert.equal(context().events.length, 1);
 });
+
+test('los accesos conservan prioridad del icono personalizado y después el favicon', () => {
+  const { ShortcutIcon } = load('src/features/shortcuts/ShortcutIcon.tsx');
+  const shortcut = { id: 's', label: 'Correo', url: 'https://mail.example.test/inbox' };
+  let html = renderToStaticMarkup(React.createElement(ShortcutIcon, { shortcut }));
+  assert.match(html, /src="https:\/\/mail.example.test\/favicon.ico"/);
+  assert.doesNotMatch(html, /<svg/);
+  html = renderToStaticMarkup(React.createElement(ShortcutIcon, { shortcut: { ...shortcut, customIcon: 'data:image/png;base64,AAAA' } }));
+  assert.match(html, /src="data:image\/png;base64,AAAA"/);
+  assert.doesNotMatch(html, /favicon.ico|<svg/);
+});
+
+test('un favicon fallido usa un SVG negro sin relleno y reintenta al cambiar el dominio', () => {
+  const state = [];
+  let index = 0;
+  const { ShortcutIcon } = load('src/features/shortcuts/ShortcutIcon.tsx', { react: {
+    useState() {
+      const current = index++;
+      return [state[current], (value) => { state[current] = value; }];
+    },
+  } });
+  function icon(url) { index = 0; return ShortcutIcon({ shortcut: { id: 's', label: 'Calendario', url } }); }
+  const image = icon('https://example.test');
+  assert.equal(image.type, 'img'); image.props.onError();
+  const fallback = icon('https://example.test');
+  assert.equal(fallback.type, 'svg');
+  assert.equal(fallback.props.stroke, '#000'); assert.equal(fallback.props.fill, 'none');
+  assert.equal(icon('https://other.test').type, 'img');
+});
+
+test('los dibujos alternativos reconocen categorías y usan mundo para enlaces desconocidos', () => {
+  const { fallbackKind, faviconUrl } = load('src/features/shortcuts/ShortcutIcon.tsx');
+  for (const [label, kind] of [['Correo', 'mail'], ['Calendario', 'calendar'], ['Tareas', 'tasks'], ['OneDrive', 'cloud'], ['Maps', 'map'], ['ChatGPT', 'ai'], ['Mi página', 'globe']]) {
+    assert.equal(fallbackKind({ label, url: 'https://example.test' }), kind);
+  }
+  assert.equal(faviconUrl('invalid'), undefined);
+  assert.equal(faviconUrl('javascript:alert(1)'), undefined);
+});

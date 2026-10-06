@@ -66,7 +66,7 @@
 
 - [x] Permitir una imagen de fondo local configurable.
 - [x] Usar confirmaciones propias para eliminar tareas; completar/reabrir directamente desde el título o checkbox.
-- [x] Mostrar editar y eliminar en las tarjetas de tareas con los iconos aportados, en una única fila y con etiquetas accesibles.
+- [x] Mostrar editar y eliminar en las tarjetas de tareas y elementos de la agenda del calendario con los mismos iconos aportados, en una única fila y con etiquetas accesibles.
 - [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.
 - [x] Reordenar accesos directos mediante arrastre y controles accesibles.
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.

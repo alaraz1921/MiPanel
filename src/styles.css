@@ -125,7 +125,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .task-row.completed .task-title { color: #7a889a; text-decoration: line-through; }
 .task-meta { color: #607086; font-size: .82rem; line-height: 1.35; }
 .task-actions { display: flex; flex-direction: row; flex-shrink: 0; align-items: center; gap: 7px; font-size: .74rem; }
-.task-actions .task-icon-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 7px; }
+.entry-action-button.task-icon-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 7px; }
 .task-icon-button img { display: block; width: 20px; height: 20px; object-fit: contain; }
 .danger-button { color: #efaaa2; }
 .task-dialog { width: min(540px, calc(100% - 28px)); border: 1px solid var(--line); border-radius: 20px; padding: 0; background: #151b25; color: #eef2f7; box-shadow: 0 24px 80px rgba(0,0,0,.55); }
@@ -194,7 +194,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .calendar-day-agenda .calendar-event { align-items: flex-start; gap: 12px; padding: 12px; font-size: .9rem; line-height: 1.4; }
 .calendar-agenda-time { flex: 0 0 72px; font-size: .8rem; }
 .calendar-agenda-details { display: grid; gap: 4px; min-width: 0; }
-.calendar-agenda-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.calendar-agenda-actions { display: flex; flex-wrap: nowrap; gap: 7px; margin-top: 6px; }
 .calendar-agenda-notice { color: #43536a; font-size: .85rem; line-height: 1.6; }
 .event-editor-note { margin: 0; color: #9aa5b5; font-size: .8rem; line-height: 1.5; }
 .calendar-agenda-title, .calendar-agenda-source { overflow-wrap: anywhere; }

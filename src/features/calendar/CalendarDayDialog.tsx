@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { dayLabel } from '../../lib/date';
 import type { CalendarEntry } from '../../types';
+import editTaskIcon from '../../assets/edit-task.png';
+import deleteTaskIcon from '../../assets/delete-task.png';
 
 type CalendarDayDialogProps = {
   date: string;
@@ -53,8 +55,8 @@ export function CalendarDayDialog({ date, entries, onClose, onEdit, onDelete, bu
                   <span className="calendar-agenda-title">{entry.title}</span>
                   <span className="calendar-agenda-source">{kindLabels[entry.kind]}{entry.calendarName ? ` · ${entry.calendarName}` : ''}</span>
                   {entry.canEdit && onEdit && onDelete ? <div className="calendar-agenda-actions">
-                    <button type="button" className="entry-action-button" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onEdit(entry)}>Editar</button>
-                    <button type="button" className="entry-action-button danger-button" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onDelete(entry)}>Eliminar</button>
+                    <button type="button" className="entry-action-button task-icon-button" aria-label={`Editar ${entry.title}`} title="Editar" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onEdit(entry)}><img src={editTaskIcon} alt="" /></button>
+                    <button type="button" className="entry-action-button task-icon-button danger-button" aria-label={`Eliminar ${entry.title}`} title="Eliminar" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onDelete(entry)}><img src={deleteTaskIcon} alt="" /></button>
                   </div> : entry.source === 'google-calendar' && <span className="calendar-agenda-source">Solo lectura</span>}
                 </div>
               </li>

@@ -24,7 +24,11 @@ function load(path, imports = {}, globals = {}) {
 
 const dayApi = load('src/features/calendar/dayEntries.ts');
 const dateApi = load('src/lib/date.ts');
-const { CalendarDayDialog } = load('src/features/calendar/CalendarDayDialog.tsx', { '../../lib/date': dateApi });
+const { CalendarDayDialog } = load('src/features/calendar/CalendarDayDialog.tsx', {
+  '../../lib/date': dateApi,
+  '../../assets/edit-task.png': { default: 'edit-task.png' },
+  '../../assets/delete-task.png': { default: 'delete-task.png' },
+});
 const date = dateApi.toDateKey(new Date());
 const entries = [
   { id: 'late', date, title: 'Evento tarde', time: '18:30', kind: 'event', source: 'google-calendar', calendarName: 'Trabajo', color: '#123456' },
@@ -78,8 +82,11 @@ test('la agenda ofrece editar y eliminar solo en elementos editables', () => {
     date, entries: [{ ...entries[0], canEdit: true }, { ...entries[1], canEdit: false }],
     onClose: () => {}, onEdit: () => {}, onDelete: () => {},
   }));
-  assert.equal((html.match(/>Editar</g) ?? []).length, 1);
-  assert.equal((html.match(/>Eliminar</g) ?? []).length, 1);
+  assert.equal((html.match(/aria-label="Editar /g) ?? []).length, 1);
+  assert.equal((html.match(/aria-label="Eliminar /g) ?? []).length, 1);
+  assert.match(html, /src="edit-task.png" alt=""/);
+  assert.match(html, /src="delete-task.png" alt=""/);
+  assert.equal((html.match(/task-icon-button/g) ?? []).length, 2);
   const reading = renderToStaticMarkup(React.createElement(CalendarDayDialog, {
     date, entries: [{ ...entries[0], canEdit: true }],
     onClose: () => {}, onEdit: () => {}, onDelete: () => {}, onAuthorizeGoogle: () => {},

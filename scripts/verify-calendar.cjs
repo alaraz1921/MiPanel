@@ -288,7 +288,9 @@ test('el formulario de creación ofrece elegir calendario y fecha del día selec
   assert.match(html, /<select/); assert.match(html, /value="work" selected/);
   assert.match(html, /value="2026-10-07"/);
   assert.equal((html.match(/type="date"/g) ?? []).length, 1);
-  assert.equal((html.match(/type="time"/g) ?? []).length, 1);
+  assert.equal((html.match(/type="time"/g) ?? []).length, 0);
+  assert.match(html, /type="checkbox" checked=""/);
+  assert.match(html, /Todo el día/);
   assert.doesNotMatch(html, /Fecha de fin|Hora de fin|Fecha de inicio/);
 });
 
@@ -310,7 +312,21 @@ test('el editor simplificado usa una fecha y calcula cinco minutos con cambio de
   }));
   assert.equal((html.match(/type="date"/g) ?? []).length, 1);
   assert.equal((html.match(/type="time"/g) ?? []).length, 1);
+  assert.match(html, /type="time" required=""/);
+  assert.doesNotMatch(html, /type="checkbox" checked/);
   assert.match(html, /value="18:30"/);
+});
+
+test('editar un evento de día completo conserva el check y oculta la hora', () => {
+  const { EventEditorDialog } = load('src/features/calendar/EventEditorDialog.tsx');
+  const html = renderToStaticMarkup(React.createElement(EventEditorDialog, {
+    entry: { id: 'all-day', title: 'Evento', date: '2026-10-07', source: 'google-calendar', kind: 'event' },
+    busy: false, onClose() {}, onSave() {},
+  }));
+  assert.match(html, /Editar evento/);
+  assert.match(html, /type="checkbox" checked=""/);
+  assert.doesNotMatch(html, /type="time"/);
+  assert.match(html, /Se mantienen los avisos existentes/);
 });
 
 test('renovar sin scope comprueba el permiso real y reutiliza la comprobación en caché', async () => {

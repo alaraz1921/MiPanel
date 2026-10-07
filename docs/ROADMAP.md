@@ -62,6 +62,8 @@
 - [x] Añadir edición de título, fechas y horas y eliminación de eventos desde la agenda diaria, con autorización de escritura explícita y protección de calendarios de solo lectura.
 - [x] Crear eventos desde la cabecera y agenda diaria, eligiendo un calendario escribible, con título, fechas y horas o día completo; actualizar el calendario al guardar.
 - [x] Simplificar creación/edición a una fecha y hora opcional: duración de cinco minutos o día completo; acciones de la agenda junto al título.
+- [x] Mantener «Todo el día» en creación/edición y mostrar la hora obligatoria solo al desmarcarlo.
+- [ ] Decidir una alternativa para avisar a las 08:00 del mismo día en eventos de día completo; la API Google solo admite avisos anteriores al inicio. No se alteran los avisos existentes.
 - [ ] Validar la creación de eventos Google con una cuenta real.
 - [ ] Validar la edición y eliminación de eventos Google con una cuenta real tras autorizar `calendar.events`.
 

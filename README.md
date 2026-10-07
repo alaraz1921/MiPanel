@@ -76,11 +76,16 @@ Los accesos directos utilizan el favicon web convencional de cada dominio. El fa
 Conecta Google y autoriza la edición de eventos desde Configuración. En el
 calendario pulsa **+ Nuevo evento**, o abre un día y utiliza ese mismo botón
 para partir de su fecha. Elige un calendario con permiso de escritura y completa
-título, **Fecha** y una **Hora** opcional. El fin se calcula cinco minutos después
-(al día siguiente si cruza medianoche); sin hora, el evento ocupa el día completo.
+título y **Fecha**. Mantén **Todo el día** marcado para un evento de día completo;
+al desmarcarlo aparece **Hora**, obligatoria. El fin se calcula cinco minutos después
+(al día siguiente si cruza medianoche).
 Esta misma simplificación se aplica al editar eventos existentes. Al guardar se muestra
 el evento y se activa la visibilidad del calendario de destino si estaba oculto.
 No se crean eventos en calendarios de solo lectura ni se solicitan permisos nuevos.
+
+Los avisos existentes o predeterminados se conservan. Queda pendiente el aviso
+a las 08:00 del mismo día para eventos de día completo: la API de Google solo
+acepta minutos anteriores al inicio, no avisos posteriores al comienzo del día.
 
 La creación requiere la versión actualizada de la función `google-calendar`:
 `supabase functions deploy google-calendar --project-ref qfcwoinwtvufjlgrdsxf`.

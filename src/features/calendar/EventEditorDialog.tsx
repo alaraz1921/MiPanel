@@ -30,7 +30,8 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave, calenda
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState(entry.title);
   const [date, setDate] = useState(entry.date);
-  const [time, setTime] = useState(entry.time ?? '');
+  const [allDay, setAllDay] = useState(!entry.time);
+  const [time, setTime] = useState(entry.time ?? '08:00');
   const [failed, setFailed] = useState(false);
   const [validationError, setValidationError] = useState<string>();
   const [calendarId, setCalendarId] = useState(entry.sourceContainerId ?? calendars?.find((calendar) => calendar.primary)?.id ?? calendars?.[0]?.id ?? '');
@@ -45,7 +46,8 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave, calenda
     event.preventDefault();
     setValidationError(undefined);
     try {
-      const saved = await onSave(simpleEventFields(title, date, time), calendarId);
+      if (!allDay && !time) throw new Error('Indica una hora válida.');
+      const saved = await onSave(simpleEventFields(title, date, allDay ? '' : time), calendarId);
       if (saved) onClose();
       else setFailed(true);
     } catch (failure) {
@@ -60,11 +62,12 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave, calenda
         <div><span className="eyebrow">{entry.calendarName ?? 'Google Calendar'}</span><h3 id="event-editor-title">{calendars ? 'Nuevo evento' : 'Editar evento'}</h3></div>
         {calendars && <label><span>Calendario</span><select required disabled={busy} value={calendarId} onChange={(event) => setCalendarId(event.target.value)}>{calendars.map((calendar) => <option key={calendar.id} value={calendar.id}>{calendar.name}</option>)}</select></label>}
         <label><span>Título</span><input type="text" autoFocus required maxLength={1024} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
+        <label className="task-editor-important"><input type="checkbox" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} /><span>Todo el día</span></label>
         <div className="task-editor-dates">
           <label><span>Fecha</span><input type="date" required value={date} onChange={(event) => setDate(event.target.value)} /></label>
-          <label><span>Hora (opcional)</span><input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label>
+          {!allDay && <label><span>Hora</span><input type="time" required value={time} onChange={(event) => setTime(event.target.value)} /></label>}
         </div>
-        <p className="event-editor-note">Al guardar, el evento durará 5 minutos desde la hora indicada. Sin hora, ocupará todo el día seleccionado.</p>
+        <p className="event-editor-note">{allDay ? 'El evento ocupará todo el día seleccionado. Se mantienen los avisos existentes o los predeterminados del calendario.' : 'Al guardar, el evento durará 5 minutos desde la hora indicada.'}</p>
         <p className="event-editor-note">{entry.recurring ? 'Solo se modificará esta ocurrencia, no toda la serie. ' : ''}Las horas se muestran en la zona horaria de tu navegador. Google notificará los cambios a los invitados, si los hay.</p>
         {failed && error && <p className="task-editor-error" role="alert">{error}</p>}
         {validationError && <p className="task-editor-error" role="alert">{validationError}</p>}

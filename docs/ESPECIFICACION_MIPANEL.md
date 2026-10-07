@@ -100,7 +100,7 @@ Debe permitir conectar una cuenta Google y:
 - autorizar explícitamente `calendar.events` para editar título, fechas y horas o eliminar eventos desde la agenda diaria, solo en calendarios escribibles;
 - modificar/eliminar únicamente la ocurrencia elegida de eventos recurrentes, con aviso previo; Google notifica los cambios a los invitados;
 - conservar los demás campos del evento mediante PATCH y detectar conflictos con ETag.
-- crear eventos desde «Nuevo evento» en la cabecera o agenda diaria; seleccionar un calendario escribible, título, una Fecha y una Hora opcional. En creación y edición se usa la misma fecha para inicio/fin y se calcula el fin cinco minutos después de la hora elegida; si cruza medianoche, pasa al día siguiente. Sin hora se guarda un evento de día completo en la fecha seleccionada. La creación usa la autorización de escritura existente y hace visible el calendario de destino.
+- crear eventos desde «Nuevo evento» en la cabecera o agenda diaria; seleccionar un calendario escribible, título y una Fecha. En creación y edición se mantiene el check «Todo el día»; al desmarcarlo aparece una Hora obligatoria. Se usa la misma fecha para inicio/fin y se calcula el fin cinco minutos después de la hora elegida; si cruza medianoche, pasa al día siguiente. Con el check marcado se guarda un evento de día completo en la fecha seleccionada. La creación usa la autorización de escritura existente y hace visible el calendario de destino. Los avisos existentes o predeterminados se conservan; un aviso a las 08:00 del mismo día requiere una alternativa porque Google solo admite avisos anteriores al inicio.
 
 ### 4.5 Calendario unificado
 

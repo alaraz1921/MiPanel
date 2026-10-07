@@ -83,9 +83,9 @@ Esta misma simplificación se aplica al editar eventos existentes. Al guardar se
 el evento y se activa la visibilidad del calendario de destino si estaba oculto.
 No se crean eventos en calendarios de solo lectura ni se solicitan permisos nuevos.
 
-Los avisos existentes o predeterminados se conservan. Queda pendiente el aviso
-a las 08:00 del mismo día para eventos de día completo: la API de Google solo
-acepta minutos anteriores al inicio, no avisos posteriores al comienzo del día.
+Los avisos existentes o predeterminados se conservan. Se mantiene el comportamiento
+actual para eventos de día completo, incluido el aviso a las 00:00 observado y
+aceptado por el usuario; no se fuerza un aviso a las 08:00.
 
 La creación requiere la versión actualizada de la función `google-calendar`:
 `supabase functions deploy google-calendar --project-ref qfcwoinwtvufjlgrdsxf`.

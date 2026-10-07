@@ -71,6 +71,20 @@ Pruebas reproducibles: `node scripts/verify-configuration.cjs`.
 
 Los accesos directos utilizan el favicon web convencional de cada dominio. El favicon dinámico que proporcionaba Chromium a la antigua extensión no forma parte de las APIs web estándar.
 
+## Crear eventos Google
+
+Conecta Google y autoriza la edición de eventos desde Configuración. En el
+calendario pulsa **+ Nuevo evento**, o abre un día y utiliza ese mismo botón
+para partir de su fecha. Elige un calendario con permiso de escritura y completa
+título, fechas y horas de inicio/fin, o marca **Todo el día**. Al guardar se muestra
+el evento y se activa la visibilidad del calendario de destino si estaba oculto.
+No se crean eventos en calendarios de solo lectura ni se solicitan permisos nuevos.
+
+La creación requiere la versión actualizada de la función `google-calendar`:
+`supabase functions deploy google-calendar --project-ref qfcwoinwtvufjlgrdsxf`.
+Pruebas automatizadas: `node scripts/verify-calendar.cjs`; la validación con cuentas
+reales se realiza aparte.
+
 ## Microsoft To Do — configuración
 
 La integración usa Supabase Auth con Azure cuando `VITE_SUPABASE_URL` y

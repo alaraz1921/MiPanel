@@ -8,7 +8,7 @@ import {
   hasGoogleIdentity,
   waitForGoogleCredentialSync,
 } from './googleAuth';
-import { fetchGoogleCalendarSnapshot, isGoogleConfigured, mutateGoogleEvent, type GoogleCalendarItem } from './googleCalendar';
+import { createGoogleEvent, fetchGoogleCalendarSnapshot, isGoogleConfigured, mutateGoogleEvent, type GoogleCalendarItem } from './googleCalendar';
 
 type GoogleConnectionStatus = 'unconfigured' | 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -26,6 +26,7 @@ type GoogleCalendarContextValue = {
   setCalendarVisible: (calendarId: string, visible: boolean) => void;
   updateEvent: (event: CalendarEntry, fields: CalendarEventFields) => Promise<boolean>;
   deleteEvent: (event: CalendarEntry) => Promise<boolean>;
+  createEvent: (calendarId: string, fields: CalendarEventFields) => Promise<boolean>;
 };
 
 const GoogleCalendarContext = createContext<GoogleCalendarContextValue | undefined>(undefined);
@@ -137,7 +138,7 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       : (current ?? []).filter((id) => id !== calendarId));
   }
 
-  async function writeEvent(event: CalendarEntry, fields?: CalendarEventFields) {
+  async function writeEvent(event: CalendarEntry | undefined, fields?: CalendarEventFields, calendarId?: string) {
     if (mutating.current) return false;
     mutating.current = true;
     revision.current += 1;
@@ -147,10 +148,19 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       if (!canWriteEvents) throw new Error('Autoriza la edición de Google para modificar eventos.');
       const session = await googleSupabaseSession();
       if (!session) throw new Error('Vuelve a conectar Google.');
-      const updated = await mutateGoogleEvent(session.access_token, event, fields);
-      setEvents((current) => updated
-        ? current.map((item) => item.id === event.id ? updated : item)
-        : current.filter((item) => item.id !== event.id));
+      if (event) {
+        const updated = await mutateGoogleEvent(session.access_token, event, fields);
+        setEvents((current) => updated
+          ? current.map((item) => item.id === event.id ? updated : item)
+          : current.filter((item) => item.id !== event.id));
+      } else {
+        const calendar = calendars.find((item) => item.id === calendarId && item.canEdit);
+        if (!calendar || !fields) throw new Error('Selecciona un calendario con permiso de escritura.');
+        const created = await createGoogleEvent(session.access_token, calendar, fields);
+        // Hacer visible el destino para que el evento recién creado no parezca perdido.
+        setCalendarVisible(calendar.id, true);
+        setEvents((current) => [...current, created]);
+      }
       return true;
     } catch (mutationError) {
       setError(readableError(mutationError));
@@ -176,6 +186,7 @@ export function GoogleCalendarProvider({ children }: PropsWithChildren) {
       setCalendarVisible,
       updateEvent: (event, fields) => writeEvent(event, fields),
       deleteEvent: (event) => writeEvent(event),
+      createEvent: (calendarId, fields) => writeEvent(undefined, fields, calendarId),
     }}>
       {children}
     </GoogleCalendarContext.Provider>

@@ -142,9 +142,10 @@ export function validatedEventPatch(input: unknown) {
 }
 
 async function mutateEvent(request: Request, input: URL, userId: string) {
+  const creating = request.method === 'POST';
   const calendarId = input.searchParams.get('calendarId');
   const eventId = input.searchParams.get('eventId');
-  if (!calendarId || calendarId.length > 1024 || !eventId || !/^[a-zA-Z0-9_-]{1,1024}$/.test(eventId)) {
+  if (!calendarId || calendarId.length > 1024 || (!creating && (!eventId || !/^[a-zA-Z0-9_-]{1,1024}$/.test(eventId)))) {
     return json({ error: { message: 'Identificador de evento no válido.' } }, 400);
   }
   let body;
@@ -153,10 +154,10 @@ async function mutateEvent(request: Request, input: URL, userId: string) {
     const text = await request.text();
     if (text.length > 12_000) throw new Error('Datos del evento demasiado grandes.');
     body = JSON.parse(text) as { etag?: unknown; patch?: unknown };
-    if (!body || typeof body !== 'object' || typeof body.etag !== 'string' || !/^"[^"\r\n]{1,200}"$/.test(body.etag)) {
+    if (!body || typeof body !== 'object' || (!creating && (typeof body.etag !== 'string' || !/^"[^"\r\n]{1,200}"$/.test(body.etag)))) {
       throw new Error('Actualiza el calendario antes de modificar el evento.');
     }
-    if (request.method === 'PATCH') patch = validatedEventPatch(body.patch);
+    if (request.method === 'PATCH' || creating) patch = validatedEventPatch(body.patch);
   } catch (error) {
     return json({ error: { message: error instanceof Error ? error.message : 'Datos del evento no válidos.' } }, 400);
   }
@@ -169,11 +170,11 @@ async function mutateEvent(request: Request, input: URL, userId: string) {
   if (!['owner', 'writer', 'writerWithoutPrivateAccess'].includes(calendar.accessRole ?? '')) {
     return json({ error: { message: 'Este calendario es de solo lectura.' } }, 403);
   }
-  const response = await fetch(`${GOOGLE_ROOT}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all`, {
+  const response = await fetch(`${GOOGLE_ROOT}/calendars/${encodeURIComponent(calendarId)}/events${creating ? '' : `/${encodeURIComponent(eventId!)}`}?sendUpdates=all`, {
     method: request.method,
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'If-Match': body.etag as string },
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...(!creating ? { 'If-Match': body.etag as string } : {}) },
     signal: AbortSignal.timeout(15_000),
-    ...(patch ? { body: JSON.stringify(patch) } : {}),
+    ...(patch ? { body: creating ? JSON.stringify(patch, (_key, value) => value === null ? undefined : value) : JSON.stringify(patch) } : {}),
   });
   if (!response.ok) {
     const messages: Record<number, string> = {
@@ -192,7 +193,7 @@ async function mutateEvent(request: Request, input: URL, userId: string) {
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (!['GET', 'PATCH', 'DELETE'].includes(request.method)) return json({ error: 'Método no permitido.' }, 405);
+  if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(request.method)) return json({ error: 'Método no permitido.' }, 405);
   const authorization = request.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) return json({ error: 'Falta la sesión de MiPanel.' }, 401);
 

@@ -167,3 +167,20 @@ export async function mutateGoogleEvent(accessToken: string, event: CalendarEntr
   if (!normalized) throw new Error('Google no devolvió un evento válido. Actualiza el calendario.');
   return normalized;
 }
+
+export async function createGoogleEvent(accessToken: string, calendar: GoogleCalendarItem, fields: CalendarEventFields) {
+  if (!calendar.canEdit) throw new Error('Este calendario es de solo lectura.');
+  const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar`);
+  url.searchParams.set('calendarId', calendar.id);
+  const response = await fetch(url, {
+    method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(25_000), body: JSON.stringify({ patch: eventPatch(fields) }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => undefined) as { error?: { message?: string } } | undefined;
+    throw new Error(payload?.error?.message ?? `Google Calendar respondió con el estado ${response.status}.`);
+  }
+  const created = normalizeEvent(await response.json() as GoogleEvent, calendar);
+  if (!created) throw new Error('Google no devolvió un evento válido. Actualiza antes de volver a crearlo.');
+  return created;
+}

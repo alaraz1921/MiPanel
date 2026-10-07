@@ -74,6 +74,7 @@ test('cualquier día ofrece el modal y solo señala elementos ocultos si supera 
     assert.equal((html.match(/aria-haspopup="dialog"/g) ?? []).length, 42);
     assert.match(html, new RegExp(`Ver los ${count} elementos`));
     assert.equal(html.includes('calendar-day-more'), count > 3);
+    assert.doesNotMatch(html, /Google conectado|Desconectar Google|Conectar Google/);
   }
 });
 
@@ -87,6 +88,7 @@ test('la agenda ofrece editar y eliminar solo en elementos editables', () => {
   assert.match(html, /src="edit-task.png" alt=""/);
   assert.match(html, /src="delete-task.png" alt=""/);
   assert.equal((html.match(/task-icon-button/g) ?? []).length, 2);
+  assert.doesNotMatch(html, />Conectado</);
   const reading = renderToStaticMarkup(React.createElement(CalendarDayDialog, {
     date, entries: [{ ...entries[0], canEdit: true }],
     onClose: () => {}, onEdit: () => {}, onDelete: () => {}, onAuthorizeGoogle: () => {},
@@ -198,7 +200,7 @@ function backend({ role = 'owner', scope = 'https://www.googleapis.com/auth/cale
       return upstreamStatus === 204 ? new Response(null, { status: 204 }) : Response.json({ id: 'event' }, { status: upstreamStatus });
     },
   });
-  const request = (method, body, headers = { Authorization: 'Bearer fake-session' }) => handler(new Request('https://example.test?calendarId=calendar%40example.test&eventId=event', { method, headers, body: JSON.stringify(body) }));
+  const request = (method, body, headers = { Authorization: 'Bearer fake-session' }) => handler(new Request(`https://example.test?calendarId=calendar%40example.test${method === 'POST' ? '' : '&eventId=event'}`, { method, headers, body: JSON.stringify(body) }));
   const checkConnection = (headers = { Authorization: 'Bearer fake-session' }) => handler(new Request('https://example.test?checkConnection=1', { headers }));
   return { api, request, writes, infoRequests: () => infoRequests, checkConnection, setScope: (nextScope) => { currentScope = nextScope; } };
 }
@@ -234,6 +236,56 @@ test('DELETE devuelve 204 sin contenido y los conflictos conservan el error 412'
   assert.equal(fake.writes[0].body, undefined);
   const conflict = backend({ upstreamStatus: 412 });
   assert.equal((await conflict.request('DELETE', { etag: '"version1"' })).status, 412);
+});
+
+test('POST crea sin eventId ni ETag, valida datos y exige sesión, scope y calendario escribible', async () => {
+  for (const options of [{ role: 'reader' }, { scope: 'https://www.googleapis.com/auth/calendar.events.readonly' }]) {
+    const fake = backend(options);
+    assert.equal((await fake.request('POST', { patch: eventBody.patch })).status, 403);
+    assert.equal(fake.writes.length, 0);
+  }
+  const fake = backend({ upstreamStatus: 201 });
+  assert.equal((await fake.request('POST', { patch: eventBody.patch }, {})).status, 401);
+  assert.equal((await fake.request('POST', { patch: {} })).status, 400);
+  assert.equal((await fake.request('POST', { patch: { ...eventBody.patch, attendees: [{ email: 'not-allowed' }] } })).status, 200);
+  assert.equal(fake.writes.length, 1);
+  assert.equal(fake.writes[0].method, 'POST');
+  assert.match(fake.writes[0].url, /calendar%40example.test\/events\?sendUpdates=all$/);
+  assert.equal(fake.writes[0].headers['If-Match'], undefined);
+  const sent = JSON.parse(fake.writes[0].body);
+  assert.equal(sent.start.date, '2026-10-06');
+  assert.equal(sent.start.dateTime, undefined);
+  assert.equal(sent.attendees, undefined);
+});
+
+test('el cliente crea y normaliza un evento con el color y calendario de destino', async () => {
+  let sent;
+  const client = load('src/integrations/google/googleCalendar.ts', {}, {
+    testEnv: { VITE_SUPABASE_URL: 'https://example.test' },
+    fetch: async (url, options) => {
+      sent = { url: url.toString(), ...options };
+      const fields = JSON.parse(options.body).patch;
+      return Response.json({ id: 'created', etag: '"v1"', ...fields }, { status: 201 });
+    },
+  });
+  const calendar = { id: 'calendar', name: 'Trabajo', color: '#123456', canEdit: true };
+  const event = await client.createGoogleEvent('test-session', calendar, { title: 'Nuevo', date: '2026-10-07', endDate: '2026-10-07' });
+  assert.equal(sent.method, 'POST'); assert.doesNotMatch(sent.url, /eventId/);
+  assert.equal(event.title, 'Nuevo'); assert.equal(event.endDate, '2026-10-07');
+  assert.equal(event.sourceContainerId, 'calendar'); assert.equal(event.color, '#123456');
+  assert.equal(event.canEdit, true);
+  await assert.rejects(() => client.createGoogleEvent('test', { ...calendar, canEdit: false }, {}), /solo lectura/);
+});
+
+test('el formulario de creación ofrece elegir calendario y fecha del día seleccionado', () => {
+  const { EventEditorDialog } = load('src/features/calendar/EventEditorDialog.tsx');
+  const html = renderToStaticMarkup(React.createElement(EventEditorDialog, {
+    entry: { id: 'new', title: '', date: '2026-10-07', source: 'google-calendar', kind: 'event' },
+    calendars: [{ id: 'work', name: 'Trabajo', primary: true }], busy: false, onClose() {}, onSave() {},
+  }));
+  assert.match(html, /Nuevo evento/); assert.match(html, /Crear evento/);
+  assert.match(html, /<select/); assert.match(html, /value="work" selected/);
+  assert.match(html, /value="2026-10-07"/);
 });
 
 test('renovar sin scope comprueba el permiso real y reutiliza la comprobación en caché', async () => {

@@ -77,8 +77,8 @@ test('ocultar el último calendario no restaura todos al actualizar', async () =
     '../../hooks/useLocalStorage': { useLocalStorage: () => [preferences, (next) => { preferences = typeof next === 'function' ? next(preferences) : next; }] },
     './googleAuth': { googleSupabaseSession: async () => ({ access_token: 'test' }) },
     './googleCalendar': { isGoogleConfigured: () => true, fetchGoogleCalendarSnapshot: async () => ({
-      calendars: [{ id: 'a', name: 'Trabajo' }], events: [{ id: 'event', sourceContainerId: 'a' }], canWriteEvents: false,
-    }) },
+      calendars: [{ id: 'a', name: 'Trabajo', canEdit: true }], events: [{ id: 'event', sourceContainerId: 'a' }], canWriteEvents: true,
+    }), createGoogleEvent: async (_token, calendar, fields) => ({ id: 'created', title: fields.title, sourceContainerId: calendar.id }) },
   });
   function context() { stateIndex = 0; return GoogleCalendarProvider({ children: null }).props.value; }
   await context().refresh(new Date(), new Date());
@@ -90,6 +90,11 @@ test('ocultar el último calendario no restaura todos al actualizar', async () =
   context().setCalendarVisible('a', true);
   await context().refresh(new Date(), new Date());
   assert.equal(context().events.length, 1);
+  context().setCalendarVisible('a', false);
+  await context().refresh(new Date(), new Date());
+  assert.equal(await context().createEvent('a', { title: 'Nuevo', date: '2026-10-07', endDate: '2026-10-07' }), true);
+  assert.deepEqual(Array.from(context().visibleCalendarIds), ['a']);
+  assert.equal(context().events[0].title, 'Nuevo');
 });
 
 test('los accesos conservan prioridad del icono personalizado y después el favicon', () => {

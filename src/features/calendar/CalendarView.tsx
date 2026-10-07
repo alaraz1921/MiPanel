@@ -52,8 +52,11 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
   const [deletingEntry, setDeletingEntry] = useState<CalendarEntry | null>(null);
+  const [creatingDate, setCreatingDate] = useState<string | null>(null);
   const microsoft = useMicrosoftTodo();
   const google = useGoogleCalendar();
+  const writableCalendars = google.calendars.filter((calendar) => calendar.canEdit);
+  const canCreate = google.status === 'connected' && google.canWriteEvents && writableCalendars.length > 0;
   const tasks = microsoft.status === 'connected' ? microsoft.tasks : [];
   const today = toDateKey(new Date());
   const actionBusy = google.busy || microsoft.busy || microsoft.updatingTaskIds.length > 0;
@@ -101,26 +104,15 @@ export function CalendarView() {
           <h2 id="calendar-title">{monthLabel(cursor)}</h2>
         </div>
         <div className="calendar-actions">
+          {(google.status === 'connected' || google.status === 'error') && <button type="button" className="ghost-button" disabled={google.busy} onClick={() => void google.refresh(start, rangeEnd)}>{google.busy ? 'Actualizando…' : 'Actualizar'}</button>}
+          {google.status === 'connected' && <button type="button" className="primary-button" disabled={!canCreate || google.busy} title={!google.canWriteEvents ? 'Autoriza la edición de eventos en Configuración' : !writableCalendars.length ? 'No hay calendarios con permiso de escritura' : 'Crear evento de Google'} onClick={() => setCreatingDate(today)}>+ Nuevo evento</button>}
           <button type="button" className="ghost-button" onClick={() => moveMonth(-1)} aria-label="Mes anterior">←</button>
           <button type="button" className="ghost-button" onClick={() => setCursor(new Date())}>Hoy</button>
           <button type="button" className="ghost-button" onClick={() => moveMonth(1)} aria-label="Mes siguiente">→</button>
         </div>
       </div>
 
-      <div className="calendar-google-controls">
-        {google.status === 'connected' ? (
-          <>
-            <button type="button" className="status-pill status-connected status-action" onClick={() => google.refresh(start, rangeEnd)} disabled={google.busy}>
-              {google.busy ? 'Google…' : 'Google conectado'}
-            </button>
-            <button type="button" className="text-button" onClick={() => void google.disconnect()} disabled={google.busy}>Desconectar Google</button>
-          </>
-        ) : (
-          <button type="button" className="status-pill status-action" onClick={() => void google.connect()} disabled={google.status === 'connecting'}>
-            {google.status === 'connecting' ? 'Conectando Google…' : 'Conectar Google'}
-          </button>
-        )}
-      </div>
+      {google.status === 'connected' && !google.canWriteEvents && <p className="settings-help">Para crear eventos, autoriza la edición de Google en Configuración.</p>}
       {google.error && <p className="calendar-google-error" role="alert">{google.error}</p>}
 
       <div className="calendar-legend" aria-label="Leyenda">
@@ -178,6 +170,7 @@ export function CalendarView() {
           onEdit={setEditingEntry}
           onDelete={setDeletingEntry}
           busy={actionBusy}
+          onCreate={canCreate ? () => { setCreatingDate(selectedDate); setSelectedDate(null); } : undefined}
           error={google.error ?? microsoft.error}
           onAuthorizeGoogle={google.status === 'connected' && !google.canWriteEvents && entriesForDay(entries, selectedDate).some((entry) => entry.source === 'google-calendar' && entry.canEdit)
             ? () => void google.connect(true) : undefined}
@@ -186,6 +179,7 @@ export function CalendarView() {
       {editingEntry?.source === 'google-calendar' && (
         <EventEditorDialog entry={editingEntry} busy={google.busy} error={google.error} onClose={() => setEditingEntry(null)} onSave={(fields) => google.updateEvent(editingEntry, fields)} />
       )}
+      {creatingDate && <EventEditorDialog entry={{ id: 'new', title: '', date: creatingDate, kind: 'event', source: 'google-calendar' }} calendars={writableCalendars} busy={google.busy} error={google.error} onClose={() => setCreatingDate(null)} onSave={(fields, calendarId) => google.createEvent(calendarId ?? '', fields)} />}
       {editingTask && (
         <TaskEditorDialog task={editingTask} listName={editingTask.listName}
           busy={microsoft.updatingTaskIds.includes(`${editingTask.listId}:${editingTask.id}`)} error={microsoft.error}

@@ -100,6 +100,7 @@ Debe permitir conectar una cuenta Google y:
 - autorizar explícitamente `calendar.events` para editar título, fechas y horas o eliminar eventos desde la agenda diaria, solo en calendarios escribibles;
 - modificar/eliminar únicamente la ocurrencia elegida de eventos recurrentes, con aviso previo; Google notifica los cambios a los invitados;
 - conservar los demás campos del evento mediante PATCH y detectar conflictos con ETag.
+- crear eventos desde «Nuevo evento» en la cabecera o agenda diaria; seleccionar un calendario escribible, título, fecha/hora de inicio y fin o día completo. La creación usa la autorización de escritura existente y hace visible el calendario de destino.
 
 ### 4.5 Calendario unificado
 
@@ -143,8 +144,10 @@ El icono de configuración del inicio abre una página de la misma SPA (`?view=s
 no un modal. Incluye cuatro apartados: exportación/importación de preferencias,
 imagen de fondo, cuenta Microsoft y cuenta Google con selección de calendarios.
 Muestra el estado de cada conexión y el nombre/correo disponible en los metadatos
-de la sesión, sin pedir permisos adicionales. Las acciones rápidas de conexión del
-panel siguen disponibles. La selección de calendarios se realiza en configuración;
+de la sesión, sin pedir permisos adicionales. El calendario ya no muestra «Google conectado»
+ni conectar/desconectar Google: esas acciones están en configuración. El panel de tareas
+no muestra la etiqueta «Conectado», pero mantiene «Actualizar» y los estados de error.
+La selección de calendarios se realiza en configuración;
 se pueden desmarcar todos para ocultar todos los eventos Google.
 
 Volver al panel o usar la navegación del navegador conserva los proveedores,

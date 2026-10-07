@@ -60,6 +60,8 @@
 - [ ] Leer calendarios y eventos por intervalo.
 - [ ] Integrar eventos en el calendario unificado.
 - [x] Añadir edición de título, fechas y horas y eliminación de eventos desde la agenda diaria, con autorización de escritura explícita y protección de calendarios de solo lectura.
+- [x] Crear eventos desde la cabecera y agenda diaria, eligiendo un calendario escribible, con título, fechas y horas o día completo; actualizar el calendario al guardar.
+- [ ] Validar la creación de eventos Google con una cuenta real.
 - [ ] Validar la edición y eliminación de eventos Google con una cuenta real tras autorizar `calendar.events`.
 
 ## Fase 4 — Productividad

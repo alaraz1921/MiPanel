@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { CalendarEntry, CalendarEventFields } from '../../types';
+import type { GoogleCalendarItem } from '../../integrations/google/googleCalendar';
 
 type EventEditorDialogProps = {
   entry: CalendarEntry;
   busy: boolean;
   error?: string;
   onClose: () => void;
-  onSave: (fields: CalendarEventFields) => Promise<boolean>;
+  onSave: (fields: CalendarEventFields, calendarId?: string) => Promise<boolean>;
+  calendars?: GoogleCalendarItem[];
 };
 
-export function EventEditorDialog({ entry, busy, error, onClose, onSave }: EventEditorDialogProps) {
+export function EventEditorDialog({ entry, busy, error, onClose, onSave, calendars }: EventEditorDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState(entry.title);
   const [allDay, setAllDay] = useState(!entry.time);
@@ -18,6 +20,7 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave }: Event
   const [time, setTime] = useState(entry.time ?? '09:00');
   const [endTime, setEndTime] = useState(entry.endTime ?? '10:00');
   const [failed, setFailed] = useState(false);
+  const [calendarId, setCalendarId] = useState(entry.sourceContainerId ?? calendars?.find((calendar) => calendar.primary)?.id ?? calendars?.[0]?.id ?? '');
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -27,7 +30,7 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave }: Event
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const saved = await onSave({ title, date, endDate, time: allDay ? undefined : time, endTime: allDay ? undefined : endTime });
+    const saved = await onSave({ title, date, endDate, time: allDay ? undefined : time, endTime: allDay ? undefined : endTime }, calendarId);
     if (saved) onClose();
     else setFailed(true);
   }
@@ -36,7 +39,8 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave }: Event
     <dialog ref={dialogRef} className="task-dialog" aria-labelledby="event-editor-title"
       onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}>
       <form className="task-editor" onSubmit={(event) => void submit(event)}>
-        <div><span className="eyebrow">{entry.calendarName}</span><h3 id="event-editor-title">Editar evento</h3></div>
+        <div><span className="eyebrow">{entry.calendarName ?? 'Google Calendar'}</span><h3 id="event-editor-title">{calendars ? 'Nuevo evento' : 'Editar evento'}</h3></div>
+        {calendars && <label><span>Calendario</span><select required disabled={busy} value={calendarId} onChange={(event) => setCalendarId(event.target.value)}>{calendars.map((calendar) => <option key={calendar.id} value={calendar.id}>{calendar.name}</option>)}</select></label>}
         <label><span>Título</span><input type="text" autoFocus required maxLength={1024} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
         <label className="task-editor-important"><input type="checkbox" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} />Todo el día</label>
         <div className="task-editor-dates">
@@ -51,7 +55,7 @@ export function EventEditorDialog({ entry, busy, error, onClose, onSave }: Event
         {failed && error && <p className="task-editor-error" role="alert">{error}</p>}
         <div className="task-dialog-actions">
           <button type="button" className="ghost-button" disabled={busy} onClick={onClose}>Cancelar</button>
-          <button type="submit" className="primary-button" disabled={busy || !title.trim()}>{busy ? 'Guardando…' : 'Guardar cambios'}</button>
+          <button type="submit" className="primary-button" disabled={busy || !title.trim() || Boolean(calendars && !calendarId)}>{busy ? 'Guardando…' : calendars ? 'Crear evento' : 'Guardar cambios'}</button>
         </div>
       </form>
     </dialog>

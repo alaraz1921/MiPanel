@@ -13,11 +13,12 @@ type CalendarDayDialogProps = {
   busy?: boolean;
   error?: string;
   onAuthorizeGoogle?: () => void;
+  onCreate?: () => void;
 };
 
 const kindLabels = { event: 'Evento', due: 'Vencimiento', reminder: 'Recordatorio' };
 
-export function CalendarDayDialog({ date, entries, onClose, onEdit, onDelete, busy, error, onAuthorizeGoogle }: CalendarDayDialogProps) {
+export function CalendarDayDialog({ date, entries, onClose, onEdit, onDelete, busy, error, onAuthorizeGoogle, onCreate }: CalendarDayDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function CalendarDayDialog({ date, entries, onClose, onEdit, onDelete, bu
       <div className="calendar-day-dialog-content">
         <div className="section-heading">
           <h3 id="calendar-day-dialog-title">{dayLabel(date)}</h3>
-          <button type="button" className="ghost-button" onClick={onClose} autoFocus>Cerrar</button>
+          <div className="calendar-actions">{onCreate && <button type="button" className="primary-button" disabled={busy} onClick={onCreate}>+ Nuevo evento</button>}<button type="button" className="ghost-button" onClick={onClose} autoFocus>Cerrar</button></div>
         </div>
         {onAuthorizeGoogle && <p className="calendar-agenda-notice">Google está conectado en modo lectura. <button type="button" className="entry-action-button" disabled={busy} onClick={onAuthorizeGoogle}>Autorizar edición</button></p>}
         {error && <p className="calendar-google-error" role="alert">{error}</p>}

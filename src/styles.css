@@ -133,7 +133,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .task-editor { display: grid; gap: 17px; padding: 22px; }
 .task-editor h3 { margin: 4px 0 0; font-size: 1.25rem; }
 .task-editor > label, .task-editor-dates label { display: grid; gap: 6px; color: var(--muted); font-size: .8rem; }
-.task-editor input[type="text"], .task-editor input[type="date"], .task-editor input[type="time"] { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; background: #0f141c; color: #eef2f7; outline: none; color-scheme: dark; }
+.task-editor input[type="text"], .task-editor input[type="date"], .task-editor input[type="time"], .task-editor select { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; background: #0f141c; color: #eef2f7; outline: none; color-scheme: dark; }
 .task-editor input:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .task-editor-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .task-editor-important { display: flex !important; grid-template-columns: auto 1fr; align-items: center; width: fit-content; }
@@ -159,7 +159,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .panel-footer { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(67,88,115,.16); display: flex; justify-content: space-between; gap: 10px; color: #607086; font-size: .78rem; }
 .panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; flex: 0 0 auto; }
 .text-button:disabled { cursor: wait; opacity: .55; }
-.calendar-actions { display: flex; gap: 7px; }
+.calendar-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .calendar-google-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -3px 0 12px; }
 .calendar-google-error { margin: -4px 0 12px; color: #ad423a; font-size: .8rem; line-height: 1.35; }
 .calendar-list-filter { display: flex; flex-wrap: wrap; gap: 8px 13px; margin: 16px 0 0; padding: 8px 0 0; border: 0; color: #607086; font-size: .76rem; }

@@ -93,9 +93,9 @@ export function TaskPanel() {
               {microsoft.busy ? 'Actualizando…' : 'Actualizar'}
             </button>
           )}
-          <span className={`status-pill status-${microsoft.status}`} aria-live="polite">
+          {microsoft.status !== 'connected' && <span className={`status-pill status-${microsoft.status}`} aria-live="polite">
             {statusLabel}
-          </span>
+          </span>}
         </div>
       </div>
 

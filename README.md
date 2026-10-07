@@ -76,7 +76,9 @@ Los accesos directos utilizan el favicon web convencional de cada dominio. El fa
 Conecta Google y autoriza la edición de eventos desde Configuración. En el
 calendario pulsa **+ Nuevo evento**, o abre un día y utiliza ese mismo botón
 para partir de su fecha. Elige un calendario con permiso de escritura y completa
-título, fechas y horas de inicio/fin, o marca **Todo el día**. Al guardar se muestra
+título, **Fecha** y una **Hora** opcional. El fin se calcula cinco minutos después
+(al día siguiente si cruza medianoche); sin hora, el evento ocupa el día completo.
+Esta misma simplificación se aplica al editar eventos existentes. Al guardar se muestra
 el evento y se activa la visibilidad del calendario de destino si estaba oculto.
 No se crean eventos en calendarios de solo lectura ni se solicitan permisos nuevos.
 

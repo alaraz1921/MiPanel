@@ -88,6 +88,7 @@ test('la agenda ofrece editar y eliminar solo en elementos editables', () => {
   assert.match(html, /src="edit-task.png" alt=""/);
   assert.match(html, /src="delete-task.png" alt=""/);
   assert.equal((html.match(/task-icon-button/g) ?? []).length, 2);
+  assert.match(html, /calendar-agenda-title-row"><span class="calendar-agenda-title">Evento tarde<\/span><div class="calendar-agenda-actions">/);
   assert.doesNotMatch(html, />Conectado</);
   const reading = renderToStaticMarkup(React.createElement(CalendarDayDialog, {
     date, entries: [{ ...entries[0], canEdit: true }],
@@ -286,6 +287,30 @@ test('el formulario de creación ofrece elegir calendario y fecha del día selec
   assert.match(html, /Nuevo evento/); assert.match(html, /Crear evento/);
   assert.match(html, /<select/); assert.match(html, /value="work" selected/);
   assert.match(html, /value="2026-10-07"/);
+  assert.equal((html.match(/type="date"/g) ?? []).length, 1);
+  assert.equal((html.match(/type="time"/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /Fecha de fin|Hora de fin|Fecha de inicio/);
+});
+
+test('el editor simplificado usa una fecha y calcula cinco minutos con cambio de día, mes y año', () => {
+  const { simpleEventFields, EventEditorDialog } = load('src/features/calendar/EventEditorDialog.tsx');
+  const daytime = simpleEventFields('Evento', '2026-10-07', '09:30');
+  assert.equal(daytime.endDate, '2026-10-07'); assert.equal(daytime.endTime, '09:35');
+  for (const [date, next] of [['2026-10-07', '2026-10-08'], ['2026-10-31', '2026-11-01'], ['2026-12-31', '2027-01-01']]) {
+    const midnight = simpleEventFields('Evento', date, '23:58');
+    assert.equal(midnight.endDate, next); assert.equal(midnight.endTime, '00:03');
+    const patch = googleClient.eventPatch(midnight);
+    assert.equal(Date.parse(patch.end.dateTime) - Date.parse(patch.start.dateTime), 5 * 60_000);
+  }
+  const allDay = simpleEventFields('Evento', '2026-10-07', '');
+  assert.equal(allDay.endDate, allDay.date); assert.equal(allDay.time, undefined);
+  assert.throws(() => simpleEventFields('Evento', '2026-10-07', '25:00'));
+  const html = renderToStaticMarkup(React.createElement(EventEditorDialog, {
+    entry: { ...entries[0], endDate: '2026-10-09', endTime: '20:00' }, busy: false, onClose() {}, onSave() {},
+  }));
+  assert.equal((html.match(/type="date"/g) ?? []).length, 1);
+  assert.equal((html.match(/type="time"/g) ?? []).length, 1);
+  assert.match(html, /value="18:30"/);
 });
 
 test('renovar sin scope comprueba el permiso real y reutiliza la comprobación en caché', async () => {

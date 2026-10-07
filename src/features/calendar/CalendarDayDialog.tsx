@@ -53,12 +53,15 @@ export function CalendarDayDialog({ date, entries, onClose, onEdit, onDelete, bu
               >
                 <span className="calendar-agenda-time">{entry.time ?? (entry.kind === 'event' ? 'Todo el día' : 'Sin hora')}</span>
                 <div className="calendar-agenda-details">
+                  <div className="calendar-agenda-title-row">
                   <span className="calendar-agenda-title">{entry.title}</span>
-                  <span className="calendar-agenda-source">{kindLabels[entry.kind]}{entry.calendarName ? ` · ${entry.calendarName}` : ''}</span>
                   {entry.canEdit && onEdit && onDelete ? <div className="calendar-agenda-actions">
                     <button type="button" className="entry-action-button task-icon-button" aria-label={`Editar ${entry.title}`} title="Editar" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onEdit(entry)}><img src={editTaskIcon} alt="" /></button>
                     <button type="button" className="entry-action-button task-icon-button danger-button" aria-label={`Eliminar ${entry.title}`} title="Eliminar" disabled={busy || (entry.source === 'google-calendar' && Boolean(onAuthorizeGoogle))} onClick={() => onDelete(entry)}><img src={deleteTaskIcon} alt="" /></button>
-                  </div> : entry.source === 'google-calendar' && <span className="calendar-agenda-source">Solo lectura</span>}
+                  </div> : null}
+                  </div>
+                  <span className="calendar-agenda-source">{kindLabels[entry.kind]}{entry.calendarName ? ` · ${entry.calendarName}` : ''}</span>
+                  {(!entry.canEdit || !onEdit || !onDelete) && entry.source === 'google-calendar' && <span className="calendar-agenda-source">Solo lectura</span>}
                 </div>
               </li>
             ))}

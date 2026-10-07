@@ -115,12 +115,6 @@ export function CalendarView() {
       {google.status === 'connected' && !google.canWriteEvents && <p className="settings-help">Para crear eventos, autoriza la edición de Google en Configuración.</p>}
       {google.error && <p className="calendar-google-error" role="alert">{google.error}</p>}
 
-      <div className="calendar-legend" aria-label="Leyenda">
-        <span><i className="legend-dot event-dot" /> Evento</span>
-        <span><i className="legend-dot due-dot" /> Vencimiento</span>
-        <span><i className="legend-dot reminder-dot" /> Recordatorio</span>
-      </div>
-
       <div className="calendar-grid calendar-weekdays" aria-hidden="true">
         {weekDays.map((day) => <div key={day}>{day}</div>)}
       </div>

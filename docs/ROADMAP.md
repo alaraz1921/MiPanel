@@ -81,6 +81,7 @@
 - [x] Colocar las tareas completadas al final, conservando el orden por aviso o vencimiento dentro de cada grupo.
 - [x] Mostrar los filtros debajo del calendario, eventos con el color de su calendario y recordatorios sin relleno.
 - [x] Abrir desde la cabecera de cualquier día una agenda modal completa, ordenada por hora, con edición y eliminación de tareas y eventos.
+- [x] Mostrar el indicador «+N» en negrita y retirar la leyenda de tipos de la cabecera del calendario.
 - [x] Permitir seleccionar o subir un icono personalizado para cada acceso directo.
 - [x] Mantener el favicon como opción automática y usar un dibujo local negro y transparente relacionado con el acceso cuando no se puede cargar, sin sustituir iconos personalizados.
 - [ ] Vistas semanal y agenda, filtros, búsqueda y personalización avanzada.

@@ -74,8 +74,15 @@ test('cualquier día ofrece el modal y solo señala elementos ocultos si supera 
     assert.equal((html.match(/aria-haspopup="dialog"/g) ?? []).length, 42);
     assert.match(html, new RegExp(`Ver los ${count} elementos`));
     assert.equal(html.includes('calendar-day-more'), count > 3);
+    if (count > 3) assert.match(html, new RegExp(`calendar-day-more" aria-hidden="true">\\+${count - 3}</span>`));
+    assert.doesNotMatch(html, /calendar-legend|aria-label="Leyenda"/);
     assert.doesNotMatch(html, /Google conectado|Desconectar Google|Conectar Google/);
   }
+});
+
+test('el indicador de elementos ocultos del día se muestra en negrita', () => {
+  const css = readFileSync(resolve(__dirname, '..', 'src/styles.css'), 'utf8');
+  assert.match(css, /\.calendar-day-more\s*\{[^}]*font-weight:\s*700\s*;/);
 });
 
 test('la agenda ofrece editar y eliminar solo en elementos editables', () => {

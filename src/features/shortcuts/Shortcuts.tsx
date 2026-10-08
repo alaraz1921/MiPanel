@@ -299,11 +299,19 @@ export function Shortcuts() {
   const folders = shortcuts.filter((shortcut) => shortcut.kind === 'folder');
   const activeFolder = folders.find((folder) => folder.id === activeFolderId);
 
+  function cancelCreation() {
+    setAdding(false);
+    setAddingFolder(false);
+    setLabel('');
+    setUrl('');
+    setNewCustomIcon(undefined);
+    setNewIconError(undefined);
+  }
+
   function closeFolder() {
     setActiveFolderId(undefined);
     setContextMenu(undefined);
-    setAdding(false);
-    setAddingFolder(false);
+    cancelCreation();
   }
 
   const addForm = <>
@@ -312,10 +320,10 @@ export function Shortcuts() {
           {!activeFolder && <select aria-label="Tipo de acceso" value={addingFolder ? 'folder' : 'link'} onChange={(event) => setAddingFolder(event.target.value === 'folder')}>
             <option value="link">Enlace</option><option value="folder">Carpeta</option>
           </select>}
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nombre" aria-label="Nombre del acceso" />
-          {!addingFolder && <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" aria-label="URL del acceso" />}
+          <label>Nombre<input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nombre" aria-label="Nombre del acceso" required /></label>
+          {!addingFolder && <label>Enlace<input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" aria-label="URL del acceso" required /></label>}
           {!addingFolder && <label className="shortcut-icon-picker">
-            <span className="sr-only">Icono personalizado</span>
+            <span>Icono personalizado (opcional)</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif"
@@ -323,7 +331,10 @@ export function Shortcuts() {
               onChange={(event) => selectIcon(event, setNewCustomIcon, setNewIconError)}
             />
           </label>}
-          <button className="primary-button" type="submit">Guardar</button>
+          <div className="shortcut-form-actions">
+            <button className="ghost-button" type="button" onClick={cancelCreation}>Cancelar</button>
+            <button className="primary-button" type="submit">Guardar</button>
+          </div>
         </form>
       )}
       {adding && !addingFolder && (isCustomIcon(newCustomIcon) || newIconError) && (
@@ -370,7 +381,7 @@ export function Shortcuts() {
               }}
               onClick={() => {
                 if (longPressTriggered.current) { longPressTriggered.current = false; return; }
-                setContextMenu(undefined); setAdding(false); setAddingFolder(false); setActiveFolderId(shortcut.id);
+                setContextMenu(undefined); cancelCreation(); setActiveFolderId(shortcut.id);
               }}>
               <span className="shortcut-icon" aria-hidden="true">
                 {shortcutsInFolder(shortcuts, shortcut.id).length ? <span className="shortcut-folder-preview">
@@ -403,7 +414,7 @@ export function Shortcuts() {
         <button
           type="button"
           className="shortcut-link shortcut-add-card"
-          onClick={() => setAdding((value) => !value)}
+          onClick={() => { if (adding) cancelCreation(); else setAdding(true); }}
           aria-expanded={adding}
         >
           <span className="shortcut-icon shortcut-add-icon" aria-hidden="true">+</span>

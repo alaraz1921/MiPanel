@@ -129,6 +129,21 @@ test('la UI crea una carpeta, abre su modal y permite añadir y sacar enlaces si
   find((node) => node.props?.onFolderChange).props.onFolderChange('new-1');
   find((node) => node.props?.onFolderChange).props.onSave({ preventDefault() {} });
   assert.equal(items[0].folderId, 'new-1'); assert.equal(items[0].url, 'https://example.test');
+  // Cancelar el alta oculta los campos y descarta el borrador sin guardar nada.
+  addButton().props.onClick();
+  find((node) => node.props?.['aria-label'] === 'Nombre del acceso').props.onChange({ target: { value: 'No guardar' } });
+  find((node) => node.props?.className === 'ghost-button' && node.props.children === 'Cancelar').props.onClick();
+  assert.equal(items.length, 3);
+  assert.equal(elements(render()).some((node) => node.type === 'form'), false);
+  addButton().props.onClick();
+  assert.equal(find((node) => node.props?.['aria-label'] === 'Nombre del acceso').props.value, '');
+});
+
+test('el formulario de alta dispone los campos en una columna y limita el selector de icono', () => {
+  const css = readFileSync(resolve(__dirname, '..', 'src/styles.css'), 'utf8');
+  assert.match(css, /\.shortcut-form\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(css, /\.shortcut-form \.shortcut-icon-picker input\[type="file"\]\s*\{[^}]*max-width:\s*100%/);
+  assert.match(css, /\.shortcut-form-actions\s*\{[^}]*flex-wrap:\s*wrap/);
 });
 
 test('el inicio solo ofrece configuración, sin el antiguo botón de fondo', () => {

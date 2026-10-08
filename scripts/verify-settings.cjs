@@ -144,6 +144,8 @@ test('el formulario de alta dispone los campos en una columna y limita el select
   assert.match(css, /\.shortcut-form\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   assert.match(css, /\.shortcut-form \.shortcut-icon-picker input\[type="file"\]\s*\{[^}]*max-width:\s*100%/);
   assert.match(css, /\.shortcut-form-actions\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(css, /\.shortcut-form-actions \.ghost-button\s*\{[^}]*background:\s*rgba\(255,255,255,\.85\)/);
+  assert.match(css, /\.shortcut-form-actions \.ghost-button:focus-visible\s*\{[^}]*outline:/);
 });
 
 test('el inicio solo ofrece configuración, sin el antiguo botón de fondo', () => {

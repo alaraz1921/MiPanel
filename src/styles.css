@@ -66,6 +66,9 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .shortcut-form input { width: 100%; min-width: 0; max-width: 100%; }
 .shortcut-form .shortcut-icon-picker input[type="file"] { width: 100%; max-width: 100%; }
 .shortcut-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.shortcut-form-actions .ghost-button { background: rgba(255,255,255,.85); color: #263245; border-color: rgba(255,255,255,.9); box-shadow: 0 2px 8px rgba(20,35,52,.18); }
+.shortcut-form-actions .ghost-button:hover { background: rgba(255,255,255,.96); }
+.shortcut-form-actions .ghost-button:focus-visible { outline: 2px solid #274f8c; outline-offset: 2px; }
 .shortcuts-actions { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .shortcut-form input { border: 1px solid var(--line); background: rgba(12,15,21,.72); color: #eef2f7; border-radius: 12px; padding: 10px 12px; outline: none; }
 .shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 86px)); justify-content: center; gap: 12px; min-height: 126px; align-content: start; }

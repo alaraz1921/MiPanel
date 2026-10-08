@@ -71,6 +71,20 @@ Pruebas reproducibles: `node scripts/verify-configuration.cjs`.
 
 Los accesos directos utilizan el favicon web convencional de cada dominio. El favicon dinámico que proporcionaba Chromium a la antigua extensión no forma parte de las APIs web estándar.
 
+## Carpetas de accesos y nueva pestaña
+
+En **Añadir**, elige **Carpeta** e indica su nombre. Al abrirla verás sus enlaces
+en una ventana; allí puedes añadir otros. Para agrupar un enlace existente,
+arrástralo sobre la carpeta o usa **Editar → Carpeta** en su menú contextual
+(clic derecho, pulsación prolongada en móvil o Mayús+F10 con teclado).
+**Panel principal** en el editor o **Sacar al panel** permite desagruparlo.
+Puedes renombrar, reordenar y eliminar carpetas; al borrarlas, sus enlaces vuelven
+al panel. No se admiten carpetas dentro de otras carpetas.
+
+En **Configuración → Accesos directos**, marca **Abrir enlaces en una pestaña nueva**.
+Se aplica también a los enlaces de las carpetas y se guarda en las copias de
+configuración. Desmarcada, se mantiene la navegación en la pestaña actual.
+
 ## Crear eventos Google
 
 Conecta Google y autoriza la edición de eventos desde Configuración. En el

@@ -15,6 +15,7 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
   const microsoft = useMicrosoftTodo();
   const google = useGoogleCalendar();
   const [background, setBackground] = useLocalStorage('mipanel.backgroundImage', '');
+  const [openInNewTab, setOpenInNewTab] = useLocalStorage('mipanel.shortcuts.openInNewTab', false);
   const [accounts, setAccounts] = useState<Record<string, string>>({});
   const titleRef = useRef<HTMLHeadingElement>(null);
 
@@ -49,9 +50,15 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
       </header>
       <nav className="panel settings-navigation" aria-label="Apartados de configuración">
         <a href="#copias">Exportar / importar</a><a href="#fondo">Fondo</a>
+        <a href="#accesos">Accesos directos</a>
         <a href="#microsoft">Microsoft</a><a href="#google">Google y calendarios</a>
       </nav>
       <ConfigurationSettings />
+      <section className="panel settings-section" id="accesos" aria-labelledby="shortcut-settings-title">
+        <h2 id="shortcut-settings-title">Accesos directos</h2>
+        <label className="completed-filter"><input type="checkbox" checked={openInNewTab} onChange={(event) => setOpenInNewTab(event.target.checked)} />Abrir enlaces en una pestaña nueva</label>
+        <p className="settings-help">Se aplica a los enlaces del panel y de las carpetas. Las carpetas se abren siempre dentro de MiPanel.</p>
+      </section>
       <BackgroundSettings value={background} onSave={(image) => {
         // Comprobar la cuota antes de anunciar éxito o notificar a los otros componentes.
         window.localStorage.setItem('mipanel.backgroundImage', JSON.stringify(image));

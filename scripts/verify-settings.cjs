@@ -8,12 +8,12 @@ const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 
-function load(path, imports = {}) {
+function load(path, imports = {}, globals = {}) {
   const output = ts.transpileModule(readFileSync(resolve(__dirname, '..', path), 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const module = { exports: {} };
-  runInNewContext(output, { module, exports: module.exports, URL, require: (name) => {
+  runInNewContext(output, { module, exports: module.exports, URL, ...globals, require: (name) => {
     if (name in imports) return imports[name];
     if (name === 'react' || name === 'react/jsx-runtime') return require(name);
     throw new Error(`Unexpected import: ${name}`);
@@ -37,7 +37,8 @@ const { SettingsPage } = load('src/features/settings/SettingsPage.tsx', {
 
 test('los cuatro apartados son una página, no un modal, y ofrecen conexión sin cuentas', () => {
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
-  for (const id of ['copias', 'fondo', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ['copias', 'fondo', 'accesos', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /Abrir enlaces en una pestaña nueva/);
   for (const label of ['Volver al panel', 'Exportar configuración', 'Importar una copia', 'Guardar fondo', 'Conectar Microsoft', 'Conectar Google']) assert.ok(html.includes(label));
   assert.doesNotMatch(html, /<dialog|role="dialog"/);
 });
@@ -49,9 +50,85 @@ test('las cuentas conectadas ofrecen desconectar y selección de calendarios', (
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
   assert.match(html, /Desconectar Microsoft/); assert.match(html, /Desconectar Google/);
   assert.match(html, /Autorizar edición de eventos/);
-  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 2);
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 3);
   assert.equal((html.match(/checked=""/g) ?? []).length, 1);
   assert.match(html, /Trabajo/); assert.match(html, /Personal/);
+});
+
+test('carpetas: mover, sacar, ordenar y eliminar no pierde enlaces ni permite carpetas anidadas', () => {
+  const api = load('src/features/shortcuts/shortcutFolders.ts');
+  const items = [
+    { id: 'folder', label: 'Trabajo', url: '', kind: 'folder' },
+    { id: 'a', label: 'A', url: 'https://a.test' },
+    { id: 'b', label: 'B', url: 'https://b.test', folderId: 'folder' },
+    { id: 'c', label: 'C', url: 'https://c.test', folderId: 'folder' },
+  ];
+  const moved = api.moveToFolder(items, 'a', 'folder');
+  assert.deepEqual(Array.from(api.shortcutsInFolder(moved), (item) => item.id), ['folder']);
+  assert.deepEqual(Array.from(api.shortcutsInFolder(moved, 'folder'), (item) => item.id), ['a', 'b', 'c']);
+  assert.equal(api.moveToFolder(items, 'folder', 'folder'), items);
+  assert.equal(api.moveToFolder(items, 'a', 'missing'), items);
+  assert.equal(api.reorderShortcut(items, 'a', 'b'), items);
+  assert.deepEqual(Array.from(api.shortcutsInFolder(api.reorderShortcut(moved, 'c', 'a'), 'folder'), (item) => item.id), ['c', 'a', 'b']);
+  const removed = api.removeShortcutItem(moved, 'folder');
+  assert.equal(removed.length, 3);
+  assert.equal(api.shortcutsInFolder(removed).length, 3);
+  assert.equal(api.shortcutsInFolder(api.moveToFolder(moved, 'b')).length, 2);
+  assert.equal(items[1].folderId, undefined);
+});
+
+test('la UI crea una carpeta, abre su modal y permite añadir y sacar enlaces sin perderlos', () => {
+  const states = [], refs = [];
+  let stateIndex = 0, refIndex = 0, nextId = 0, newTab = false;
+  let items = [{ id: 'old', label: 'Original', url: 'https://example.test' }];
+  const { Shortcuts } = load('src/features/shortcuts/Shortcuts.tsx', {
+    react: {
+      useEffect() {},
+      useRef(initial) { const index = refIndex++; refs[index] ??= { current: initial }; return refs[index]; },
+      useState(initial) { const index = stateIndex++; if (!(index in states)) states[index] = initial;
+        return [states[index], (value) => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; },
+    },
+    '../../components/ConfirmDialog': { ConfirmDialog: () => null },
+    '../../data/mock': { defaultShortcuts: [] },
+    '../../hooks/useLocalStorage': { useLocalStorage: (key) => key.endsWith('openInNewTab') ? [newTab, () => {}] : [items, (value) => { items = typeof value === 'function' ? value(items) : value; }] },
+    './ShortcutIcon': { ShortcutIcon: () => null },
+    './ShortcutFolderDialog': { ShortcutFolderDialog: () => null },
+    './shortcutFolders': load('src/features/shortcuts/shortcutFolders.ts'),
+  }, { crypto: { randomUUID: () => `new-${++nextId}` }, window: { innerWidth: 1200, innerHeight: 900 } });
+  function render() { stateIndex = refIndex = 0; return Shortcuts(); }
+  function elements(node) {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!node || typeof node !== 'object') return [];
+    return [node, ...elements(node.props?.children)];
+  }
+  function find(predicate) { const element = elements(render()).find(predicate); assert.ok(element); return element; }
+  const addButton = () => find((node) => node.props?.className === 'shortcut-link shortcut-add-card');
+  addButton().props.onClick();
+  find((node) => node.props?.['aria-label'] === 'Tipo de acceso').props.onChange({ target: { value: 'folder' } });
+  find((node) => node.props?.['aria-label'] === 'Nombre del acceso').props.onChange({ target: { value: 'Trabajo' } });
+  assert.equal(elements(render()).some((node) => node.props?.['aria-label'] === 'URL del acceso'), false);
+  find((node) => node.type === 'form').props.onSubmit({ preventDefault() {} });
+  assert.equal(items.length, 2); assert.equal(items[1].kind, 'folder');
+  find((node) => node.props?.className === 'shortcut-link shortcut-folder-card').props.onClick();
+  assert.equal(find((node) => node.props?.title === 'Trabajo' && node.props?.onClose).props.title, 'Trabajo');
+  addButton().props.onClick();
+  find((node) => node.props?.['aria-label'] === 'Nombre del acceso').props.onChange({ target: { value: 'Correo' } });
+  find((node) => node.props?.['aria-label'] === 'URL del acceso').props.onChange({ target: { value: 'mail.example.test' } });
+  find((node) => node.type === 'form').props.onSubmit({ preventDefault() {} });
+  assert.equal(items[2].folderId, 'new-1'); assert.equal(items[2].url, 'https://mail.example.test');
+  let link = find((node) => node.type === 'a' && node.props.href === 'https://mail.example.test');
+  assert.equal(link.props.target, undefined);
+  newTab = true;
+  link = find((node) => node.type === 'a' && node.props.href === 'https://mail.example.test');
+  assert.equal(link.props.target, '_blank'); assert.equal(link.props.rel, 'noopener noreferrer');
+  find((node) => node.props?.title === 'Trabajo' && node.props?.onClose).props.onClose();
+  assert.equal(elements(render()).some((node) => node.type === 'a' && node.props.href === 'https://mail.example.test'), false);
+  // Editar un enlace existente permite escoger su carpeta sin cambiar su URL.
+  find((node) => node.props?.className === 'shortcut-item' && node.key === 'old').props.onContextMenu({ preventDefault() {}, clientX: 10, clientY: 20 });
+  find((node) => node.props?.role === 'menuitem').props.onClick();
+  find((node) => node.props?.onFolderChange).props.onFolderChange('new-1');
+  find((node) => node.props?.onFolderChange).props.onSave({ preventDefault() {} });
+  assert.equal(items[0].folderId, 'new-1'); assert.equal(items[0].url, 'https://example.test');
 });
 
 test('el inicio solo ofrece configuración, sin el antiguo botón de fondo', () => {

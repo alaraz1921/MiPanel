@@ -4,6 +4,8 @@ import { defaultShortcuts } from '../../data/mock';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { Shortcut } from '../../types';
 import { ShortcutIcon } from './ShortcutIcon';
+import { ShortcutFolderDialog } from './ShortcutFolderDialog';
+import { moveToFolder, removeShortcutItem, reorderShortcut, shortcutsInFolder } from './shortcutFolders';
 
 const MAX_CUSTOM_ICON_SIZE = 256 * 1024;
 const CUSTOM_ICON_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
@@ -37,6 +39,10 @@ type ShortcutContextMenu = {
 };
 
 type ShortcutEditorDialogProps = {
+  folders: Shortcut[];
+  folderId: string;
+  isFolder: boolean;
+  onFolderChange: (value: string) => void;
   label: string;
   url: string;
   customIcon?: string;
@@ -50,6 +56,7 @@ type ShortcutEditorDialogProps = {
 };
 
 function ShortcutEditorDialog({
+  folders, folderId, isFolder, onFolderChange,
   label,
   url,
   customIcon,
@@ -81,20 +88,24 @@ function ShortcutEditorDialog({
       <form className="shortcut-editor" onSubmit={onSave}>
         <div>
           <span className="eyebrow">Acceso directo</span>
-          <h3 id="shortcut-editor-title">Editar acceso</h3>
+          <h3 id="shortcut-editor-title">{isFolder ? 'Editar carpeta' : 'Editar acceso'}</h3>
         </div>
         <label>
           Nombre
           <input value={label} onChange={(event) => onLabelChange(event.target.value)} autoFocus required />
         </label>
-        <label>
+        {!isFolder && <label>
           Enlace
           <input value={url} onChange={(event) => onUrlChange(event.target.value)} inputMode="url" required />
-        </label>
-        <label className="shortcut-icon-picker">
+        </label>}
+        {!isFolder && <label>Carpeta<select value={folderId} onChange={(event) => onFolderChange(event.target.value)}>
+          <option value="">Panel principal</option>
+          {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.label}</option>)}
+        </select></label>}
+        {!isFolder && <label className="shortcut-icon-picker">
           Icono personalizado
           <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onIconChange} />
-        </label>
+        </label>}
         {isCustomIcon(customIcon) && (
           <div className="shortcut-icon-preview">
             <img src={customIcon} alt="Vista previa del icono personalizado" />
@@ -113,6 +124,10 @@ function ShortcutEditorDialog({
 
 export function Shortcuts() {
   const [shortcuts, setShortcuts] = useLocalStorage<Shortcut[]>('mipanel.shortcuts', defaultShortcuts);
+  const [openInNewTab] = useLocalStorage('mipanel.shortcuts.openInNewTab', false);
+  const [activeFolderId, setActiveFolderId] = useState<string>();
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [editingFolderId, setEditingFolderId] = useState('');
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
@@ -152,15 +167,17 @@ export function Shortcuts() {
     event.preventDefault();
     const cleanLabel = label.trim();
     let cleanUrl = url.trim();
-    if (!cleanLabel || !cleanUrl) return;
-    if (!/^https?:\/\//i.test(cleanUrl)) cleanUrl = `https://${cleanUrl}`;
+    if (!cleanLabel || (!addingFolder && !cleanUrl)) return;
+    if (!addingFolder && !/^https?:\/\//i.test(cleanUrl)) cleanUrl = `https://${cleanUrl}`;
 
     setShortcuts((current) => [
       ...current,
       {
         id: crypto.randomUUID(),
         label: cleanLabel,
-        url: cleanUrl,
+        url: addingFolder ? '' : cleanUrl,
+        kind: addingFolder ? 'folder' : undefined,
+        folderId: addingFolder ? undefined : activeFolder?.id,
         icon: '🔗',
         customIcon: newCustomIcon,
       },
@@ -170,6 +187,7 @@ export function Shortcuts() {
     setNewCustomIcon(undefined);
     setNewIconError(undefined);
     setAdding(false);
+    setAddingFolder(false);
   }
 
   function selectIcon(
@@ -192,7 +210,7 @@ export function Shortcuts() {
   }
 
   function removeShortcut(id: string) {
-    setShortcuts((current) => current.filter((shortcut) => shortcut.id !== id));
+    setShortcuts((current) => removeShortcutItem(current, id));
   }
 
   function openEditor(shortcut: Shortcut) {
@@ -200,6 +218,7 @@ export function Shortcuts() {
     setEditingShortcut(shortcut);
     setEditingLabel(shortcut.label);
     setEditingUrl(shortcut.url);
+    setEditingFolderId(shortcut.folderId ?? '');
     setEditingCustomIcon(shortcut.customIcon);
     setEditingIconError(undefined);
   }
@@ -209,22 +228,23 @@ export function Shortcuts() {
     if (!editingShortcut) return;
     const nextLabel = editingLabel.trim();
     let nextUrl = editingUrl.trim();
-    if (!nextLabel || !nextUrl) return;
-    if (!/^https?:\/\//i.test(nextUrl)) nextUrl = `https://${nextUrl}`;
-    setShortcuts((current) => current.map((shortcut) => shortcut.id === editingShortcut.id
-      ? { ...shortcut, label: nextLabel, url: nextUrl, customIcon: editingCustomIcon }
-      : shortcut));
+    if (!nextLabel || (editingShortcut.kind !== 'folder' && !nextUrl)) return;
+    if (editingShortcut.kind !== 'folder' && !/^https?:\/\//i.test(nextUrl)) nextUrl = `https://${nextUrl}`;
+    setShortcuts((current) => moveToFolder(current.map((shortcut) => shortcut.id === editingShortcut.id
+      ? { ...shortcut, label: nextLabel, url: shortcut.kind === 'folder' ? '' : nextUrl, customIcon: editingCustomIcon }
+      : shortcut), editingShortcut.id, editingFolderId || undefined));
     setEditingShortcut(undefined);
   }
 
   function moveShortcut(id: string, direction: -1 | 1) {
     setShortcuts((current) => {
-      const index = current.findIndex((shortcut) => shortcut.id === id);
+      const item = current.find((shortcut) => shortcut.id === id);
+      if (!item) return current;
+      const siblings = shortcutsInFolder(current, item.folderId);
+      const index = siblings.findIndex((shortcut) => shortcut.id === id);
       const targetIndex = index + direction;
-      if (index < 0 || targetIndex < 0 || targetIndex >= current.length) return current;
-      const next = [...current];
-      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-      return next;
+      if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) return current;
+      return reorderShortcut(current, id, siblings[targetIndex].id);
     });
   }
 
@@ -232,13 +252,10 @@ export function Shortcuts() {
     event.preventDefault();
     if (!draggedId || draggedId === targetId) return;
     setShortcuts((current) => {
-      const from = current.findIndex((shortcut) => shortcut.id === draggedId);
-      const to = current.findIndex((shortcut) => shortcut.id === targetId);
-      if (from < 0 || to < 0) return current;
-      const next = [...current];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
+      const target = current.find((shortcut) => shortcut.id === targetId);
+      const dragged = current.find((shortcut) => shortcut.id === draggedId);
+      if (target?.kind === 'folder' && dragged?.kind !== 'folder') return moveToFolder(current, draggedId, targetId);
+      return reorderShortcut(current, draggedId, targetId);
     });
     setDraggedId(undefined);
   }
@@ -279,13 +296,25 @@ export function Shortcuts() {
     ? shortcuts.find((shortcut) => shortcut.id === contextMenu.id)
     : undefined;
 
-  return (
-    <section className="shortcuts-section" aria-label="Accesos directos">
+  const folders = shortcuts.filter((shortcut) => shortcut.kind === 'folder');
+  const activeFolder = folders.find((folder) => folder.id === activeFolderId);
+
+  function closeFolder() {
+    setActiveFolderId(undefined);
+    setContextMenu(undefined);
+    setAdding(false);
+    setAddingFolder(false);
+  }
+
+  const addForm = <>
       {adding && (
         <form className="shortcut-form" onSubmit={addShortcut}>
+          {!activeFolder && <select aria-label="Tipo de acceso" value={addingFolder ? 'folder' : 'link'} onChange={(event) => setAddingFolder(event.target.value === 'folder')}>
+            <option value="link">Enlace</option><option value="folder">Carpeta</option>
+          </select>}
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nombre" aria-label="Nombre del acceso" />
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" aria-label="URL del acceso" />
-          <label className="shortcut-icon-picker">
+          {!addingFolder && <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" aria-label="URL del acceso" />}
+          {!addingFolder && <label className="shortcut-icon-picker">
             <span className="sr-only">Icono personalizado</span>
             <input
               type="file"
@@ -293,11 +322,11 @@ export function Shortcuts() {
               aria-label="Icono personalizado"
               onChange={(event) => selectIcon(event, setNewCustomIcon, setNewIconError)}
             />
-          </label>
+          </label>}
           <button className="primary-button" type="submit">Guardar</button>
         </form>
       )}
-      {adding && (isCustomIcon(newCustomIcon) || newIconError) && (
+      {adding && !addingFolder && (isCustomIcon(newCustomIcon) || newIconError) && (
         <div className="shortcut-new-icon-status">
           {isCustomIcon(newCustomIcon) && (
             <><img src={newCustomIcon} alt="Vista previa del icono personalizado" /><button type="button" className="text-button" onClick={() => setNewCustomIcon(undefined)}>Quitar icono</button></>
@@ -306,8 +335,11 @@ export function Shortcuts() {
         </div>
       )}
 
-      <div className="shortcut-grid">
-        {shortcuts.map((shortcut) => (
+      </>;
+
+  function renderGrid(folderId?: string) {
+    return <div className="shortcut-grid">
+        {shortcutsInFolder(shortcuts, folderId).map((shortcut) => (
           <div
             className={`shortcut-item${draggedId === shortcut.id ? ' dragging' : ''}`}
             key={shortcut.id}
@@ -328,8 +360,27 @@ export function Shortcuts() {
               openContextMenu(shortcut.id, event.clientX, event.clientY);
             }}
           >
-            <a
+            {shortcut.kind === 'folder' ? <button type="button" className="shortcut-link shortcut-folder-card"
+              aria-haspopup="dialog" title={`${shortcut.label} · Clic derecho o mantén pulsado para acciones`}
+              onKeyDown={(event) => {
+                if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
+                event.preventDefault();
+                const bounds = event.currentTarget.getBoundingClientRect();
+                openContextMenu(shortcut.id, bounds.left, bounds.bottom);
+              }}
+              onClick={() => {
+                if (longPressTriggered.current) { longPressTriggered.current = false; return; }
+                setContextMenu(undefined); setAdding(false); setAddingFolder(false); setActiveFolderId(shortcut.id);
+              }}>
+              <span className="shortcut-icon" aria-hidden="true">
+                {shortcutsInFolder(shortcuts, shortcut.id).length ? <span className="shortcut-folder-preview">
+                  {shortcutsInFolder(shortcuts, shortcut.id).slice(0, 4).map((child) => <ShortcutIcon key={child.id} shortcut={child} />)}
+                </span> : <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="1.6"><path d="M3 7V5h7l2 2h9v13H3Z" /></svg>}
+              </span><span>{shortcut.label}</span>
+            </button> : <a
               href={shortcut.url}
+              target={openInNewTab ? '_blank' : undefined}
+              rel={openInNewTab ? 'noopener noreferrer' : undefined}
               className="shortcut-link"
               title={`${shortcut.url} · Clic derecho o mantén pulsado para acciones`}
               onKeyDown={(event) => {
@@ -346,7 +397,7 @@ export function Shortcuts() {
             >
               <span className="shortcut-icon" aria-hidden="true"><ShortcutIcon shortcut={shortcut} /></span>
               <span>{shortcut.label}</span>
-            </a>
+            </a>}
           </div>
         ))}
         <button
@@ -359,8 +410,10 @@ export function Shortcuts() {
           <span>{adding ? 'Cancelar' : 'Añadir'}</span>
         </button>
       </div>
+    ;
+  }
 
-      {contextMenu && contextShortcut && (
+  const menu = contextMenu && contextShortcut && (
         <div
           className="shortcut-context-menu"
           role="menu"
@@ -369,6 +422,9 @@ export function Shortcuts() {
           onPointerDown={(event) => event.stopPropagation()}
         >
           <button type="button" role="menuitem" onClick={() => openEditor(contextShortcut)}>✎ <span>Editar</span></button>
+          {contextShortcut.kind !== 'folder' && contextShortcut.folderId && <button type="button" role="menuitem" onClick={() => {
+            setShortcuts((current) => moveToFolder(current, contextShortcut.id)); setContextMenu(undefined);
+          }}>↗ <span>Sacar al panel</span></button>}
           <button type="button" role="menuitem" onClick={() => { moveShortcut(contextShortcut.id, -1); setContextMenu(undefined); }}>← <span>Mover a la izquierda</span></button>
           <button type="button" role="menuitem" onClick={() => { moveShortcut(contextShortcut.id, 1); setContextMenu(undefined); }}>→ <span>Mover a la derecha</span></button>
           <div className="shortcut-context-divider" />
@@ -384,10 +440,26 @@ export function Shortcuts() {
             ♲ <span>Eliminar</span>
           </button>
         </div>
-      )}
+      );
+
+  return (
+    <section className="shortcuts-section" aria-label="Accesos directos">
+      {!activeFolder && addForm}
+      {renderGrid()}
+      {!activeFolder && menu}
+      {activeFolder && <ShortcutFolderDialog title={activeFolder.label} onClose={closeFolder}>
+        {addForm}
+        {shortcutsInFolder(shortcuts, activeFolder.id).length === 0 && <p>Esta carpeta está vacía. Añade un enlace o mueve uno desde «Editar».</p>}
+        {renderGrid(activeFolder.id)}
+        {menu}
+      </ShortcutFolderDialog>}
 
       {editingShortcut && (
         <ShortcutEditorDialog
+          folders={folders}
+          folderId={editingFolderId}
+          isFolder={editingShortcut.kind === 'folder'}
+          onFolderChange={setEditingFolderId}
           label={editingLabel}
           url={editingUrl}
           customIcon={editingCustomIcon}
@@ -403,8 +475,8 @@ export function Shortcuts() {
 
       {shortcutToDelete && (
         <ConfirmDialog
-          title="Eliminar acceso directo"
-          message={`¿Quieres eliminar “${shortcutToDelete.label}”? Esta acción no afecta al sitio web.`}
+          title={shortcutToDelete.kind === 'folder' ? 'Eliminar carpeta' : 'Eliminar acceso directo'}
+          message={shortcutToDelete.kind === 'folder' ? `¿Quieres eliminar “${shortcutToDelete.label}”? Sus enlaces volverán al panel principal, no se eliminarán.` : `¿Quieres eliminar “${shortcutToDelete.label}”? Esta acción no afecta al sitio web.`}
           confirmLabel="Eliminar"
           danger
           onCancel={() => setShortcutToDelete(undefined)}

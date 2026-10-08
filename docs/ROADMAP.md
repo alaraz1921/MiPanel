@@ -74,6 +74,8 @@
 - [x] Mostrar editar y eliminar en las tarjetas de tareas y elementos de la agenda del calendario con los mismos iconos aportados, en una única fila y con etiquetas accesibles.
 - [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.
 - [x] Reordenar accesos directos mediante arrastre y controles accesibles.
+- [x] Agrupar accesos en carpetas de un nivel con ventana modal; crear, renombrar, mover, sacar y ordenar enlaces. Borrar una carpeta devuelve sus enlaces al panel.
+- [x] Configurar apertura de enlaces en nueva pestaña, también dentro de carpetas; conservar carpetas y preferencia en las copias, compatibles con copias antiguas.
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
 - [x] Filtrar las tareas para mostrar únicamente las vencidas por fecha o recordatorio.
 - [x] Editar y eliminar accesos desde un menú contextual con confirmación.

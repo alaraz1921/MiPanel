@@ -4,6 +4,8 @@ export type Shortcut = {
   url: string;
   icon?: string;
   customIcon?: string;
+  kind?: 'folder';
+  folderId?: string;
 };
 
 export type TaskSource = 'microsoft-todo';

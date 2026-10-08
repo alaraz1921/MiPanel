@@ -57,6 +57,17 @@ Cada acceso tendrá inicialmente:
 
 Los accesos son datos propios de MiPanel. No dependen de los favoritos del navegador.
 
+Se pueden agrupar por temática en carpetas de un nivel. «Añadir» permite elegir
+enlace o carpeta. Una carpeta abre un modal con sus enlaces y un botón para añadir;
+«Editar» permite cambiar la carpeta de un enlace o devolverlo al panel. Arrastrar
+un enlace sobre una carpeta lo agrupa; la reordenación se limita al mismo grupo.
+Las acciones siguen disponibles por clic derecho, pulsación prolongada y teclado.
+Eliminar una carpeta pide confirmación y devuelve sus enlaces al panel, sin borrarlos.
+La preferencia `mipanel.shortcuts.openInNewTab` determina si los enlaces se abren
+en una pestaña nueva (con `noopener noreferrer`); por defecto se conserva la misma pestaña.
+Las carpetas abren siempre un modal, independientemente de esa preferencia.
+Las copias incluyen carpetas y esta opción, y admiten copias antiguas sin esos campos.
+
 ### 4.3 Microsoft To Do
 
 La Fase 1 implementa en modo de solo lectura:

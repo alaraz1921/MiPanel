@@ -8,6 +8,7 @@ const KEYS = {
   backgroundImage: 'mipanel.backgroundImage',
   microsoftSelectedListId: 'mipanel.microsoft.selectedListId',
   googleVisibleCalendarIds: 'mipanel.google.visibleCalendarIds',
+  openInNewTab: 'mipanel.shortcuts.openInNewTab',
 } as const;
 
 export type PanelConfiguration = {
@@ -19,6 +20,7 @@ export type PanelConfiguration = {
     backgroundImage: string;
     microsoftSelectedListId: string;
     googleVisibleCalendarIds: string[];
+    openInNewTab: boolean;
   };
 };
 
@@ -70,18 +72,28 @@ export function validateConfiguration(value: unknown): PanelConfiguration {
     if (ids.has(id)) throw new Error('La copia contiene accesos con identificadores repetidos.');
     ids.add(id);
     const label = text(shortcut.label, 'nombre del acceso', 500);
-    const url = text(shortcut.url, 'enlace del acceso', 8192);
+    if (shortcut.kind !== undefined && shortcut.kind !== 'folder') throw new Error('El tipo de acceso no es válido.');
+    const isFolder = shortcut.kind === 'folder';
+    const url = text(shortcut.url, 'enlace del acceso', 8192, isFolder);
+    if (isFolder && (url !== '' || shortcut.folderId !== undefined)) throw new Error('Las carpetas no pueden tener enlace ni estar dentro de otra carpeta.');
     let parsed: URL;
-    try { parsed = new URL(url); } catch { throw new Error(`El enlace de «${label}» no es válido.`); }
-    if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error(`El enlace de «${label}» debe usar HTTP o HTTPS.`);
+    if (!isFolder) {
+      try { parsed = new URL(url); } catch { throw new Error(`El enlace de «${label}» no es válido.`); }
+      if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error(`El enlace de «${label}» debe usar HTTP o HTTPS.`);
+    }
     return {
       id, label, url,
+      ...(isFolder ? { kind: 'folder' as const } : {}),
+      ...(shortcut.folderId !== undefined ? { folderId: text(shortcut.folderId, 'carpeta del acceso', 200) } : {}),
       ...(shortcut.icon !== undefined ? { icon: text(shortcut.icon, 'icono del acceso', 100, true) } : {}),
       ...(shortcut.customIcon !== undefined
         ? { customIcon: image(shortcut.customIcon, `icono ${index + 1}`, 256 * 1024, true) }
         : {}),
     };
   });
+  const folderIds = new Set(shortcuts.filter((shortcut) => shortcut.kind === 'folder').map((shortcut) => shortcut.id));
+  if (shortcuts.some((shortcut) => shortcut.folderId && !folderIds.has(shortcut.folderId))) throw new Error('Un acceso apunta a una carpeta inexistente.');
+  if (settings.openInNewTab !== undefined && typeof settings.openInNewTab !== 'boolean') throw new Error('La opción de pestaña nueva no es válida.');
   if (!Array.isArray(settings.googleVisibleCalendarIds) || settings.googleVisibleCalendarIds.length > 1000) {
     throw new Error('La selección de calendarios no es válida.');
   }
@@ -97,6 +109,7 @@ export function validateConfiguration(value: unknown): PanelConfiguration {
       backgroundImage: image(settings.backgroundImage, 'fondo', 4 * 1024 * 1024),
       microsoftSelectedListId: text(settings.microsoftSelectedListId, 'lista de Microsoft', 2048, true),
       googleVisibleCalendarIds,
+      openInNewTab: settings.openInNewTab === true,
     },
   };
 }
@@ -123,6 +136,7 @@ export function exportConfiguration(storage: Pick<Storage, 'getItem'> = window.l
       backgroundImage: read(KEYS.backgroundImage, ''),
       microsoftSelectedListId: read(KEYS.microsoftSelectedListId, ''),
       googleVisibleCalendarIds: read(KEYS.googleVisibleCalendarIds, []) ?? [],
+      openInNewTab: read(KEYS.openInNewTab, false),
     },
   });
   const content = JSON.stringify(configuration, null, 2);
@@ -139,5 +153,6 @@ export function importConfiguration(configuration: PanelConfiguration) {
     [KEYS.backgroundImage]: settings.backgroundImage,
     [KEYS.microsoftSelectedListId]: settings.microsoftSelectedListId,
     [KEYS.googleVisibleCalendarIds]: settings.googleVisibleCalendarIds,
+    [KEYS.openInNewTab]: settings.openInNewTab,
   });
 }

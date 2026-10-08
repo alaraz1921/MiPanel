@@ -66,7 +66,7 @@ function backup() {
         { id: 'first', label: 'Página personal', url: 'https://example.test/page', customIcon: picture },
         { id: 'second', label: 'Otro enlace', url: 'http://example.test', icon: '🔗' },
       ],
-      backgroundImage: picture, microsoftSelectedListId: 'my-list', googleVisibleCalendarIds: ['my-calendar'],
+      backgroundImage: picture, microsoftSelectedListId: 'my-list', googleVisibleCalendarIds: ['my-calendar'], openInNewTab: false,
     },
   };
 }
@@ -86,6 +86,36 @@ test('exporta solo preferencias permitidas y conserva orden e imágenes', () => 
   assert.doesNotMatch(content, /private-session|private-account|private-tasks|sb-example/);
   const parsed = api.parseConfiguration(content);
   assert.equal(JSON.stringify(parsed.settings), JSON.stringify(settings));
+});
+
+test('las copias conservan carpetas, pertenencia y preferencia de nueva pestaña', () => {
+  const input = backup();
+  input.settings.shortcuts.unshift({ id: 'folder', label: 'Trabajo', url: '', kind: 'folder' });
+  input.settings.shortcuts[1].folderId = 'folder';
+  input.settings.openInNewTab = true;
+  const { api, storage } = environment();
+  api.importConfiguration(input);
+  const exported = JSON.parse(api.exportConfiguration(storage));
+  assert.deepEqual(exported.settings, input.settings);
+  assert.equal(storage.getItem('mipanel.shortcuts.openInNewTab'), 'true');
+  delete input.settings.openInNewTab;
+  assert.equal(api.validateConfiguration(input).settings.openInNewTab, false);
+});
+
+test('las copias rechazan carpetas anidadas, huérfanos y preferencias mal tipadas', () => {
+  const { api } = environment();
+  const input = backup();
+  input.settings.shortcuts[0].folderId = 'missing';
+  assert.throws(() => api.validateConfiguration(input), /carpeta inexistente/);
+  delete input.settings.shortcuts[0].folderId;
+  input.settings.shortcuts.unshift({ id: 'folder', label: 'Trabajo', url: '', kind: 'folder', folderId: 'folder' });
+  assert.throws(() => api.validateConfiguration(input), /otra carpeta/);
+  delete input.settings.shortcuts[0].folderId;
+  input.settings.shortcuts[0].url = 'javascript:alert(1)';
+  assert.throws(() => api.validateConfiguration(input), /enlace/);
+  input.settings.shortcuts[0].url = '';
+  input.settings.openInNewTab = 'yes';
+  assert.throws(() => api.validateConfiguration(input), /pestaña nueva/);
 });
 
 test('no modifica almacenamiento al previsualizar una copia y elimina campos desconocidos', () => {

@@ -77,7 +77,7 @@ export function ConfigurationSettings() {
           <span className="eyebrow">Configuración</span>
           <h2 id="configuration-title">Exportar / importar configuración</h2>
         </div>
-        <p>Guarda tus accesos y su orden, iconos personalizados, fondo, lista de tareas seleccionada y calendarios visibles.</p>
+        <p>Guarda tus accesos y carpetas, su orden, iconos personalizados, apertura en nueva pestaña, fondo, lista de tareas seleccionada y calendarios visibles.</p>
         <p className="settings-help">La copia no incluye sesiones, contraseñas, tokens, tareas ni eventos. Para usar tus datos en otro equipo tendrás que conectar tus cuentas.</p>
         <button type="button" className="primary-button" onClick={download}>Exportar configuración</button>
         <label className="configuration-file">
@@ -92,6 +92,8 @@ export function ConfigurationSettings() {
             <dl>
               <dt>Exportada</dt><dd>{new Date(preview.exportedAt).toLocaleString('es-ES')}</dd>
               <dt>Accesos</dt><dd>{preview.settings.shortcuts.length}</dd>
+              <dt>Carpetas</dt><dd>{preview.settings.shortcuts.filter((shortcut) => shortcut.kind === 'folder').length}</dd>
+              <dt>Enlaces</dt><dd>{preview.settings.openInNewTab ? 'Nueva pestaña' : 'Misma pestaña'}</dd>
               <dt>Iconos personalizados</dt><dd>{preview.settings.shortcuts.filter((shortcut) => shortcut.customIcon).length}</dd>
               <dt>Fondo</dt><dd>{preview.settings.backgroundImage ? 'Incluido' : 'Sin fondo'}</dd>
               <dt>Lista de tareas</dt><dd>{preview.settings.microsoftSelectedListId ? 'Selección incluida' : 'Predeterminada'}</dd>
@@ -100,7 +102,7 @@ export function ConfigurationSettings() {
             {preview.settings.backgroundImage && <img className="configuration-background" src={preview.settings.backgroundImage} alt="Fondo de la copia" />}
             {preview.settings.shortcuts.length > 0 && (
               <ul className="configuration-shortcuts" aria-label="Accesos de la copia">
-                {preview.settings.shortcuts.map((shortcut) => <li key={shortcut.id}><strong>{shortcut.label}</strong><span>{shortcut.url}</span></li>)}
+                {preview.settings.shortcuts.map((shortcut) => <li key={shortcut.id}><strong>{shortcut.label}</strong><span>{shortcut.kind === 'folder' ? 'Carpeta' : shortcut.url}</span></li>)}
               </ul>
             )}
             <p>La importación sustituirá estas preferencias en este navegador. Puedes exportar primero tu configuración actual.</p>

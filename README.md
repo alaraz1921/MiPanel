@@ -73,6 +73,12 @@ Los accesos directos utilizan el favicon web convencional de cada dominio. El fa
 
 ## Carpetas de accesos y nueva pestaña
 
+En **Configuración → Apariencia** puedes **Ocultar el buscador** (se conserva su
+espacio para no mover los paneles) y graduar la **Opacidad del fondo de las tarjetas
+de accesos directos** de 0 a 100 %. Se aplica al panel y a los enlaces dentro de
+carpetas, sin atenuar sus iconos o nombres. Ambos ajustes se incluyen en las copias;
+las anteriores mantienen el aspecto original.
+
 En **Configuración → Distribución** puedes ajustar la distancia vertical entre
 accesos y buscador, y entre buscador y paneles, de forma independiente (0–2000 px).
 Deja el campo vacío para mantener la distribución automática o usa **Restablecer

@@ -96,6 +96,8 @@ export function ConfigurationSettings() {
               <dt>Enlaces</dt><dd>{preview.settings.openInNewTab ? 'Nueva pestaña' : 'Misma pestaña'}</dd>
               <dt>Accesos → buscador</dt><dd>{preview.settings.layout.searchGap === null ? 'Automático' : `${preview.settings.layout.searchGap} px`}</dd>
               <dt>Buscador → paneles</dt><dd>{preview.settings.layout.panelsGap === null ? 'Automático' : `${preview.settings.layout.panelsGap} px`}</dd>
+              <dt>Buscador</dt><dd>{preview.settings.appearance.hideSearch ? 'Oculto' : 'Visible'}</dd>
+              <dt>Opacidad de accesos</dt><dd>{preview.settings.appearance.shortcutOpacity === null ? 'Predeterminada' : `${preview.settings.appearance.shortcutOpacity} %`}</dd>
               <dt>Iconos personalizados</dt><dd>{preview.settings.shortcuts.filter((shortcut) => shortcut.customIcon).length}</dd>
               <dt>Fondo</dt><dd>{preview.settings.backgroundImage ? 'Incluido' : 'Sin fondo'}</dd>
               <dt>Lista de tareas</dt><dd>{preview.settings.microsoftSelectedListId ? 'Selección incluida' : 'Predeterminada'}</dd>

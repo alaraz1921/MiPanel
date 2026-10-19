@@ -26,6 +26,10 @@ const { ConfigurationSettings } = load('src/features/settings/ConfigurationSetti
 });
 const { BackgroundSettings } = load('src/features/background/BackgroundSettings.tsx');
 const layoutApi = load('src/features/settings/layout.ts');
+const appearanceApi = load('src/features/settings/appearance.ts');
+const { AppearanceSettings } = load('src/features/settings/AppearanceSettings.tsx', {
+  '../../hooks/useLocalStorage': { useLocalStorage: (_key, initial) => [initial, () => {}] }, './appearance': appearanceApi,
+});
 const { LayoutSettings } = load('src/features/settings/LayoutSettings.tsx', {
   '../../hooks/useLocalStorage': { useLocalStorage: (_key, initial) => [initial, () => {}] }, './layout': layoutApi,
 });
@@ -38,11 +42,12 @@ const { SettingsPage } = load('src/features/settings/SettingsPage.tsx', {
   '../../integrations/supabase/supabaseClient': { supabase: undefined },
   '../background/BackgroundSettings': { BackgroundSettings }, './ConfigurationSettings': { ConfigurationSettings },
   './LayoutSettings': { LayoutSettings },
+  './AppearanceSettings': { AppearanceSettings },
 });
 
 test('los cuatro apartados son una página, no un modal, y ofrecen conexión sin cuentas', () => {
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
-  for (const id of ['copias', 'fondo', 'accesos', 'distribucion', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ['copias', 'fondo', 'accesos', 'distribucion', 'apariencia', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /Abrir enlaces en una pestaña nueva/);
   for (const label of ['Volver al panel', 'Exportar configuración', 'Importar una copia', 'Guardar fondo', 'Conectar Microsoft', 'Conectar Google']) assert.ok(html.includes(label));
   assert.doesNotMatch(html, /<dialog|role="dialog"/);
@@ -61,6 +66,7 @@ test('distribución ofrece dos controles independientes y restauración automát
 
 test('el panel aplica las dos distancias sin alterar el modo automático inicial', () => {
   let layout = layoutApi.DEFAULT_LAYOUT;
+  let appearance = appearanceApi.DEFAULT_APPEARANCE;
   const { default: App } = load('src/App.tsx', {
     './components/TopBar': { TopBar: () => null },
     './features/settings/SettingsPage': { SettingsPage: () => null },
@@ -69,7 +75,8 @@ test('el panel aplica las dos distancias sin alterar el modo automático inicial
     './features/shortcuts/Shortcuts': { Shortcuts: () => null },
     './features/tasks/TaskPanel': { TaskPanel: () => null },
     './features/settings/layout': layoutApi,
-    './hooks/useLocalStorage': { useLocalStorage: (key) => [key === 'mipanel.layout' ? layout : '', () => {}] },
+    './features/settings/appearance': appearanceApi,
+    './hooks/useLocalStorage': { useLocalStorage: (key) => [key === 'mipanel.layout' ? layout : key === 'mipanel.appearance' ? appearance : '', () => {}] },
   }, { window: { location: { search: '' } }, URLSearchParams });
   let html = renderToStaticMarkup(React.createElement(App));
   assert.doesNotMatch(html, /custom-search-gap|custom-panels-gap|--search-gap|--panels-gap/);
@@ -80,6 +87,26 @@ test('el panel aplica las dos distancias sin alterar el modo automático inicial
   layout = { searchGap: null, panelsGap: 0 };
   html = renderToStaticMarkup(React.createElement(App));
   assert.match(html, /--panels-gap:0px/); assert.doesNotMatch(html, /custom-search-gap/);
+  appearance = { hideSearch: true, shortcutOpacity: 0 };
+  html = renderToStaticMarkup(React.createElement(App));
+  assert.match(html, /search-center search-hidden" aria-hidden="true"/);
+  assert.match(html, /--shortcut-background-opacity:0/);
+  appearance = { hideSearch: false, shortcutOpacity: 100 };
+  html = renderToStaticMarkup(React.createElement(App));
+  assert.doesNotMatch(html, /search-hidden/);
+  assert.match(html, /--shortcut-background-opacity:1/);
+});
+
+test('apariencia ofrece ocultar buscador y graduar solo el fondo de las tarjetas', () => {
+  const html = renderToStaticMarkup(React.createElement(AppearanceSettings));
+  assert.match(html, /Ocultar el buscador/);
+  assert.match(html, /type="range" min="0" max="100" step="1"/);
+  assert.match(html, /Restablecer opacidad predeterminada/);
+  const css = readFileSync(resolve(__dirname, '..', 'src/styles.css'), 'utf8');
+  assert.match(css, /\.search-center\.search-hidden\s*\{[^}]*visibility:\s*hidden/);
+  assert.equal((css.match(/background: rgba\(255,255,255,var\(--shortcut-background-opacity/g) ?? []).length, 2);
+  for (const value of [-1, 101, 20.5, '20', NaN]) assert.equal(appearanceApi.normalizeAppearance({ shortcutOpacity: value }).shortcutOpacity, null);
+  assert.equal(appearanceApi.normalizeAppearance({ hideSearch: 'yes' }).hideSearch, false);
 });
 
 test('las cuentas conectadas ofrecen desconectar y selección de calendarios', () => {
@@ -89,7 +116,7 @@ test('las cuentas conectadas ofrecen desconectar y selección de calendarios', (
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
   assert.match(html, /Desconectar Microsoft/); assert.match(html, /Desconectar Google/);
   assert.match(html, /Autorizar edición de eventos/);
-  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 3);
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 4);
   assert.equal((html.match(/checked=""/g) ?? []).length, 1);
   assert.match(html, /Trabajo/); assert.match(html, /Personal/);
 });

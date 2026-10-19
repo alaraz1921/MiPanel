@@ -36,6 +36,7 @@ function environment(initial = {}) {
       '../../storage/localStorageAdapter': 'src/storage/localStorageAdapter.ts',
       '../storage/localStorageAdapter': 'src/storage/localStorageAdapter.ts',
       './layout': 'src/features/settings/layout.ts',
+      './appearance': 'src/features/settings/appearance.ts',
     };
     runInNewContext(output, {
       module, exports: module.exports, URL, TextEncoder, window, CustomEvent,
@@ -69,6 +70,7 @@ function backup() {
       ],
       backgroundImage: picture, microsoftSelectedListId: 'my-list', googleVisibleCalendarIds: ['my-calendar'], openInNewTab: false,
       layout: { searchGap: null, panelsGap: null },
+      appearance: { hideSearch: false, shortcutOpacity: null },
     },
   };
 }
@@ -118,6 +120,26 @@ test('las copias conservan distancias personalizadas y las antiguas restauran el
     input.settings.layout = { searchGap: value, panelsGap: null };
     assert.throws(() => api.validateConfiguration(input), /distancias/);
   }
+});
+
+test('las copias guardan buscador oculto y opacidad, y admiten configuraciones anteriores', () => {
+  const { api, storage } = environment();
+  const input = backup();
+  for (const opacity of [0, 55, 100]) {
+    input.settings.appearance = { hideSearch: true, shortcutOpacity: opacity };
+    api.importConfiguration(input);
+    assert.deepEqual(JSON.parse(api.exportConfiguration(storage)).settings.appearance, input.settings.appearance);
+    assert.deepEqual(JSON.parse(storage.getItem('mipanel.appearance')), input.settings.appearance);
+  }
+  delete input.settings.appearance;
+  api.importConfiguration(input);
+  assert.deepEqual(JSON.parse(storage.getItem('mipanel.appearance')), { hideSearch: false, shortcutOpacity: null });
+  for (const value of [-1, 101, '50', 0.5]) {
+    input.settings.appearance = { hideSearch: true, shortcutOpacity: value };
+    assert.throws(() => api.validateConfiguration(input), /opacidad/);
+  }
+  input.settings.appearance = { hideSearch: 'yes', shortcutOpacity: null };
+  assert.throws(() => api.validateConfiguration(input), /visibilidad/);
 });
 
 test('las copias rechazan carpetas anidadas, huérfanos y preferencias mal tipadas', () => {

@@ -2,6 +2,7 @@ import { defaultShortcuts } from '../../data/mock';
 import { replaceStoredPreferences } from '../../storage/localStorageAdapter';
 import type { Shortcut } from '../../types';
 import { DEFAULT_LAYOUT, validLayoutGap, type PanelLayout } from './layout';
+import { DEFAULT_APPEARANCE, validShortcutOpacity, type PanelAppearance } from './appearance';
 
 export const MAX_CONFIGURATION_BYTES = 16 * 1024 * 1024;
 const KEYS = {
@@ -11,6 +12,7 @@ const KEYS = {
   googleVisibleCalendarIds: 'mipanel.google.visibleCalendarIds',
   openInNewTab: 'mipanel.shortcuts.openInNewTab',
   layout: 'mipanel.layout',
+  appearance: 'mipanel.appearance',
 } as const;
 
 export type PanelConfiguration = {
@@ -24,6 +26,7 @@ export type PanelConfiguration = {
     googleVisibleCalendarIds: string[];
     openInNewTab: boolean;
     layout: PanelLayout;
+    appearance: PanelAppearance;
   };
 };
 
@@ -99,6 +102,8 @@ export function validateConfiguration(value: unknown): PanelConfiguration {
   if (settings.openInNewTab !== undefined && typeof settings.openInNewTab !== 'boolean') throw new Error('La opción de pestaña nueva no es válida.');
   const layout = settings.layout === undefined ? DEFAULT_LAYOUT : record(settings.layout);
   if (!validLayoutGap(layout.searchGap) || !validLayoutGap(layout.panelsGap)) throw new Error('Las distancias de distribución deben estar entre 0 y 2000 píxeles o ser automáticas.');
+  const appearance = settings.appearance === undefined ? DEFAULT_APPEARANCE : record(settings.appearance);
+  if (typeof appearance.hideSearch !== 'boolean' || !validShortcutOpacity(appearance.shortcutOpacity)) throw new Error('La visibilidad del buscador o la opacidad de los accesos no es válida.');
   if (!Array.isArray(settings.googleVisibleCalendarIds) || settings.googleVisibleCalendarIds.length > 1000) {
     throw new Error('La selección de calendarios no es válida.');
   }
@@ -116,6 +121,7 @@ export function validateConfiguration(value: unknown): PanelConfiguration {
       googleVisibleCalendarIds,
       openInNewTab: settings.openInNewTab === true,
       layout: { searchGap: layout.searchGap, panelsGap: layout.panelsGap },
+      appearance: { hideSearch: appearance.hideSearch, shortcutOpacity: appearance.shortcutOpacity },
     },
   };
 }
@@ -144,6 +150,7 @@ export function exportConfiguration(storage: Pick<Storage, 'getItem'> = window.l
       googleVisibleCalendarIds: read(KEYS.googleVisibleCalendarIds, []) ?? [],
       openInNewTab: read(KEYS.openInNewTab, false),
       layout: read(KEYS.layout, DEFAULT_LAYOUT),
+      appearance: read(KEYS.appearance, DEFAULT_APPEARANCE),
     },
   });
   const content = JSON.stringify(configuration, null, 2);
@@ -162,5 +169,6 @@ export function importConfiguration(configuration: PanelConfiguration) {
     [KEYS.googleVisibleCalendarIds]: settings.googleVisibleCalendarIds,
     [KEYS.openInNewTab]: settings.openInNewTab,
     [KEYS.layout]: settings.layout,
+    [KEYS.appearance]: settings.appearance,
   });
 }

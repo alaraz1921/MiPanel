@@ -158,6 +158,13 @@ comportamiento adaptable de escritorio/móvil). Se guardan los cambios localment
 en `mipanel.layout`, se pueden restablecer y forman parte de las copias portátiles.
 Las copias anteriores sin distribución restauran ambos campos a Automático.
 
+«Apariencia» permite ocultar el buscador sin alterar su espacio ni las distancias
+de los paneles, y ajustar de 0 a 100 % la opacidad del fondo de las tarjetas de
+accesos (también dentro de carpetas), sin atenuar iconos o nombres. La preferencia
+`mipanel.appearance` se guarda localmente y se exporta/importa. Las copias antiguas
+conservan el buscador visible y la opacidad predeterminada (27 % en el panel y
+70 % dentro de carpetas); se puede restaurar esa opacidad sin cambiar la visibilidad.
+
 El icono de configuración del inicio abre una página de la misma SPA (`?view=settings`),
 no un modal. Incluye cuatro apartados: exportación/importación de preferencias,
 imagen de fondo, cuenta Microsoft y cuenta Google con selección de calendarios.

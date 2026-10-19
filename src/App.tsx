@@ -7,14 +7,18 @@ import { Shortcuts } from './features/shortcuts/Shortcuts';
 import { TaskPanel } from './features/tasks/TaskPanel';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { DEFAULT_LAYOUT, normalizeLayout } from './features/settings/layout';
+import { DEFAULT_APPEARANCE, normalizeAppearance } from './features/settings/appearance';
 
 export default function App() {
   const [backgroundImage] = useLocalStorage('mipanel.backgroundImage', '');
   const [storedLayout] = useLocalStorage('mipanel.layout', DEFAULT_LAYOUT);
   const layout = normalizeLayout(storedLayout);
+  const [storedAppearance] = useLocalStorage('mipanel.appearance', DEFAULT_APPEARANCE);
+  const appearance = normalizeAppearance(storedAppearance);
   const layoutStyle = {
     ...(layout.searchGap !== null ? { '--search-gap': `${layout.searchGap}px` } : {}),
     ...(layout.panelsGap !== null ? { '--panels-gap': `${layout.panelsGap}px` } : {}),
+    ...(appearance.shortcutOpacity !== null ? { '--shortcut-background-opacity': appearance.shortcutOpacity / 100 } : {}),
   } as CSSProperties;
   const [settingsOpen, setSettingsOpen] = useState(() => new URLSearchParams(window.location.search).get('view') === 'settings');
 
@@ -45,7 +49,7 @@ export default function App() {
         <div className={`hero${layout.searchGap !== null ? ' custom-search-gap' : ''}${layout.panelsGap !== null ? ' custom-panels-gap' : ''}`}>
           <TopBar onOpenSettings={() => navigate(true)} />
           <Shortcuts />
-          <div className="search-center">
+          <div className={`search-center${appearance.hideSearch ? ' search-hidden' : ''}`} aria-hidden={appearance.hideSearch || undefined}>
             <SearchBar />
           </div>
         </div>

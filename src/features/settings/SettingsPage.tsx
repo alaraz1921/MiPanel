@@ -6,6 +6,7 @@ import { supabase } from '../../integrations/supabase/supabaseClient';
 import { BackgroundSettings } from '../background/BackgroundSettings';
 import { ConfigurationSettings } from './ConfigurationSettings';
 import { LayoutSettings } from './LayoutSettings';
+import { AppearanceSettings } from './AppearanceSettings';
 
 const statusLabels = {
   connected: 'Conectado', disconnected: 'Desconectado', connecting: 'Conectando…',
@@ -53,10 +54,12 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
         <a href="#copias">Exportar / importar</a><a href="#fondo">Fondo</a>
         <a href="#accesos">Accesos directos</a>
         <a href="#distribucion">Distribución</a>
+        <a href="#apariencia">Apariencia</a>
         <a href="#microsoft">Microsoft</a><a href="#google">Google y calendarios</a>
       </nav>
       <ConfigurationSettings />
       <LayoutSettings />
+      <AppearanceSettings />
       <section className="panel settings-section" id="accesos" aria-labelledby="shortcut-settings-title">
         <h2 id="shortcut-settings-title">Accesos directos</h2>
         <label className="completed-filter"><input type="checkbox" checked={openInNewTab} onChange={(event) => setOpenInNewTab(event.target.checked)} />Abrir enlaces en una pestaña nueva</label>

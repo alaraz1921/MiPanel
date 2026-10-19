@@ -151,6 +151,13 @@ La aplicación debe seguir siendo utilizable como dashboard cuando no haya ningu
 
 ### 4.7 Página de configuración
 
+«Distribución» permite fijar independientemente la separación vertical de los
+accesos al buscador y del buscador a los paneles, entre 0 y 2000 píxeles enteros.
+Dejar un campo vacío conserva su distribución automática actual (incluido el
+comportamiento adaptable de escritorio/móvil). Se guardan los cambios localmente
+en `mipanel.layout`, se pueden restablecer y forman parte de las copias portátiles.
+Las copias anteriores sin distribución restauran ambos campos a Automático.
+
 El icono de configuración del inicio abre una página de la misma SPA (`?view=settings`),
 no un modal. Incluye cuatro apartados: exportación/importación de preferencias,
 imagen de fondo, cuenta Microsoft y cuenta Google con selección de calendarios.

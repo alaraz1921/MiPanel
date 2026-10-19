@@ -70,6 +70,7 @@
 ## Fase 4 — Productividad
 
 - [x] Permitir una imagen de fondo local configurable.
+- [x] Configurar separaciones verticales entre accesos/buscador y buscador/paneles, con modo automático, restauración y copias compatibles con configuraciones antiguas.
 - [x] Usar confirmaciones propias para eliminar tareas; completar/reabrir directamente desde el título o checkbox.
 - [x] Mostrar editar y eliminar en las tarjetas de tareas y elementos de la agenda del calendario con los mismos iconos aportados, en una única fila y con etiquetas accesibles.
 - [x] Mantener la sesión de Microsoft entre reinicios mediante renovación segura.

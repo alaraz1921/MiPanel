@@ -25,6 +25,10 @@ const { ConfigurationSettings } = load('src/features/settings/ConfigurationSetti
   '../../components/ConfirmDialog': { ConfirmDialog: () => null }, './configuration': {},
 });
 const { BackgroundSettings } = load('src/features/background/BackgroundSettings.tsx');
+const layoutApi = load('src/features/settings/layout.ts');
+const { LayoutSettings } = load('src/features/settings/LayoutSettings.tsx', {
+  '../../hooks/useLocalStorage': { useLocalStorage: (_key, initial) => [initial, () => {}] }, './layout': layoutApi,
+});
 const microsoft = { status: 'disconnected' };
 const google = { status: 'disconnected', calendars: [], visibleCalendarIds: [] };
 const { SettingsPage } = load('src/features/settings/SettingsPage.tsx', {
@@ -33,14 +37,49 @@ const { SettingsPage } = load('src/features/settings/SettingsPage.tsx', {
   '../../integrations/google/GoogleCalendarContext': { useGoogleCalendar: () => google },
   '../../integrations/supabase/supabaseClient': { supabase: undefined },
   '../background/BackgroundSettings': { BackgroundSettings }, './ConfigurationSettings': { ConfigurationSettings },
+  './LayoutSettings': { LayoutSettings },
 });
 
 test('los cuatro apartados son una página, no un modal, y ofrecen conexión sin cuentas', () => {
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
-  for (const id of ['copias', 'fondo', 'accesos', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ['copias', 'fondo', 'accesos', 'distribucion', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /Abrir enlaces en una pestaña nueva/);
   for (const label of ['Volver al panel', 'Exportar configuración', 'Importar una copia', 'Guardar fondo', 'Conectar Microsoft', 'Conectar Google']) assert.ok(html.includes(label));
   assert.doesNotMatch(html, /<dialog|role="dialog"/);
+});
+
+test('distribución ofrece dos controles independientes y restauración automática', () => {
+  const html = renderToStaticMarkup(React.createElement(LayoutSettings));
+  assert.equal((html.match(/type="number"/g) ?? []).length, 2);
+  assert.equal((html.match(/placeholder="Automático"/g) ?? []).length, 2);
+  assert.match(html, /Distancia entre accesos directos y buscador/);
+  assert.match(html, /Distancia entre buscador y paneles/);
+  assert.match(html, /Restablecer distancias automáticas/);
+  for (const value of [-1, 2001, '20px', Number.NaN]) assert.equal(layoutApi.normalizeLayout({ searchGap: value }).searchGap, null);
+  assert.equal(layoutApi.normalizeLayout({ searchGap: 0, panelsGap: 2000 }).searchGap, 0);
+});
+
+test('el panel aplica las dos distancias sin alterar el modo automático inicial', () => {
+  let layout = layoutApi.DEFAULT_LAYOUT;
+  const { default: App } = load('src/App.tsx', {
+    './components/TopBar': { TopBar: () => null },
+    './features/settings/SettingsPage': { SettingsPage: () => null },
+    './features/calendar/CalendarView': { CalendarView: () => null },
+    './features/search/SearchBar': { SearchBar: () => null },
+    './features/shortcuts/Shortcuts': { Shortcuts: () => null },
+    './features/tasks/TaskPanel': { TaskPanel: () => null },
+    './features/settings/layout': layoutApi,
+    './hooks/useLocalStorage': { useLocalStorage: (key) => [key === 'mipanel.layout' ? layout : '', () => {}] },
+  }, { window: { location: { search: '' } }, URLSearchParams });
+  let html = renderToStaticMarkup(React.createElement(App));
+  assert.doesNotMatch(html, /custom-search-gap|custom-panels-gap|--search-gap|--panels-gap/);
+  layout = { searchGap: 0, panelsGap: 580 };
+  html = renderToStaticMarkup(React.createElement(App));
+  assert.match(html, /--search-gap:0px;--panels-gap:580px/);
+  assert.match(html, /hero custom-search-gap custom-panels-gap/);
+  layout = { searchGap: null, panelsGap: 0 };
+  html = renderToStaticMarkup(React.createElement(App));
+  assert.match(html, /--panels-gap:0px/); assert.doesNotMatch(html, /custom-search-gap/);
 });
 
 test('las cuentas conectadas ofrecen desconectar y selección de calendarios', () => {

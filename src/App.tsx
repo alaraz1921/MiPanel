@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { TopBar } from './components/TopBar';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { CalendarView } from './features/calendar/CalendarView';
@@ -6,9 +6,16 @@ import { SearchBar } from './features/search/SearchBar';
 import { Shortcuts } from './features/shortcuts/Shortcuts';
 import { TaskPanel } from './features/tasks/TaskPanel';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { DEFAULT_LAYOUT, normalizeLayout } from './features/settings/layout';
 
 export default function App() {
   const [backgroundImage] = useLocalStorage('mipanel.backgroundImage', '');
+  const [storedLayout] = useLocalStorage('mipanel.layout', DEFAULT_LAYOUT);
+  const layout = normalizeLayout(storedLayout);
+  const layoutStyle = {
+    ...(layout.searchGap !== null ? { '--search-gap': `${layout.searchGap}px` } : {}),
+    ...(layout.panelsGap !== null ? { '--panels-gap': `${layout.panelsGap}px` } : {}),
+  } as CSSProperties;
   const [settingsOpen, setSettingsOpen] = useState(() => new URLSearchParams(window.location.search).get('view') === 'settings');
 
   useEffect(() => {
@@ -34,8 +41,8 @@ export default function App() {
       )}
       {settingsOpen && <SettingsPage onBack={() => navigate(false)} />}
       {/* Mantener los consumidores montados conserva el mes y evita nuevas lecturas al volver. */}
-      <main className="app-shell" hidden={settingsOpen}>
-        <div className="hero">
+      <main className="app-shell" style={layoutStyle} hidden={settingsOpen}>
+        <div className={`hero${layout.searchGap !== null ? ' custom-search-gap' : ''}${layout.panelsGap !== null ? ' custom-panels-gap' : ''}`}>
           <TopBar onOpenSettings={() => navigate(true)} />
           <Shortcuts />
           <div className="search-center">

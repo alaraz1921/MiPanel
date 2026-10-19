@@ -77,7 +77,7 @@ export function ConfigurationSettings() {
           <span className="eyebrow">Configuración</span>
           <h2 id="configuration-title">Exportar / importar configuración</h2>
         </div>
-        <p>Guarda tus accesos y carpetas, su orden, iconos personalizados, apertura en nueva pestaña, fondo, lista de tareas seleccionada y calendarios visibles.</p>
+        <p>Guarda tus accesos y carpetas, su orden, iconos personalizados, apertura en nueva pestaña, fondo, distancias de distribución, lista de tareas seleccionada y calendarios visibles.</p>
         <p className="settings-help">La copia no incluye sesiones, contraseñas, tokens, tareas ni eventos. Para usar tus datos en otro equipo tendrás que conectar tus cuentas.</p>
         <button type="button" className="primary-button" onClick={download}>Exportar configuración</button>
         <label className="configuration-file">
@@ -94,6 +94,8 @@ export function ConfigurationSettings() {
               <dt>Accesos</dt><dd>{preview.settings.shortcuts.length}</dd>
               <dt>Carpetas</dt><dd>{preview.settings.shortcuts.filter((shortcut) => shortcut.kind === 'folder').length}</dd>
               <dt>Enlaces</dt><dd>{preview.settings.openInNewTab ? 'Nueva pestaña' : 'Misma pestaña'}</dd>
+              <dt>Accesos → buscador</dt><dd>{preview.settings.layout.searchGap === null ? 'Automático' : `${preview.settings.layout.searchGap} px`}</dd>
+              <dt>Buscador → paneles</dt><dd>{preview.settings.layout.panelsGap === null ? 'Automático' : `${preview.settings.layout.panelsGap} px`}</dd>
               <dt>Iconos personalizados</dt><dd>{preview.settings.shortcuts.filter((shortcut) => shortcut.customIcon).length}</dd>
               <dt>Fondo</dt><dd>{preview.settings.backgroundImage ? 'Incluido' : 'Sin fondo'}</dd>
               <dt>Lista de tareas</dt><dd>{preview.settings.microsoftSelectedListId ? 'Selección incluida' : 'Predeterminada'}</dd>

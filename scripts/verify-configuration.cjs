@@ -35,6 +35,7 @@ function environment(initial = {}) {
       '../../data/mock': 'src/data/mock.ts',
       '../../storage/localStorageAdapter': 'src/storage/localStorageAdapter.ts',
       '../storage/localStorageAdapter': 'src/storage/localStorageAdapter.ts',
+      './layout': 'src/features/settings/layout.ts',
     };
     runInNewContext(output, {
       module, exports: module.exports, URL, TextEncoder, window, CustomEvent,
@@ -67,6 +68,7 @@ function backup() {
         { id: 'second', label: 'Otro enlace', url: 'http://example.test', icon: '🔗' },
       ],
       backgroundImage: picture, microsoftSelectedListId: 'my-list', googleVisibleCalendarIds: ['my-calendar'], openInNewTab: false,
+      layout: { searchGap: null, panelsGap: null },
     },
   };
 }
@@ -100,6 +102,22 @@ test('las copias conservan carpetas, pertenencia y preferencia de nueva pestaña
   assert.equal(storage.getItem('mipanel.shortcuts.openInNewTab'), 'true');
   delete input.settings.openInNewTab;
   assert.equal(api.validateConfiguration(input).settings.openInNewTab, false);
+});
+
+test('las copias conservan distancias personalizadas y las antiguas restauran el modo automático', () => {
+  const { api, storage } = environment();
+  const input = backup();
+  input.settings.layout = { searchGap: 0, panelsGap: 675 };
+  api.importConfiguration(input);
+  assert.deepEqual(JSON.parse(api.exportConfiguration(storage)).settings.layout, input.settings.layout);
+  assert.deepEqual(JSON.parse(storage.getItem('mipanel.layout')), input.settings.layout);
+  delete input.settings.layout;
+  api.importConfiguration(input);
+  assert.deepEqual(JSON.parse(storage.getItem('mipanel.layout')), { searchGap: null, panelsGap: null });
+  for (const value of [-1, 2001, 0.5, '100px', Infinity]) {
+    input.settings.layout = { searchGap: value, panelsGap: null };
+    assert.throws(() => api.validateConfiguration(input), /distancias/);
+  }
 });
 
 test('las copias rechazan carpetas anidadas, huérfanos y preferencias mal tipadas', () => {

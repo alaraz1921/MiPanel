@@ -73,6 +73,11 @@ Los accesos directos utilizan el favicon web convencional de cada dominio. El fa
 
 ## Carpetas de accesos y nueva pestaña
 
+En **Configuración → Distribución** puedes ajustar la distancia vertical entre
+accesos y buscador, y entre buscador y paneles, de forma independiente (0–2000 px).
+Deja el campo vacío para mantener la distribución automática o usa **Restablecer
+distancias automáticas**. Se guarda al cambiar los valores y se incluye en las copias.
+
 En **Añadir**, elige **Carpeta** e indica su nombre. Al abrirla verás sus enlaces
 en una ventana; allí puedes añadir otros. Para agrupar un enlace existente,
 arrástralo sobre la carpeta o usa **Editar → Carpeta** en su menú contextual

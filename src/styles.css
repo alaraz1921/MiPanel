@@ -50,6 +50,10 @@ body::before {
 .status-connected { color: #caefd9; border-color: rgba(121,197,154,.34); }
 .status-error { color: #ffd2cc; border-color: rgba(229,123,112,.38); }
 .search-center { grid-column: 2; grid-row: 2; width: min(620px, 100%); margin: 140px auto 0; }
+.hero.custom-search-gap { row-gap: 0; }
+.hero.custom-search-gap .search-center { margin-top: var(--search-gap); }
+.hero.custom-panels-gap { min-height: 0; padding-bottom: var(--panels-gap); grid-template-rows: auto auto; row-gap: 0; }
+.hero.custom-panels-gap:not(.custom-search-gap) .search-center { margin-top: 162px; }
 .hero-kicker, .eyebrow { margin: 0; color: #aab8ca; text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; font-weight: 700; }
 h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.02; letter-spacing: -.045em; }
 .search { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 8px 9px 8px 17px; background: rgba(245,247,250,.96); border-radius: 22px; color: #18202b; box-shadow: 0 16px 50px rgba(0,0,0,.22); }
@@ -257,6 +261,9 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
   .topbar > div:first-child, .topbar-actions, .shortcuts-section, .search-center { grid-column: auto; grid-row: auto; }
   .shortcuts-section { width: 100%; }
   .search-center { margin-top: 76px; }
+  .hero.custom-search-gap, .hero.custom-panels-gap { row-gap: 18px; }
+  .hero.custom-search-gap .search-center { margin-top: calc(var(--search-gap) - 18px); }
+  .hero.custom-panels-gap:not(.custom-search-gap) .search-center { margin-top: 76px; }
   .search { grid-template-columns: auto 1fr; }
   .search button { display: none; }
   .shortcut-form { grid-template-columns: 1fr; }
@@ -299,3 +306,7 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .settings-section .configuration-preview { border-color: rgba(67,88,115,.20); background: rgba(255,255,255,.6); }
 .settings-section .configuration-success { color: #27714c; }
 .settings-section .task-editor-error { color: #ad423a; }
+.layout-settings-fields { display: grid; gap: 16px; margin-bottom: 20px; }
+.layout-settings-fields label { display: grid; gap: 8px; font-size: .9rem; }
+.layout-settings-fields input { width: min(100%, 240px); padding: 10px 12px; border: 1px solid rgba(67,88,115,.3); border-radius: 12px; background: rgba(255,255,255,.85); color: #263245; }
+.layout-settings-fields input:focus-visible { outline: 2px solid #274f8c; outline-offset: 2px; }

@@ -1,6 +1,7 @@
 import { defaultShortcuts } from '../../data/mock';
 import { replaceStoredPreferences } from '../../storage/localStorageAdapter';
 import type { Shortcut } from '../../types';
+import { DEFAULT_LAYOUT, validLayoutGap, type PanelLayout } from './layout';
 
 export const MAX_CONFIGURATION_BYTES = 16 * 1024 * 1024;
 const KEYS = {
@@ -9,6 +10,7 @@ const KEYS = {
   microsoftSelectedListId: 'mipanel.microsoft.selectedListId',
   googleVisibleCalendarIds: 'mipanel.google.visibleCalendarIds',
   openInNewTab: 'mipanel.shortcuts.openInNewTab',
+  layout: 'mipanel.layout',
 } as const;
 
 export type PanelConfiguration = {
@@ -21,6 +23,7 @@ export type PanelConfiguration = {
     microsoftSelectedListId: string;
     googleVisibleCalendarIds: string[];
     openInNewTab: boolean;
+    layout: PanelLayout;
   };
 };
 
@@ -94,6 +97,8 @@ export function validateConfiguration(value: unknown): PanelConfiguration {
   const folderIds = new Set(shortcuts.filter((shortcut) => shortcut.kind === 'folder').map((shortcut) => shortcut.id));
   if (shortcuts.some((shortcut) => shortcut.folderId && !folderIds.has(shortcut.folderId))) throw new Error('Un acceso apunta a una carpeta inexistente.');
   if (settings.openInNewTab !== undefined && typeof settings.openInNewTab !== 'boolean') throw new Error('La opción de pestaña nueva no es válida.');
+  const layout = settings.layout === undefined ? DEFAULT_LAYOUT : record(settings.layout);
+  if (!validLayoutGap(layout.searchGap) || !validLayoutGap(layout.panelsGap)) throw new Error('Las distancias de distribución deben estar entre 0 y 2000 píxeles o ser automáticas.');
   if (!Array.isArray(settings.googleVisibleCalendarIds) || settings.googleVisibleCalendarIds.length > 1000) {
     throw new Error('La selección de calendarios no es válida.');
   }
@@ -110,6 +115,7 @@ export function validateConfiguration(value: unknown): PanelConfiguration {
       microsoftSelectedListId: text(settings.microsoftSelectedListId, 'lista de Microsoft', 2048, true),
       googleVisibleCalendarIds,
       openInNewTab: settings.openInNewTab === true,
+      layout: { searchGap: layout.searchGap, panelsGap: layout.panelsGap },
     },
   };
 }
@@ -137,6 +143,7 @@ export function exportConfiguration(storage: Pick<Storage, 'getItem'> = window.l
       microsoftSelectedListId: read(KEYS.microsoftSelectedListId, ''),
       googleVisibleCalendarIds: read(KEYS.googleVisibleCalendarIds, []) ?? [],
       openInNewTab: read(KEYS.openInNewTab, false),
+      layout: read(KEYS.layout, DEFAULT_LAYOUT),
     },
   });
   const content = JSON.stringify(configuration, null, 2);
@@ -154,5 +161,6 @@ export function importConfiguration(configuration: PanelConfiguration) {
     [KEYS.microsoftSelectedListId]: settings.microsoftSelectedListId,
     [KEYS.googleVisibleCalendarIds]: settings.googleVisibleCalendarIds,
     [KEYS.openInNewTab]: settings.openInNewTab,
+    [KEYS.layout]: settings.layout,
   });
 }

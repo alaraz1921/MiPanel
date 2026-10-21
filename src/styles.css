@@ -314,3 +314,6 @@ h1 { margin: 10px 0 24px; font-size: clamp(1.9rem, 4vw, 3.7rem); line-height: 1.
 .shortcut-opacity-setting { display: grid; gap: 10px; margin: 20px 0; font-size: .9rem; }
 .shortcut-opacity-setting input { width: min(100%, 400px); accent-color: #274f8c; }
 .shortcut-opacity-setting input:focus-visible { outline: 2px solid #274f8c; outline-offset: 2px; }
+.shortcut-opening-setting { display: grid; gap: 8px; margin-bottom: 20px; font-size: .9rem; }
+.shortcut-opening-setting select { width: min(100%, 300px); padding: 10px 12px; border: 1px solid rgba(67,88,115,.3); border-radius: 12px; background: rgba(255,255,255,.85); color: #263245; }
+.shortcut-opening-setting select:focus-visible { outline: 2px solid #274f8c; outline-offset: 2px; }

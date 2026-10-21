@@ -35,8 +35,9 @@ const { LayoutSettings } = load('src/features/settings/LayoutSettings.tsx', {
 });
 const microsoft = { status: 'disconnected' };
 const google = { status: 'disconnected', calendars: [], visibleCalendarIds: [] };
+let openShortcutsInNewTab = false;
 const { SettingsPage } = load('src/features/settings/SettingsPage.tsx', {
-  '../../hooks/useLocalStorage': { useLocalStorage: () => ['', () => {}] },
+  '../../hooks/useLocalStorage': { useLocalStorage: (key) => [key === 'mipanel.shortcuts.openInNewTab' ? openShortcutsInNewTab : '', () => {}] },
   '../../integrations/microsoft/MicrosoftTodoContext': { useMicrosoftTodo: () => microsoft },
   '../../integrations/google/GoogleCalendarContext': { useGoogleCalendar: () => google },
   '../../integrations/supabase/supabaseClient': { supabase: undefined },
@@ -48,9 +49,22 @@ const { SettingsPage } = load('src/features/settings/SettingsPage.tsx', {
 test('los cuatro apartados son una página, no un modal, y ofrecen conexión sin cuentas', () => {
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
   for (const id of ['copias', 'fondo', 'accesos', 'distribucion', 'apariencia', 'microsoft', 'google']) assert.match(html, new RegExp(`id="${id}"`));
-  assert.match(html, /Abrir enlaces en una pestaña nueva/);
+  assert.match(html, /Abrir accesos directos en/);
   for (const label of ['Volver al panel', 'Exportar configuración', 'Importar una copia', 'Guardar fondo', 'Conectar Microsoft', 'Conectar Google']) assert.ok(html.includes(label));
   assert.doesNotMatch(html, /<dialog|role="dialog"/);
+});
+
+test('la apertura permite elegir pestaña actual o nueva y explica la posición controlada por el navegador', () => {
+  openShortcutsInNewTab = false;
+  let html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
+  assert.match(html, /value="current" selected="">Pestaña actual/);
+  assert.doesNotMatch(html, /La posición de la pestaña nueva la decide/);
+  openShortcutsInNewTab = true;
+  html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
+  assert.match(html, /value="new" selected="">Pestaña nueva/);
+  assert.match(html, /La posición de la pestaña nueva la decide el navegador/);
+  assert.match(html, /haría falta una extensión/);
+  openShortcutsInNewTab = false;
 });
 
 test('distribución ofrece dos controles independientes y restauración automática', () => {
@@ -116,7 +130,7 @@ test('las cuentas conectadas ofrecen desconectar y selección de calendarios', (
   const html = renderToStaticMarkup(React.createElement(SettingsPage, { onBack() {} }));
   assert.match(html, /Desconectar Microsoft/); assert.match(html, /Desconectar Google/);
   assert.match(html, /Autorizar edición de eventos/);
-  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 4);
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 3);
   assert.equal((html.match(/checked=""/g) ?? []).length, 1);
   assert.match(html, /Trabajo/); assert.match(html, /Personal/);
 });

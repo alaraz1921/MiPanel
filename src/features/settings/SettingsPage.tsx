@@ -62,7 +62,14 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
       <AppearanceSettings />
       <section className="panel settings-section" id="accesos" aria-labelledby="shortcut-settings-title">
         <h2 id="shortcut-settings-title">Accesos directos</h2>
-        <label className="completed-filter"><input type="checkbox" checked={openInNewTab} onChange={(event) => setOpenInNewTab(event.target.checked)} />Abrir enlaces en una pestaña nueva</label>
+        <label className="shortcut-opening-setting">Abrir accesos directos en
+          <select value={openInNewTab ? 'new' : 'current'} aria-describedby={openInNewTab ? 'shortcut-opening-help' : undefined}
+            onChange={(event) => setOpenInNewTab(event.target.value === 'new')}>
+            <option value="current">Pestaña actual</option>
+            <option value="new">Pestaña nueva</option>
+          </select>
+        </label>
+        {openInNewTab && <p className="settings-help" id="shortcut-opening-help">La posición de la pestaña nueva la decide el navegador. La web no puede elegir entre abrirla justo después de la actual o al final; para ello haría falta una extensión.</p>}
         <p className="settings-help">Se aplica a los enlaces del panel y de las carpetas. Las carpetas se abren siempre dentro de MiPanel.</p>
       </section>
       <BackgroundSettings value={background} onSave={(image) => {

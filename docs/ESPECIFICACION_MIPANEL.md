@@ -66,6 +66,10 @@ Eliminar una carpeta pide confirmación y devuelve sus enlaces al panel, sin bor
 La preferencia `mipanel.shortcuts.openInNewTab` determina si los enlaces se abren
 en una pestaña nueva (con `noopener noreferrer`); por defecto se conserva la misma pestaña.
 Las carpetas abren siempre un modal, independientemente de esa preferencia.
+La selección se presenta como «Pestaña actual» / «Pestaña nueva», conservando el
+valor booleano anterior y su compatibilidad con las copias. Al seleccionar nueva
+se explica que su posición la decide el navegador; la SPA no puede fijar después
+de la actual o al final de las pestañas. Esa función necesitaría una extensión.
 Las copias incluyen carpetas y esta opción, y admiten copias antiguas sin esos campos.
 
 ### 4.3 Microsoft To Do

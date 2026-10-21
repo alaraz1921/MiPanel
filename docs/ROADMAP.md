@@ -79,6 +79,7 @@
 - [x] Agrupar accesos en carpetas de un nivel con ventana modal; crear, renombrar, mover, sacar y ordenar enlaces. Borrar una carpeta devuelve sus enlaces al panel.
 - [x] Mostrar el alta de accesos en filas con campos anchos, selector de icono sin solapamientos y botón Cancelar que descarta el borrador, con fondo blanco al 85 % de opacidad para destacar sobre imágenes.
 - [x] Configurar apertura de enlaces en nueva pestaña, también dentro de carpetas; conservar carpetas y preferencia en las copias, compatibles con copias antiguas.
+- [x] Mostrar un selector explícito Pestaña actual / Pestaña nueva y explicar que la posición de la nueva pestaña depende del navegador; no disponible desde la SPA.
 - [x] Mostrar el favicon asociado por el navegador a cada URL, con fallback local y sin servicios externos.
 - [x] Filtrar las tareas para mostrar únicamente las vencidas por fecha o recordatorio.
 - [x] Editar y eliminar accesos desde un menú contextual con confirmación.

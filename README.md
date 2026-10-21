@@ -92,9 +92,12 @@ arrástralo sobre la carpeta o usa **Editar → Carpeta** en su menú contextual
 Puedes renombrar, reordenar y eliminar carpetas; al borrarlas, sus enlaces vuelven
 al panel. No se admiten carpetas dentro de otras carpetas.
 
-En **Configuración → Accesos directos**, marca **Abrir enlaces en una pestaña nueva**.
-Se aplica también a los enlaces de las carpetas y se guarda en las copias de
-configuración. Desmarcada, se mantiene la navegación en la pestaña actual.
+En **Configuración → Accesos directos → Abrir accesos directos en**, elige
+**Pestaña actual** o **Pestaña nueva**. Se aplica también a los enlaces de las
+carpetas y se guarda en las copias de configuración, conservando la preferencia anterior.
+La posición de una nueva pestaña la decide el navegador: la SPA no puede elegir
+entre después de la actual o al final. Controlarla requeriría una extensión con
+la API de pestañas; no se ha añadido ninguna extensión ni una preferencia sin efecto.
 
 ## Crear eventos Google
 
